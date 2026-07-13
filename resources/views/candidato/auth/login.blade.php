@@ -71,7 +71,7 @@
     <div class="blob blob-3"></div>
     <div class="login-brand-card">
         <img src="{{ asset('imagens/fapeulogoverde.png') }}" alt="FAPEU">
-        <div class="login-brand-title">Portal de Vagas FAPEU</div>
+        <div class="login-brand-title">Portal de vagas FAPEU</div>
         <!-- <div class="login-brand-sub">Acompanhe suas candidaturas e<br>candidate-se com um clique</div> -->
     </div>
 </div>
