@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Testes e build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configura PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, zip, intl, gd, fileinfo
+          coverage: none
+
+      - name: Cache do Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Instala dependencias PHP
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Configura Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instala dependencias JS
+        run: npm ci
+
+      # O root view (resources/views/app.blade.php) usa @vite, entao os testes
+      # so renderizam se o manifest existir. O build vem antes dos testes.
+      - name: Build dos assets
+        run: npm run build
+
+      - name: Prepara ambiente
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Testes
+        run: php artisan test

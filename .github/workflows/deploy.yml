@@ -1,0 +1,105 @@
+name: CD
+
+# Roda somente depois que o CI passar no master. Deploy manual pela aba
+# Actions tambem e permitido (workflow_dispatch).
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [master]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy no servidor da FAPEU
+    # O servidor e interno, sem IP publico: precisa de um runner self-hosted
+    # instalado nele com as labels abaixo.
+    runs-on: [self-hosted, windows, vagas]
+    environment: producao
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      # Faz checkout exatamente do commit que o CI aprovou.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Confere o destino do deploy
+        run: |
+          $destino = '${{ vars.DEPLOY_PATH }}'
+          if ([string]::IsNullOrWhiteSpace($destino)) {
+            throw 'Variavel DEPLOY_PATH nao configurada no repositorio.'
+          }
+          if ($destino -match '^[A-Za-z]:\\?$') {
+            throw "DEPLOY_PATH ($destino) aponta para a raiz de um disco. Abortado."
+          }
+          if (-not (Test-Path $destino)) {
+            throw "DEPLOY_PATH ($destino) nao existe no servidor."
+          }
+          if (-not (Test-Path (Join-Path $destino '.env'))) {
+            throw "Nao existe .env em $destino. Crie o .env de producao antes do primeiro deploy."
+          }
+          Write-Host "Destino validado: $destino"
+
+      - name: Instala dependencias PHP (sem dev)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist
+
+      - name: Instala dependencias JS
+        run: npm ci
+
+      - name: Build dos assets
+        run: npm run build
+
+      - name: Modo manutencao
+        continue-on-error: true
+        run: |
+          Set-Location '${{ vars.DEPLOY_PATH }}'
+          php artisan down --retry=15
+
+      # /MIR espelha o build no servidor, removendo arquivos que sairam do
+      # repositorio. As exclusoes protegem .env, storage e o .git do destino:
+      # itens excluidos nao sao apagados pelo /MIR.
+      - name: Copia os arquivos
+        run: |
+          $origem  = $env:GITHUB_WORKSPACE
+          $destino = '${{ vars.DEPLOY_PATH }}'
+
+          robocopy $origem $destino /MIR /NFL /NDL /NJH /NJS /NP /R:2 /W:5 `
+            /XD "$origem\.git" "$origem\.github" "$origem\node_modules" "$origem\tests" "$origem\storage" `
+                "$destino\.git" "$destino\node_modules" "$destino\storage" "$destino\public\storage" `
+            /XF ".env" ".env.example" ".phpunit.result.cache"
+
+          # robocopy usa 0-7 para sucesso e >=8 para falha real.
+          if ($LASTEXITCODE -ge 8) { throw "robocopy falhou com codigo $LASTEXITCODE" }
+          Write-Host "Arquivos copiados (robocopy $LASTEXITCODE)"
+
+      - name: Migrations
+        run: |
+          Set-Location '${{ vars.DEPLOY_PATH }}'
+          php artisan migrate --force
+
+      - name: Recria os caches
+        run: |
+          Set-Location '${{ vars.DEPLOY_PATH }}'
+          php artisan optimize
+
+      - name: Reinicia a fila
+        run: |
+          Set-Location '${{ vars.DEPLOY_PATH }}'
+          php artisan queue:restart
+
+      # Sai da manutencao mesmo se algum passo acima falhar, para nao deixar
+      # o site fora do ar.
+      - name: Sai do modo manutencao
+        if: always()
+        run: |
+          Set-Location '${{ vars.DEPLOY_PATH }}'
+          php artisan up
