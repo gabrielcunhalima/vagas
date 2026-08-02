@@ -1,0 +1,20 @@
+# A pasta do app fica dentro do DocumentRoot do WAMP (www/), entao tudo que
+# esta aqui e alcancavel por HTTP -- inclusive .git/, .env, storage/ e
+# vendor/. Só o public/ deve ser servido.
+#
+# O ideal e apontar um VirtualHost direto para vagas/public e dispensar este
+# arquivo. Enquanto o acesso for por http://servidor/vagas/public, ele e o
+# que impede o download do codigo-fonte e do historico.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(?!public/) - [F,L]
+</IfModule>
+
+# Se o mod_rewrite estiver desabilitado, ao menos os arquivos ocultos
+# (.git, .env, .gitignore) continuam bloqueados.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes
