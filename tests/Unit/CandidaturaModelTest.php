@@ -119,18 +119,18 @@ class CandidaturaModelTest extends TestCase
         $this->assertEquals('529.982.247-25', $c->cpf_formatado);
     }
 
-    public function test_curriculo_url_com_path(): void
+    public function test_tem_curriculo_com_path(): void
     {
         $vaga = $this->makeVaga();
         $c = $this->makeCandidatura($vaga, ['curriculo_path' => 'vagas/curriculos/teste.pdf']);
-        $this->assertStringContainsString('vagas/curriculos/teste.pdf', $c->curriculo_url);
+        $this->assertTrue($c->temCurriculo());
     }
 
-    public function test_curriculo_url_sem_path(): void
+    public function test_tem_curriculo_sem_path(): void
     {
         $vaga = $this->makeVaga();
         $c = $this->makeCandidatura($vaga, ['curriculo_path' => null]);
-        $this->assertNull($c->curriculo_url);
+        $this->assertFalse($c->temCurriculo());
     }
 
     public function test_endereco_completo(): void

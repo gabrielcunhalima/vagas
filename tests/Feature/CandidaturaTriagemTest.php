@@ -66,8 +66,8 @@ class CandidaturaTriagemTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas");
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.coordenador.candidaturas.index');
-        $response->assertSee('Candidato de Teste');
+        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Index');
+        $this->assertVeInertia($response, 'Candidato de Teste');
     }
 
     public function test_coordenador_nao_acessa_candidaturas_de_vaga_alheia(): void
@@ -98,8 +98,8 @@ class CandidaturaTriagemTest extends TestCase
 
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas?status=recebida");
         $response->assertStatus(200);
-        $response->assertSee('Candidato de Teste');
-        $response->assertDontSee('Candidato Em Análise');
+        $this->assertVeInertia($response, 'Candidato de Teste');
+        $this->assertNaoVeInertia($response, 'Candidato Em Análise');
     }
 
     public function test_busca_candidaturas_por_nome(): void
@@ -107,7 +107,7 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)
             ->get("/coord/vagas/{$this->vaga->id}/candidaturas?busca=Candidato+de+Teste");
         $response->assertStatus(200);
-        $response->assertSee('Candidato de Teste');
+        $this->assertVeInertia($response, 'Candidato de Teste');
     }
 
     // ── Listagem todas candidaturas ───────────────────────────────────────────
@@ -116,13 +116,13 @@ class CandidaturaTriagemTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get('/coord/candidaturas');
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.coordenador.candidaturas.todas');
+        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Todas');
     }
 
     public function test_listagem_geral_exibe_contadores(): void
     {
         $response = $this->actingAs($this->coord)->get('/coord/candidaturas');
-        $response->assertViewHas('contadores');
+        $this->assertPropInertia($response, 'contadores');
     }
 
     // ── Show candidatura ──────────────────────────────────────────────────────
@@ -133,8 +133,8 @@ class CandidaturaTriagemTest extends TestCase
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
         );
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.coordenador.candidaturas.show');
-        $response->assertSee('Candidato de Teste');
+        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Show');
+        $this->assertVeInertia($response, 'Candidato de Teste');
     }
 
     public function test_candidatura_de_outra_vaga_retorna_404(): void
@@ -349,8 +349,8 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_download_curriculo_disponivel(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('vagas/curriculos/fake.pdf', 'conteúdo do pdf');
+        Storage::fake('local');
+        Storage::disk('local')->put('vagas/curriculos/fake.pdf', 'conteúdo do pdf');
 
         $response = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo"

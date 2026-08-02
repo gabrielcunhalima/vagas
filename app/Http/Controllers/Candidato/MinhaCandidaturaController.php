@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Vagas\Candidatura;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class MinhaCandidaturaController extends Controller
 {
@@ -22,7 +23,14 @@ class MinhaCandidaturaController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('candidato.candidaturas.index', compact('candidaturas'));
+        return Inertia::render('Candidato/Candidaturas/Index', [
+            'candidaturas' => $candidaturas->map(fn(Candidatura $c) => [
+                'id'         => $c->id,
+                'status'     => $c->status,
+                'created_at' => $c->created_at,
+                'vaga'       => $c->vaga?->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'cidade', 'estado']),
+            ]),
+        ]);
     }
 
     public function show(Candidatura $candidatura)
@@ -34,7 +42,37 @@ class MinhaCandidaturaController extends Controller
 
         $candidatura->load('vaga');
 
-        return view('candidato.candidaturas.show', compact('candidatura'));
+        // Visão do candidato: sem observações internas do coordenador
+        return Inertia::render('Candidato/Candidaturas/Show', [
+            'candidatura' => [
+                'id'                     => $candidatura->id,
+                'status'                 => $candidatura->status,
+                'created_at'             => $candidatura->created_at,
+                'nome'                   => $candidatura->nome,
+                'email'                  => $candidatura->email,
+                'cpf_formatado'          => $candidatura->cpf_formatado,
+                'telefone'               => $candidatura->telefone,
+                'curso'                  => $candidatura->curso,
+                'instituicao'            => $candidatura->instituicao,
+                'semestre'               => $candidatura->semestre,
+                'previsao_conclusao'     => $candidatura->previsao_conclusao,
+                'carta_apresentacao'     => $candidatura->carta_apresentacao,
+                'linkedin'               => $candidatura->linkedin,
+                'pretensao_salarial'     => $candidatura->pretensao_salarial,
+                'disponibilidade'        => $candidatura->disponibilidade,
+                'pcd'                    => $candidatura->pcd,
+                'pcd_tipo'               => $candidatura->pcd_tipo,
+                'endereco_completo'      => $candidatura->endereco_completo,
+                'curriculo_nome'         => $candidatura->curriculo_nome_original,
+                'tem_curriculo'          => $candidatura->temCurriculo(),
+                'entrevista_data'        => $candidatura->entrevista_data,
+                'entrevista_local'       => $candidatura->entrevista_local,
+                'entrevista_observacoes' => $candidatura->entrevista_observacoes,
+                'vaga'                   => $candidatura->vaga?->only([
+                    'id', 'titulo', 'tipo', 'area', 'modalidade', 'cidade', 'estado', 'status', 'data_encerramento',
+                ]),
+            ],
+        ]);
     }
 
     public function downloadCurriculo(Candidatura $candidatura)

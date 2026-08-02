@@ -46,7 +46,7 @@ class InscricaoTest extends TestCase
 
     private function dadosInscricao(array $over = []): array
     {
-        Storage::fake('public');
+        Storage::fake('local');
         return array_merge([
             '_honeypot'          => '',
             'nome'               => 'João da Silva Santos',
@@ -63,6 +63,7 @@ class InscricaoTest extends TestCase
             'pretensao_salarial' => '1500.00',
             'disponibilidade'    => 'Manhã',
             'pcd'                => false,
+            'lgpd_consentimento' => true,
         ], $over);
     }
 
@@ -73,7 +74,7 @@ class InscricaoTest extends TestCase
         $vaga = $this->criarVaga();
         $response = $this->get("/vagas/{$vaga->id}");
         $response->assertStatus(200);
-        $response->assertSee($vaga->titulo);
+        $this->assertVeInertia($response, $vaga->titulo);
     }
 
     public function test_vaga_encerrada_nao_exibida_na_listagem(): void
@@ -82,15 +83,15 @@ class InscricaoTest extends TestCase
         $this->criarVaga(['titulo' => 'Vaga Encerrada', 'status' => 'encerrada', 'data_encerramento' => now()->subDays(5)->toDateString()]);
 
         $response = $this->get('/vagas');
-        $response->assertSee('Vaga Ativa');
-        $response->assertDontSee('Vaga Encerrada');
+        $this->assertVeInertia($response, 'Vaga Ativa');
+        $this->assertNaoVeInertia($response, 'Vaga Encerrada');
     }
 
     public function test_vaga_rascunho_nao_exibida_na_listagem_publica(): void
     {
         $this->criarVaga(['titulo' => 'Vaga Rascunho', 'status' => 'rascunho']);
         $response = $this->get('/vagas');
-        $response->assertDontSee('Vaga Rascunho');
+        $this->assertNaoVeInertia($response, 'Vaga Rascunho');
     }
 
     // ── Formulário de candidatura ─────────────────────────────────────────────
@@ -100,7 +101,7 @@ class InscricaoTest extends TestCase
         $vaga = $this->criarVaga();
         $response = $this->get("/candidatura/{$vaga->id}");
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.publico.candidatura');
+        $this->assertComponenteInertia($response, 'Publico/Candidatura');
     }
 
     public function test_formulario_candidatura_vaga_encerrada_retorna_404(): void
@@ -125,7 +126,7 @@ class InscricaoTest extends TestCase
     public function test_candidatura_armazenada_com_sucesso(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
 
         $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
@@ -142,20 +143,20 @@ class InscricaoTest extends TestCase
     public function test_candidatura_salva_curriculo(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
 
         $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
 
         $candidatura = Candidatura::where('email', 'joao@teste.com')->first();
         $this->assertNotNull($candidatura->curriculo_path);
-        Storage::disk('public')->assertExists($candidatura->curriculo_path);
+        Storage::disk('local')->assertExists($candidatura->curriculo_path);
     }
 
     public function test_candidatura_envia_email_ao_candidato(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
 
         $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
@@ -166,7 +167,7 @@ class InscricaoTest extends TestCase
     public function test_candidatura_notifica_coordenador_quando_notificar_email_true(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga(['notificar_email' => true]);
 
         $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
@@ -177,7 +178,7 @@ class InscricaoTest extends TestCase
     public function test_candidatura_nao_notifica_coordenador_quando_notificar_email_false(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga(['notificar_email' => false]);
 
         $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
@@ -191,14 +192,14 @@ class InscricaoTest extends TestCase
         $response = $this->withSession(['candidatura_nome' => 'João'])
             ->get("/candidatura/{$vaga->id}/confirmacao");
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.publico.confirmacao');
+        $this->assertComponenteInertia($response, 'Publico/Confirmacao');
     }
 
     // ── Validações da inscrição ───────────────────────────────────────────────
 
     public function test_inscricao_sem_nome_falha(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
         $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao(['nome' => '']));
         $response->assertSessionHasErrors('nome');
@@ -206,7 +207,7 @@ class InscricaoTest extends TestCase
 
     public function test_inscricao_sem_email_falha(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
         $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao(['email' => '']));
         $response->assertSessionHasErrors('email');
@@ -214,7 +215,7 @@ class InscricaoTest extends TestCase
 
     public function test_inscricao_cpf_invalido_falha(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
         $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao(['cpf' => '111.111.111-11']));
         $response->assertSessionHasErrors('cpf');
@@ -231,7 +232,7 @@ class InscricaoTest extends TestCase
 
     public function test_inscricao_curriculo_nao_pdf_falha(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
         $dados = $this->dadosInscricao([
             'curriculo' => UploadedFile::fake()->create('curriculo.docx', 100, 'application/msword'),
@@ -242,7 +243,7 @@ class InscricaoTest extends TestCase
 
     public function test_inscricao_curriculo_maior_que_5mb_falha(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
         $dados = $this->dadosInscricao([
             'curriculo' => UploadedFile::fake()->create('curriculo.pdf', 6000, 'application/pdf'),
@@ -254,7 +255,7 @@ class InscricaoTest extends TestCase
     public function test_inscricao_duplicada_mesmo_cpf_falha(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
 
         // Primeira candidatura
@@ -270,7 +271,7 @@ class InscricaoTest extends TestCase
     public function test_mesmo_cpf_pode_se_candidatar_em_vagas_diferentes(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga1 = $this->criarVaga(['titulo' => 'Vaga 1']);
         $vaga2 = $this->criarVaga(['titulo' => 'Vaga 2']);
 
@@ -283,7 +284,7 @@ class InscricaoTest extends TestCase
 
     public function test_honeypot_preenchido_bloqueia_inscricao(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
         $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao([
             '_honeypot' => 'bot preencheu isso',
@@ -294,7 +295,7 @@ class InscricaoTest extends TestCase
     public function test_inscricao_com_pcd_salva_tipo(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
 
         $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao([
@@ -311,7 +312,7 @@ class InscricaoTest extends TestCase
 
     public function test_inscricao_em_vaga_encerrada_retorna_404(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga([
             'status'            => 'ativa',
             'data_encerramento' => now()->subDays(1)->toDateString(),
@@ -326,13 +327,13 @@ class InscricaoTest extends TestCase
     {
         $response = $this->get('/minhas-candidaturas');
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.publico.consulta-candidatura');
+        $this->assertComponenteInertia($response, 'Publico/ConsultaCandidatura');
     }
 
     public function test_consulta_candidatura_por_cpf_e_email(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
         $vaga = $this->criarVaga();
         $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
 
@@ -342,8 +343,8 @@ class InscricaoTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $response->assertViewHas('candidaturas');
-        $response->assertSee('Estágio em TI');
+        $this->assertPropInertia($response, 'candidaturas');
+        $this->assertVeInertia($response, 'Estágio em TI');
     }
 
     public function test_consulta_sem_candidaturas_retorna_lista_vazia(): void
@@ -353,7 +354,7 @@ class InscricaoTest extends TestCase
             'email' => 'naoexiste@email.com',
         ]);
         $response->assertStatus(200);
-        $candidaturas = $response->viewData('candidaturas');
+        $candidaturas = $this->propsInertia($response)['candidaturas'];
         $this->assertCount(0, $candidaturas);
     }
 

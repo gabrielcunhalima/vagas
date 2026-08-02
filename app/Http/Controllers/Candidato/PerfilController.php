@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 
 class PerfilController extends Controller
 {
@@ -23,7 +24,19 @@ class PerfilController extends Controller
 
     public function edit()
     {
-        return view('candidato.perfil.edit', ['candidato' => $this->candidato()]);
+        $candidato = $this->candidato();
+
+        return Inertia::render('Candidato/Perfil/Edit', [
+            'candidato' => array_merge($candidato->only([
+                'nome', 'nome_social', 'nacionalidade', 'email', 'cpf', 'telefone', 'linkedin',
+                'curso', 'instituicao', 'nivel_escolaridade', 'situacao_curso', 'semestre', 'previsao_conclusao',
+                'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
+                'pretensao_salarial', 'disponibilidade', 'pcd', 'pcd_tipo',
+                'curriculo_nome_original', 'created_at',
+            ]), [
+                'tem_curriculo' => $candidato->temCurriculo(),
+            ]),
+        ]);
     }
 
     public function update(Request $request)
@@ -79,12 +92,12 @@ class PerfilController extends Controller
 
         $request->validate([
             'senha_atual'  => ['required'],
-            'password'     => ['required', 'confirmed', Password::min(8)],
+            'password'     => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
         ], [
             'senha_atual.required'  => 'Informe sua senha atual.',
             'password.required'     => 'Informe a nova senha.',
             'password.confirmed'    => 'As senhas não coincidem.',
-            'password.min'          => 'A nova senha deve ter no mínimo 8 caracteres.',
+            'password.min'          => 'A nova senha deve ter no mínimo 8 caracteres, com maiúscula, minúscula, número e símbolo.',
         ]);
 
         if (!Hash::check($request->senha_atual, $candidato->password)) {

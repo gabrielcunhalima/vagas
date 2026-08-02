@@ -11,6 +11,7 @@ use App\Mail\Vagas\NovaCandidaturaMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class InscricaoController extends Controller
 {
@@ -34,7 +35,20 @@ class InscricaoController extends Controller
         // Pré-preenchimento: prioridade old() → perfil do candidato → vazio
         $prefill = $candidato ? $candidato->dadosParaCandidatura() : [];
 
-        return view('vagas.publico.candidatura', compact('vaga', 'candidato', 'prefill'));
+        return Inertia::render('Publico/Candidatura', [
+            'vaga' => $vaga->only([
+                'id', 'titulo', 'tipo', 'area', 'modalidade', 'carga_horaria',
+                'remuneracao', 'remuneracao_max', 'cidade', 'estado',
+                'local_trabalho', 'data_encerramento',
+            ]),
+            'candidato' => $candidato ? [
+                'nome'           => $candidato->nome,
+                'email'          => $candidato->email,
+                'tem_curriculo'  => $candidato->temCurriculo(),
+                'curriculo_nome' => $candidato->curriculo_nome_original,
+            ] : null,
+            'prefill' => $prefill,
+        ]);
     }
 
     public function store(InscricaoRequest $request, Vaga $vaga)
@@ -110,12 +124,19 @@ class InscricaoController extends Controller
 
     public function confirmacao(Vaga $vaga)
     {
-        return view('vagas.publico.confirmacao', compact('vaga'));
+        return Inertia::render('Publico/Confirmacao', [
+            'vaga' => $vaga->only(['id', 'titulo']),
+            'nome' => session('candidatura_nome'),
+        ]);
     }
 
     public function consultaForm()
     {
-        return view('vagas.publico.consulta-candidatura');
+        if ($this->candidatoLogado()) {
+            return redirect()->route('candidato.candidaturas.index');
+        }
+
+        return Inertia::render('Publico/ConsultaCandidatura');
     }
 
     public function consulta(\Illuminate\Http\Request $request)
@@ -133,6 +154,21 @@ class InscricaoController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('vagas.publico.consulta-candidatura', compact('candidaturas'));
+        // Consulta pública: nunca expor observações internas do coordenador
+        return Inertia::render('Publico/ConsultaCandidatura', [
+            'candidaturas' => $candidaturas->map(fn(Candidatura $c) => [
+                'id'                     => $c->id,
+                'status'                 => $c->status,
+                'created_at'             => $c->created_at,
+                'entrevista_data'        => $c->entrevista_data,
+                'entrevista_local'       => $c->entrevista_local,
+                'entrevista_observacoes' => $c->entrevista_observacoes,
+                'vaga'                   => $c->vaga?->only(['id', 'titulo', 'tipo', 'area', 'modalidade']),
+            ]),
+            'busca' => [
+                'cpf'   => $request->cpf,
+                'email' => $request->email,
+            ],
+        ]);
     }
 }

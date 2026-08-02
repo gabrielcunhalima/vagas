@@ -69,7 +69,7 @@ class VagaCoordenadorTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get('/coord/dashboard');
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.coordenador.dashboard');
+        $this->assertComponenteInertia($response, 'Coord/Dashboard');
     }
 
     public function test_dashboard_exibe_stats(): void
@@ -79,7 +79,7 @@ class VagaCoordenadorTest extends TestCase
 
         $response = $this->actingAs($this->coord)->get('/coord/dashboard');
         $response->assertStatus(200);
-        $response->assertViewHas('stats');
+        $this->assertPropInertia($response, 'stats');
     }
 
     // ── Listagem de vagas ─────────────────────────────────────────────────────
@@ -91,8 +91,8 @@ class VagaCoordenadorTest extends TestCase
 
         $response = $this->actingAs($this->coord)->get('/coord/vagas');
         $response->assertStatus(200);
-        $response->assertSee('Vaga do Coord1');
-        $response->assertDontSee('Vaga do Coord2');
+        $this->assertVeInertia($response, 'Vaga do Coord1');
+        $this->assertNaoVeInertia($response, 'Vaga do Coord2');
     }
 
     public function test_admin_lista_todas_as_vagas(): void
@@ -102,8 +102,8 @@ class VagaCoordenadorTest extends TestCase
 
         $response = $this->actingAs($this->admin)->get('/coord/vagas');
         $response->assertStatus(200);
-        $response->assertSee('Vaga do Coord1');
-        $response->assertSee('Vaga do Coord2');
+        $this->assertVeInertia($response, 'Vaga do Coord1');
+        $this->assertVeInertia($response, 'Vaga do Coord2');
     }
 
     public function test_listagem_com_filtro_status(): void
@@ -113,8 +113,8 @@ class VagaCoordenadorTest extends TestCase
 
         $response = $this->actingAs($this->coord)->get('/coord/vagas?status=rascunho');
         $response->assertStatus(200);
-        $response->assertSee('Vaga Rascunho');
-        $response->assertDontSee('Vaga Ativa');
+        $this->assertVeInertia($response, 'Vaga Rascunho');
+        $this->assertNaoVeInertia($response, 'Vaga Ativa');
     }
 
     public function test_listagem_com_filtro_busca(): void
@@ -124,8 +124,8 @@ class VagaCoordenadorTest extends TestCase
 
         $response = $this->actingAs($this->coord)->get('/coord/vagas?busca=Laravel');
         $response->assertStatus(200);
-        $response->assertSee('Estágio PHP Laravel');
-        $response->assertDontSee('Analista de Dados');
+        $this->assertVeInertia($response, 'Estágio PHP Laravel');
+        $this->assertNaoVeInertia($response, 'Analista de Dados');
     }
 
     // ── Formulário de criação ─────────────────────────────────────────────────
@@ -134,7 +134,7 @@ class VagaCoordenadorTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get('/coord/vagas/create');
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.coordenador.form');
+        $this->assertComponenteInertia($response, 'Coord/Vagas/Form');
     }
 
     // ── Store - Salvar como rascunho ──────────────────────────────────────────
@@ -220,7 +220,7 @@ class VagaCoordenadorTest extends TestCase
         $vaga = $this->criarVaga(['status' => 'rascunho']);
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$vaga->id}/edit");
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.coordenador.form');
+        $this->assertComponenteInertia($response, 'Coord/Vagas/Form');
     }
 
     public function test_nao_pode_editar_vaga_ativa(): void

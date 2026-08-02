@@ -7,6 +7,7 @@ use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
@@ -44,9 +45,21 @@ class DashboardController extends Controller
             fn($q) => $q->where('coordenador_id', $user->id)
         )->with('vaga')->latest()->take(5)->get();
 
-        return view('vagas.coordenador.dashboard', compact(
-            'stats', 'vagasRecentes', 'candidaturasRecentes'
-        ));
+        return Inertia::render('Coord/Dashboard', [
+            'stats' => $stats,
+            'vagasRecentes' => $vagasRecentes->map(fn(Vaga $v) => array_merge(
+                $v->only(['id', 'titulo', 'tipo', 'status', 'data_encerramento', 'created_at']),
+                ['candidaturas_count' => $v->candidaturas_count],
+            )),
+            'candidaturasRecentes' => $candidaturasRecentes->map(fn(Candidatura $c) => [
+                'id'         => $c->id,
+                'nome'       => $c->nome,
+                'status'     => $c->status,
+                'created_at' => $c->created_at,
+                'vaga_id'    => $c->vaga_id,
+                'vaga'       => $c->vaga?->only(['id', 'titulo']),
+            ]),
+        ]);
     }
 
     public function indexGestor()
@@ -64,6 +77,12 @@ class DashboardController extends Controller
             ->take(8)
             ->get();
 
-        return view('vagas.gestor.dashboard', compact('stats', 'vagasPendentes'));
+        return Inertia::render('Gestor/Dashboard', [
+            'stats' => $stats,
+            'vagasPendentes' => $vagasPendentes->map(fn(Vaga $v) => array_merge(
+                $v->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'data_encerramento', 'created_at']),
+                ['coordenador' => $v->coordenador?->only(['name'])],
+            )),
+        ]);
     }
 }

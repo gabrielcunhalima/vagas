@@ -53,28 +53,28 @@ class VagaPublicaTest extends TestCase
     {
         $response = $this->get('/vagas');
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.publico.index');
+        $this->assertComponenteInertia($response, 'Publico/Vagas/Index');
     }
 
     public function test_listagem_exibe_vagas_ativas(): void
     {
         $this->criarVaga(['titulo' => 'Estágio em PHP']);
         $response = $this->get('/vagas');
-        $response->assertSee('Estágio em PHP');
+        $this->assertVeInertia($response, 'Estágio em PHP');
     }
 
     public function test_listagem_nao_exibe_vagas_rascunho(): void
     {
         $this->criarVaga(['titulo' => 'Rascunho Escondido', 'status' => 'rascunho']);
         $response = $this->get('/vagas');
-        $response->assertDontSee('Rascunho Escondido');
+        $this->assertNaoVeInertia($response, 'Rascunho Escondido');
     }
 
     public function test_listagem_nao_exibe_vagas_aguardando_autorizacao(): void
     {
         $this->criarVaga(['titulo' => 'Aguardando Escondida', 'status' => 'aguardando_autorizacao']);
         $response = $this->get('/vagas');
-        $response->assertDontSee('Aguardando Escondida');
+        $this->assertNaoVeInertia($response, 'Aguardando Escondida');
     }
 
     public function test_listagem_nao_exibe_vagas_encerradas(): void
@@ -85,7 +85,7 @@ class VagaPublicaTest extends TestCase
             'data_encerramento' => now()->subDays(5)->toDateString(),
         ]);
         $response = $this->get('/vagas');
-        $response->assertDontSee('Encerrada Escondida');
+        $this->assertNaoVeInertia($response, 'Encerrada Escondida');
     }
 
     public function test_listagem_nao_exibe_vagas_ativas_com_data_passada(): void
@@ -96,7 +96,7 @@ class VagaPublicaTest extends TestCase
             'data_encerramento' => now()->subDays(1)->toDateString(),
         ]);
         $response = $this->get('/vagas');
-        $response->assertDontSee('Ativa Expirada');
+        $this->assertNaoVeInertia($response, 'Ativa Expirada');
     }
 
     // ── Filtros na listagem pública ───────────────────────────────────────────
@@ -107,8 +107,8 @@ class VagaPublicaTest extends TestCase
         $this->criarVaga(['titulo' => 'Vaga ADM', 'area' => 'Administração']);
 
         $response = $this->get('/vagas?area=Administra%C3%A7%C3%A3o');
-        $response->assertSee('Vaga ADM');
-        $response->assertDontSee('Vaga TI');
+        $this->assertVeInertia($response, 'Vaga ADM');
+        $this->assertNaoVeInertia($response, 'Vaga TI');
     }
 
     public function test_filtro_por_tipo(): void
@@ -117,8 +117,8 @@ class VagaPublicaTest extends TestCase
         $this->criarVaga(['titulo' => 'Emprego X', 'tipo' => 'emprego']);
 
         $response = $this->get('/vagas?tipo=emprego');
-        $response->assertSee('Emprego X');
-        $response->assertDontSee('Estágio X');
+        $this->assertVeInertia($response, 'Emprego X');
+        $this->assertNaoVeInertia($response, 'Estágio X');
     }
 
     public function test_filtro_por_modalidade(): void
@@ -127,8 +127,8 @@ class VagaPublicaTest extends TestCase
         $this->criarVaga(['titulo' => 'Vaga Remota', 'modalidade' => 'remoto']);
 
         $response = $this->get('/vagas?modalidade=remoto');
-        $response->assertSee('Vaga Remota');
-        $response->assertDontSee('Vaga Presencial');
+        $this->assertVeInertia($response, 'Vaga Remota');
+        $this->assertNaoVeInertia($response, 'Vaga Presencial');
     }
 
     public function test_filtro_por_busca(): void
@@ -137,8 +137,8 @@ class VagaPublicaTest extends TestCase
         $this->criarVaga(['titulo' => 'Analista Financeiro']);
 
         $response = $this->get('/vagas?busca=Laravel');
-        $response->assertSee('Desenvolvedor Laravel');
-        $response->assertDontSee('Analista Financeiro');
+        $this->assertVeInertia($response, 'Desenvolvedor Laravel');
+        $this->assertNaoVeInertia($response, 'Analista Financeiro');
     }
 
     public function test_filtro_por_curso(): void
@@ -153,8 +153,8 @@ class VagaPublicaTest extends TestCase
         ]);
 
         $response = $this->get('/vagas?curso=Ci%C3%AAncia+da+Computa%C3%A7%C3%A3o');
-        $response->assertSee('Vaga para Computação');
-        $response->assertDontSee('Vaga para Direito');
+        $this->assertVeInertia($response, 'Vaga para Computação');
+        $this->assertNaoVeInertia($response, 'Vaga para Direito');
     }
 
     public function test_filtro_por_cidade(): void
@@ -163,8 +163,8 @@ class VagaPublicaTest extends TestCase
         $this->criarVaga(['titulo' => 'Vaga SP', 'cidade' => 'São Paulo']);
 
         $response = $this->get('/vagas?cidade=Florian%C3%B3polis');
-        $response->assertSee('Vaga Floripa');
-        $response->assertDontSee('Vaga SP');
+        $this->assertVeInertia($response, 'Vaga Floripa');
+        $this->assertNaoVeInertia($response, 'Vaga SP');
     }
 
     public function test_filtro_por_faixa_salarial_minima(): void
@@ -173,8 +173,8 @@ class VagaPublicaTest extends TestCase
         $this->criarVaga(['titulo' => 'Vaga Baixa Remun', 'remuneracao' => 900.00]);
 
         $response = $this->get('/vagas?salario_min=3000');
-        $response->assertSee('Vaga Alta Remun');
-        $response->assertDontSee('Vaga Baixa Remun');
+        $this->assertVeInertia($response, 'Vaga Alta Remun');
+        $this->assertNaoVeInertia($response, 'Vaga Baixa Remun');
     }
 
     public function test_filtro_por_faixa_salarial_maxima(): void
@@ -183,8 +183,8 @@ class VagaPublicaTest extends TestCase
         $this->criarVaga(['titulo' => 'Vaga Baixa Remun', 'remuneracao' => 900.00]);
 
         $response = $this->get('/vagas?salario_max=2000');
-        $response->assertSee('Vaga Baixa Remun');
-        $response->assertDontSee('Vaga Alta Remun');
+        $this->assertVeInertia($response, 'Vaga Baixa Remun');
+        $this->assertNaoVeInertia($response, 'Vaga Alta Remun');
     }
 
     // ── Detalhes da vaga ──────────────────────────────────────────────────────
@@ -194,8 +194,8 @@ class VagaPublicaTest extends TestCase
         $vaga = $this->criarVaga(['titulo' => 'Estágio em Python']);
         $response = $this->get("/vagas/{$vaga->id}");
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.publico.show');
-        $response->assertSee('Estágio em Python');
+        $this->assertComponenteInertia($response, 'Publico/Vagas/Show');
+        $this->assertVeInertia($response, 'Estágio em Python');
     }
 
     public function test_pagina_detalhes_exibe_vagas_relacionadas(): void
@@ -205,7 +205,7 @@ class VagaPublicaTest extends TestCase
 
         $response = $this->get("/vagas/{$vaga->id}");
         $response->assertStatus(200);
-        $response->assertViewHas('vagasRelacionadas');
+        $this->assertPropInertia($response, 'relacionadas');
     }
 
     // ── Fazenda Ressacada (página especial) ───────────────────────────────────

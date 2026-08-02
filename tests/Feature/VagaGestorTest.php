@@ -53,7 +53,7 @@ class VagaGestorTest extends TestCase
     {
         $response = $this->actingAs($this->gestor)->get('/gestor/dashboard');
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.gestor.dashboard');
+        $this->assertComponenteInertia($response, 'Gestor/Dashboard');
     }
 
     public function test_dashboard_gestor_exibe_stats(): void
@@ -61,7 +61,7 @@ class VagaGestorTest extends TestCase
         $this->criarVaga();
         $response = $this->actingAs($this->gestor)->get('/gestor/dashboard');
         $response->assertStatus(200);
-        $response->assertViewHas('stats');
+        $this->assertPropInertia($response, 'stats');
     }
 
     // ── Listagem gestor ───────────────────────────────────────────────────────
@@ -73,8 +73,8 @@ class VagaGestorTest extends TestCase
 
         $response = $this->actingAs($this->gestor)->get('/gestor/vagas');
         $response->assertStatus(200);
-        $response->assertSee('Vaga Aguardando');
-        $response->assertDontSee('Vaga Ativa');
+        $this->assertVeInertia($response, 'Vaga Aguardando');
+        $this->assertNaoVeInertia($response, 'Vaga Ativa');
     }
 
     public function test_gestor_lista_vagas_por_status_personalizado(): void
@@ -82,7 +82,7 @@ class VagaGestorTest extends TestCase
         $this->criarVaga(['titulo' => 'Vaga Ativa', 'status' => 'ativa']);
         $response = $this->actingAs($this->gestor)->get('/gestor/vagas?status=ativa');
         $response->assertStatus(200);
-        $response->assertSee('Vaga Ativa');
+        $this->assertVeInertia($response, 'Vaga Ativa');
     }
 
     public function test_gestor_busca_vagas(): void
@@ -92,8 +92,8 @@ class VagaGestorTest extends TestCase
 
         $response = $this->actingAs($this->gestor)->get('/gestor/vagas?busca=PHP');
         $response->assertStatus(200);
-        $response->assertSee('Estágio PHP');
-        $response->assertDontSee('Analista de Dados');
+        $this->assertVeInertia($response, 'Estágio PHP');
+        $this->assertNaoVeInertia($response, 'Analista de Dados');
     }
 
     // ── Show gestor ───────────────────────────────────────────────────────────
@@ -103,8 +103,8 @@ class VagaGestorTest extends TestCase
         $vaga = $this->criarVaga();
         $response = $this->actingAs($this->gestor)->get("/gestor/vagas/{$vaga->id}");
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.gestor.show');
-        $response->assertSee($vaga->titulo);
+        $this->assertComponenteInertia($response, 'Gestor/Vagas/Show');
+        $this->assertVeInertia($response, $vaga->titulo);
     }
 
     // ── Autorizar vaga ────────────────────────────────────────────────────────

@@ -16,15 +16,15 @@ class AlertaVagaTest extends TestCase
     {
         $response = $this->get('/alertas');
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.publico.alertas');
+        $this->assertComponenteInertia($response, 'Publico/Alertas');
     }
 
     public function test_pagina_alertas_exibe_areas_e_tipos(): void
     {
         $response = $this->get('/alertas');
-        $response->assertViewHas('areas');
-        $response->assertViewHas('tipos');
-        $response->assertViewHas('modalidades');
+        $this->assertPropInertia($response, 'areas');
+        $this->assertPropInertia($response, 'tipos');
+        $this->assertPropInertia($response, 'modalidades');
     }
 
     // ── Criação de alerta ─────────────────────────────────────────────────────
@@ -32,7 +32,8 @@ class AlertaVagaTest extends TestCase
     public function test_cria_alerta_sem_filtros(): void
     {
         $response = $this->post('/alertas', [
-            'email' => 'usuario@email.com',
+            'email'              => 'usuario@email.com',
+            'lgpd_consentimento' => true,
         ]);
         $response->assertRedirect();
         $response->assertSessionHas('success');
@@ -45,8 +46,9 @@ class AlertaVagaTest extends TestCase
     public function test_cria_alerta_com_filtros_de_area(): void
     {
         $response = $this->post('/alertas', [
-            'email' => 'usuario@email.com',
-            'areas' => ['Tecnologia da Informação', 'Administração'],
+            'email'              => 'usuario@email.com',
+            'areas'              => ['Tecnologia da Informação', 'Administração'],
+            'lgpd_consentimento' => true,
         ]);
         $response->assertRedirect();
         $alerta = AlertaVaga::where('email', 'usuario@email.com')->first();
@@ -57,9 +59,10 @@ class AlertaVagaTest extends TestCase
     public function test_cria_alerta_com_filtros_de_tipo_e_modalidade(): void
     {
         $this->post('/alertas', [
-            'email'       => 'usuario@email.com',
-            'tipos'       => ['estagio', 'bolsa'],
-            'modalidades' => ['remoto'],
+            'email'              => 'usuario@email.com',
+            'tipos'              => ['estagio', 'bolsa'],
+            'modalidades'        => ['remoto'],
+            'lgpd_consentimento' => true,
         ]);
         $alerta = AlertaVaga::where('email', 'usuario@email.com')->first();
         $this->assertContains('estagio', $alerta->tipos);
@@ -68,7 +71,7 @@ class AlertaVagaTest extends TestCase
 
     public function test_alerta_token_gerado_automaticamente(): void
     {
-        $this->post('/alertas', ['email' => 'usuario@email.com']);
+        $this->post('/alertas', ['email' => 'usuario@email.com', 'lgpd_consentimento' => true]);
         $alerta = AlertaVaga::where('email', 'usuario@email.com')->first();
         $this->assertEquals(64, strlen($alerta->token));
     }
@@ -87,8 +90,9 @@ class AlertaVagaTest extends TestCase
         ]);
 
         $this->post('/alertas', [
-            'email' => 'repetido@email.com',
-            'areas' => ['Tecnologia da Informação'],
+            'email'              => 'repetido@email.com',
+            'areas'              => ['Tecnologia da Informação'],
+            'lgpd_consentimento' => true,
         ]);
 
         $this->assertEquals(1, AlertaVaga::where('email', 'repetido@email.com')->count());
@@ -127,7 +131,7 @@ class AlertaVagaTest extends TestCase
 
         $response = $this->get("/alertas/cancelar/{$token}");
         $response->assertStatus(200);
-        $response->assertViewIs('vagas.publico.alerta-cancelado');
+        $this->assertComponenteInertia($response, 'Publico/AlertaCancelado');
         $this->assertDatabaseHas('vaga_alertas', [
             'token' => $token,
             'ativo' => false,

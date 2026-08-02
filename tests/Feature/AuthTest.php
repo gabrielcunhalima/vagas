@@ -26,7 +26,7 @@ class AuthTest extends TestCase
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
-        $response->assertViewIs('auth.login');
+        $this->assertComponenteInertia($response, 'Auth/Login');
     }
 
     public function test_usuario_autenticado_redirecionado_do_login(): void

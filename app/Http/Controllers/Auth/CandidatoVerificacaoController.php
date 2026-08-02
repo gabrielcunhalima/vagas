@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class CandidatoVerificacaoController extends Controller
 {
@@ -17,7 +18,7 @@ class CandidatoVerificacaoController extends Controller
             return redirect()->route('candidato.vagas');
         }
 
-        return view('candidato.auth.verificar-email');
+        return Inertia::render('Candidato/Auth/VerificarEmail');
     }
 
     public function verify(Request $request)

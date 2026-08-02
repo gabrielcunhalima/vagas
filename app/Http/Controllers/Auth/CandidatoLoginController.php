@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class CandidatoLoginController extends Controller
 {
@@ -15,9 +16,9 @@ class CandidatoLoginController extends Controller
         }
 
         // Preserva URL de destino para redirecionar após login
-        $redirect = $request->query('redirect');
-
-        return view('candidato.auth.login', compact('redirect'));
+        return Inertia::render('Candidato/Auth/Login', [
+            'redirect' => $request->query('redirect'),
+        ]);
     }
 
     public function login(Request $request)

@@ -23,16 +23,16 @@ p{font-size:0.9rem;line-height:1.65;color:#3E3E3F;margin:0 0 12px;}
 <body>
 <div class="wrap">
     <div class="header">
-        <img src="{{ url('imagens/fapeulogoverde.png') }}" alt="FAPEU" style="height:48px;width:auto;display:block;margin:0 auto 10px;">
+        <img src="{{ url('imagens/fapeulogobranca.png') }}" alt="FAPEU" style="height:48px;width:auto;display:block;margin:0 auto 10px;">
         <h1>Portal de Vagas</h1>
-        <p>FAPEU — Fundação de Apoio à Pesquisa e Extensão Universitária</p>
+        <p>FAPEU, Fundação de Apoio à Pesquisa e Extensão Universitária</p>
     </div>
     <div class="body">
         @yield('body')
     </div>
     <div class="footer">
         <p style="margin:0;">Este é um e-mail automático. Por favor, não responda a esta mensagem.</p>
-        <p style="margin:4px 0 0;">© {{ date('Y') }} FAPEU — Todos os direitos reservados.</p>
+        <p style="margin:4px 0 0;">© {{ date('Y') }} FAPEU. Todos os direitos reservados.</p>
     </div>
 </div>
 </body>

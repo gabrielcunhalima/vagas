@@ -6,6 +6,12 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
+/**
+ * Coordenador — cria vagas e as envia para autorização.
+ * Gestor e admin têm seeders próprios: GestorSeeder e SuperAdminSeeder.
+ *
+ * Credenciais: coordenador@fapeu.org.br / password
+ */
 class UsuariosSeeder extends Seeder
 {
     public function run(): void
@@ -16,26 +22,6 @@ class UsuariosSeeder extends Seeder
                 'name'     => 'Coordenador Teste',
                 'password' => Hash::make('password'),
                 'perfil'   => 'coordenador',
-                'ativo'    => true,
-            ]
-        );
-
-        User::updateOrCreate(
-            ['email' => 'gestor@fapeu.org.br'],
-            [
-                'name'     => 'Gestor Teste',
-                'password' => Hash::make('password'),
-                'perfil'   => 'gestor',
-                'ativo'    => true,
-            ]
-        );
-
-        User::updateOrCreate(
-            ['email' => 'admin@fapeu.org.br'],
-            [
-                'name'     => 'Administrador',
-                'password' => Hash::make('password'),
-                'perfil'   => 'admin',
                 'ativo'    => true,
             ]
         );

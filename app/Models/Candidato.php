@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\Candidato\RedefinirSenhaCandidato;
 use App\Notifications\Candidato\VerificarEmailCandidato;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -80,6 +81,11 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new VerificarEmailCandidato());
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new RedefinirSenhaCandidato($token));
     }
 
     public function candidaturas()

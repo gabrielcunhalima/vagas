@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+
         $middleware->alias([
             'perfil'        => \App\Http\Middleware\CheckPerfil::class,
             'candidato.auth' => \App\Http\Middleware\CandidatoAuth::class,
@@ -18,5 +22,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception, \Illuminate\Http\Request $request) {
+            $status = $response->getStatusCode();
+
+            if (! in_array($status, [403, 404, 419, 500, 503], true) || $request->expectsJson()) {
+                return $response;
+            }
+
+            // Em modo debug, mantém a página detalhada para erros de servidor
+            if ($status === 500 && config('app.debug') && ! $request->header('X-Inertia')) {
+                return $response;
+            }
+
+            return \Inertia\Inertia::render('Error', ['status' => $status])
+                ->toResponse($request)
+                ->setStatusCode($status);
+        });
     })->create();

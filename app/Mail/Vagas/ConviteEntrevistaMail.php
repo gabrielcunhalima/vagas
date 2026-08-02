@@ -18,7 +18,7 @@ class ConviteEntrevistaMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Você foi selecionado para entrevista! — ' . $this->candidatura->vaga->titulo,
+            subject: 'Você foi selecionado para entrevista! ' . $this->candidatura->vaga->titulo,
         );
     }
 

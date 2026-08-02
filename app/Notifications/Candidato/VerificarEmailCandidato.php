@@ -27,7 +27,7 @@ class VerificarEmailCandidato extends VerifyEmail
         $url = $this->verificationUrl($notifiable);
 
         return (new MailMessage)
-            ->subject('Confirme seu e-mail — Portal de Vagas FAPEU')
+            ->subject('Confirme seu e-mail: Portal de Vagas FAPEU')
             ->view('emails.vagas.verificar-email-candidato', [
                 'candidato' => $notifiable,
                 'url'       => $url,

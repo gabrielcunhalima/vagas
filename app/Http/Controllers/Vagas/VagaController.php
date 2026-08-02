@@ -13,15 +13,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class VagaController extends Controller
 {
+    /** Campos editáveis expostos ao formulário interno. */
+    private const CAMPOS_FORM = [
+        'id', 'titulo', 'descricao', 'requisitos', 'requisitos_desejaveis', 'beneficios',
+        'tipo', 'area', 'curso_desejado', 'remuneracao', 'remuneracao_max', 'carga_horaria',
+        'modalidade', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade',
+        'estado', 'pais', 'local_trabalho', 'data_encerramento', 'notificar_email',
+        'projeto_nome', 'projeto_codigo', 'status', 'motivo_recusa',
+    ];
+
     public function index(Request $request)
     {
         $user  = Auth::user();
         $query = $user->isAdmin()
             ? Vaga::query()->latest()
             : Vaga::where('coordenador_id', $user->id)->latest();
+
+        $query->withCount('candidaturas');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -47,16 +59,26 @@ class VagaController extends Controller
             $query->busca($request->busca);
         }
 
-        $vagas = $query->paginate(15)->withQueryString();
+        $vagas = $query->paginate(15)->withQueryString()
+            ->through(fn(Vaga $v) => array_merge(
+                $v->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'status', 'data_encerramento', 'notificar_email', 'created_at']),
+                ['candidaturas_count' => $v->candidaturas_count],
+            ));
 
-        $areas = Vaga::$areas;
-
-        return view('vagas.coordenador.index', compact('vagas', 'areas'));
+        return Inertia::render('Coord/Vagas/Index', [
+            'vagas'   => $vagas,
+            'areas'   => Vaga::$areas,
+            'filtros' => $request->only(['status', 'area', 'tipo', 'encerramento_de', 'encerramento_ate', 'busca']),
+        ]);
     }
 
     public function create()
     {
-        return view('vagas.coordenador.form', ['vaga' => new Vaga()]);
+        return Inertia::render('Coord/Vagas/Form', [
+            'vaga'   => null,
+            'areas'  => Vaga::$areas,
+            'cursos' => Vaga::$cursos,
+        ]);
     }
 
     public function store(VagaRequest $request)
@@ -90,7 +112,11 @@ class VagaController extends Controller
             'Vagas ativas ou encerradas não podem ser editadas.'
         );
 
-        return view('vagas.coordenador.form', compact('vaga'));
+        return Inertia::render('Coord/Vagas/Form', [
+            'vaga'   => $vaga->only(self::CAMPOS_FORM),
+            'areas'  => Vaga::$areas,
+            'cursos' => Vaga::$cursos,
+        ]);
     }
 
     public function update(VagaRequest $request, Vaga $vaga)
@@ -182,14 +208,29 @@ class VagaController extends Controller
             $query->busca($request->busca);
         }
 
-        $vagas = $query->paginate(15)->withQueryString();
+        $vagas = $query->paginate(15)->withQueryString()
+            ->through(fn(Vaga $v) => array_merge(
+                $v->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'status', 'data_encerramento', 'motivo_recusa', 'created_at']),
+                ['coordenador' => $v->coordenador?->only(['name'])],
+            ));
 
-        return view('vagas.gestor.index', compact('vagas', 'status'));
+        return Inertia::render('Gestor/Vagas/Index', [
+            'vagas'  => $vagas,
+            'status' => $status,
+            'busca'  => $request->input('busca', ''),
+        ]);
     }
 
     public function showGestor(Vaga $vaga)
     {
-        return view('vagas.gestor.show', compact('vaga'));
+        $vaga->load('coordenador');
+
+        return Inertia::render('Gestor/Vagas/Show', [
+            'vaga' => array_merge($vaga->only(array_merge(self::CAMPOS_FORM, ['motivo_recusa', 'created_at'])), [
+                'endereco_completo' => $vaga->endereco_completo,
+                'coordenador'       => $vaga->coordenador?->only(['name', 'email']),
+            ]),
+        ]);
     }
 
     public function autorizar(Request $request, Vaga $vaga)

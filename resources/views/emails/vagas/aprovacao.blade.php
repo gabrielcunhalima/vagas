@@ -6,7 +6,7 @@
 
 <div class="info-box" style="border-left-color:#198754;">
     <div class="info-row"><span class="info-label">Vaga:</span><span class="info-value">{{ $candidatura->vaga->titulo }}</span></div>
-    <div class="info-row"><span class="info-label">Projeto:</span><span class="info-value">{{ $candidatura->vaga->projeto_nome ?? '—' }}</span></div>
+    <div class="info-row"><span class="info-label">Projeto:</span><span class="info-value">{{ $candidatura->vaga->projeto_nome ?? 'N/A' }}</span></div>
     <div class="info-row"><span class="info-label">Tipo:</span><span class="info-value">{{ $candidatura->vaga->tipo_label }}</span></div>
 </div>
 

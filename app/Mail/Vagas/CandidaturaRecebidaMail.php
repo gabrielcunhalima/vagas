@@ -18,7 +18,7 @@ class CandidaturaRecebidaMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Candidatura Recebida — ' . $this->candidatura->vaga->titulo,
+            subject: 'Candidatura Recebida: ' . $this->candidatura->vaga->titulo,
         );
     }
 

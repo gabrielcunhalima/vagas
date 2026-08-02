@@ -10,6 +10,7 @@ use App\Http\Controllers\Vagas\CepController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\CandidatoLoginController;
+use App\Http\Controllers\Auth\CandidatoRecuperarSenhaController;
 use App\Http\Controllers\Auth\CandidatoRegistroController;
 use App\Http\Controllers\Auth\CandidatoVerificacaoController;
 use App\Http\Controllers\Candidato\PerfilController as CandidatoPerfilController;
@@ -19,12 +20,12 @@ use App\Http\Controllers\Vagas\AlertaVagaController;
 Route::get('/auth/sso', [SsoController::class, 'entrar'])->name('auth.sso');
 
 Route::get('/', [VagaPublicaController::class, 'index'])->name('home');
-Route::view('/politica-privacidade', 'vagas.publico.politica-privacidade')->name('politica.privacidade');
+Route::inertia('/politica-privacidade', 'Publico/PoliticaPrivacidade')->name('politica.privacidade');
 
 Route::get('/vagas', [VagaPublicaController::class, 'index'])->name('vagas.publicas.index');
 Route::get('/vagas/{vaga}', [VagaPublicaController::class, 'show'])->name('vagas.publicas.show');
 
-Route::get('/fazenda-ressacada', fn() => view('vagas.publico.fazenda-ressacada'))->name('fazenda.ressacada');
+Route::inertia('/fazenda-ressacada', 'Publico/FazendaRessacada')->name('fazenda.ressacada');
 
 Route::get('/candidatura/{vaga}', [InscricaoController::class, 'create'])->name('inscricao.create');
 Route::post('/candidatura/{vaga}', [InscricaoController::class, 'store'])->name('inscricao.store');
@@ -51,6 +52,16 @@ Route::prefix('minha-conta')->name('candidato.')->group(function () {
     Route::get('/cadastro', [CandidatoRegistroController::class, 'showForm'])->name('registro');
     Route::post('/cadastro', [CandidatoRegistroController::class, 'store'])->name('registro.post');
     Route::get('/cadastro/verificar-cpf', [CandidatoRegistroController::class, 'verificarCpf'])->name('registro.verificar-cpf');
+
+    // ─── Recuperação de senha ─────────────────────────────────────────────────
+    Route::get('/esqueci-senha', [CandidatoRecuperarSenhaController::class, 'showLinkRequestForm'])->name('senha.request');
+    Route::post('/esqueci-senha', [CandidatoRecuperarSenhaController::class, 'sendResetLinkEmail'])
+        ->middleware('throttle:6,1')
+        ->name('senha.email');
+    Route::get('/redefinir-senha/{token}', [CandidatoRecuperarSenhaController::class, 'showResetForm'])->name('senha.reset');
+    Route::post('/redefinir-senha', [CandidatoRecuperarSenhaController::class, 'reset'])
+        ->middleware('throttle:6,1')
+        ->name('senha.update');
 
     // ─── Área logada (e-mail ainda não verificado) ───────────────────────────
     Route::middleware('candidato.auth')->group(function () {

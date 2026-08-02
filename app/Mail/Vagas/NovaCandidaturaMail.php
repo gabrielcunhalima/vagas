@@ -18,7 +18,7 @@ class NovaCandidaturaMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Nova candidatura — ' . $this->candidatura->vaga->titulo,
+            subject: 'Nova candidatura: ' . $this->candidatura->vaga->titulo,
         );
     }
 

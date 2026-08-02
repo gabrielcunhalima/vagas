@@ -13,9 +13,26 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class CandidaturaController extends Controller
 {
+    /** Resumo de candidatura para listagens internas. */
+    private function candidaturaResumo(Candidatura $c): array
+    {
+        return [
+            'id'         => $c->id,
+            'vaga_id'    => $c->vaga_id,
+            'nome'       => $c->nome,
+            'email'      => $c->email,
+            'curso'      => $c->curso,
+            'status'     => $c->status,
+            'pcd'        => $c->pcd,
+            'created_at' => $c->created_at,
+            'vaga'       => $c->vaga?->only(['id', 'titulo']),
+        ];
+    }
+
     public function todas(Request $request)
     {
         $user = Auth::user();
@@ -37,7 +54,8 @@ class CandidaturaController extends Controller
             $query->busca($request->busca);
         }
 
-        $candidaturas = $query->paginate(25)->withQueryString();
+        $candidaturas = $query->paginate(25)->withQueryString()
+            ->through(fn(Candidatura $c) => $this->candidaturaResumo($c));
 
         $vagas = $user->isAdmin()
             ? Vaga::orderBy('titulo')->get(['id', 'titulo'])
@@ -52,7 +70,12 @@ class CandidaturaController extends Controller
             'reprovado'  => $base()->porStatus('reprovado')->count(),
         ];
 
-        return view('vagas.coordenador.candidaturas.todas', compact('candidaturas', 'vagas', 'contadores'));
+        return Inertia::render('Coord/Candidaturas/Todas', [
+            'candidaturas' => $candidaturas,
+            'vagas'        => $vagas,
+            'contadores'   => $contadores,
+            'filtros'      => $request->only(['status', 'vaga_id', 'busca']),
+        ]);
     }
 
     public function index(Request $request, Vaga $vaga)
@@ -69,7 +92,8 @@ class CandidaturaController extends Controller
             $query->busca($request->busca);
         }
 
-        $candidaturas = $query->paginate(20)->withQueryString();
+        $candidaturas = $query->paginate(20)->withQueryString()
+            ->through(fn(Candidatura $c) => $this->candidaturaResumo($c));
 
         $contadores = [
             'todos'      => $vaga->candidaturas()->count(),
@@ -80,9 +104,12 @@ class CandidaturaController extends Controller
             'reprovado'  => $vaga->candidaturas()->porStatus('reprovado')->count(),
         ];
 
-        return view('vagas.coordenador.candidaturas.index', compact(
-            'vaga', 'candidaturas', 'contadores'
-        ));
+        return Inertia::render('Coord/Candidaturas/Index', [
+            'vaga'         => $vaga->only(['id', 'titulo', 'status', 'data_encerramento']),
+            'candidaturas' => $candidaturas,
+            'contadores'   => $contadores,
+            'filtros'      => $request->only(['status', 'busca']),
+        ]);
     }
 
     public function show(Vaga $vaga, Candidatura $candidatura)
@@ -90,7 +117,21 @@ class CandidaturaController extends Controller
         $this->autorizarVaga($vaga);
         abort_unless($candidatura->vaga_id === $vaga->id, 404);
 
-        return view('vagas.coordenador.candidaturas.show', compact('vaga', 'candidatura'));
+        return Inertia::render('Coord/Candidaturas/Show', [
+            'vaga' => $vaga->only(['id', 'titulo', 'status']),
+            'candidatura' => array_merge($candidatura->only([
+                'id', 'nome', 'email', 'telefone', 'curso', 'instituicao', 'semestre',
+                'previsao_conclusao', 'carta_apresentacao', 'linkedin', 'pretensao_salarial',
+                'disponibilidade', 'pcd', 'pcd_tipo', 'status', 'entrevista_data',
+                'entrevista_local', 'entrevista_observacoes', 'observacoes_internas',
+                'curriculo_nome_original', 'created_at',
+            ]), [
+                'cpf_formatado'     => $candidatura->cpf_formatado,
+                'endereco_completo' => $candidatura->endereco_completo,
+                'tem_curriculo'     => $candidatura->temCurriculo(),
+            ]),
+            'proximosStatus' => Candidatura::$proximosStatus[$candidatura->status] ?? [],
+        ]);
     }
 
     public function updateStatus(Request $request, Vaga $vaga, Candidatura $candidatura)

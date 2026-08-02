@@ -1,11 +1,168 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
+@source '../**/*.jsx';
 @source '../**/*.js';
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   Light — "Papel": fundo neutro esverdeado, verde FAPEU sólido
+   ───────────────────────────────────────────────────────────── */
+:root {
+    --background: #F6F8F7;
+    --foreground: #1A2420;
+    --card: #FFFFFF;
+    --card-foreground: #1A2420;
+    --popover: #FFFFFF;
+    --popover-foreground: #1A2420;
+    --primary: #0D9571;
+    --primary-foreground: #FFFFFF;
+    --secondary: #EDF3F0;
+    --secondary-foreground: #24433A;
+    --muted: #F0F4F2;
+    --muted-foreground: #5F6E67;
+    --accent: #E1F3EC;
+    --accent-foreground: #0B6E54;
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+    --border: #E2E9E5;
+    --input: #D8E1DC;
+    --ring: #0D9571;
+    --radius: 0.625rem;
+
+    --brand-deep: #074635;
+
+    --chart-1: #0D9571;
+    --chart-2: #074635;
+    --chart-3: #2563EB;
+    --chart-4: #7C3AED;
+    --chart-5: #D97706;
+
+    --sidebar: #074635;
+    --sidebar-foreground: #E8F0EC;
+    --sidebar-primary: #0D9571;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: rgba(255, 255, 255, 0.07);
+    --sidebar-accent-foreground: #FFFFFF;
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --sidebar-ring: #34D399;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Dark — "Floresta à noite": verde-carvão profundo, esmeralda viva
+   ───────────────────────────────────────────────────────────── */
+.dark {
+    --background: #0E1411;
+    --foreground: #E4EBE7;
+    --card: #151D18;
+    --card-foreground: #E4EBE7;
+    --popover: #1A231E;
+    --popover-foreground: #E4EBE7;
+    --primary: #34D399;
+    --primary-foreground: #05301F;
+    --secondary: #1E2823;
+    --secondary-foreground: #C2CEC7;
+    --muted: #1C2621;
+    --muted-foreground: #8CA195;
+    --accent: #12352A;
+    --accent-foreground: #7CEBC3;
+    --destructive: #F87171;
+    --destructive-foreground: #2A0E0E;
+    --border: #26312A;
+    --input: #2C3831;
+    --ring: #34D399;
+
+    --brand-deep: #0A1712;
+
+    --chart-1: #34D399;
+    --chart-2: #6EE7B7;
+    --chart-3: #60A5FA;
+    --chart-4: #A78BFA;
+    --chart-5: #FBBF24;
+
+    --sidebar: #101914;
+    --sidebar-foreground: #D7E0DB;
+    --sidebar-primary: #34D399;
+    --sidebar-primary-foreground: #05301F;
+    --sidebar-accent: rgba(255, 255, 255, 0.05);
+    --sidebar-accent-foreground: #FFFFFF;
+    --sidebar-border: rgba(255, 255, 255, 0.07);
+    --sidebar-ring: #34D399;
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-brand-deep: var(--brand-deep);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --radius-2xl: calc(var(--radius) + 10px);
+
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-heading: var(--font-sans);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    html {
+        @apply font-sans antialiased;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+
+    ::selection {
+        background: color-mix(in srgb, var(--primary) 25%, transparent);
+    }
+
+    input[type='number'] {
+        -moz-appearance: textfield;
+    }
+
+    input[type='number']::-webkit-outer-spin-button,
+    input[type='number']::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
 }

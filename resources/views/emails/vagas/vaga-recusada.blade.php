@@ -6,7 +6,7 @@
 
 <div class="info-box" style="border-left-color:#DC3545;background:#FFF5F5;">
     <div class="info-row"><span class="info-label">Vaga:</span><span class="info-value">{{ $vaga->titulo }}</span></div>
-    <div class="info-row"><span class="info-label">Projeto:</span><span class="info-value">{{ $vaga->projeto_nome ?? '—' }}</span></div>
+    <div class="info-row"><span class="info-label">Projeto:</span><span class="info-value">{{ $vaga->projeto_nome ?? 'N/A' }}</span></div>
     <div class="info-row"><span class="info-label">Status:</span><span class="info-value" style="color:#DC3545;font-weight:700;">Recusada</span></div>
 </div>
 

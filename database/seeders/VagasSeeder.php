@@ -833,12 +833,17 @@ class VagasSeeder extends Seeder
         ];
 
         foreach ($vagas as $dados) {
-            Vaga::create(array_merge($dados, [
-                'coordenador_id' => $coordenador?->id,
-                'gestor_id'      => $gestor?->id,
-                'notificar_email'=> true,
-                'pais'           => 'Brasil',
-            ]));
+            // Idempotente: re-executar o seeder não duplica vagas
+            Vaga::updateOrCreate(
+                ['titulo' => $dados['titulo']],
+                array_merge($dados, [
+                    'coordenador_id' => $coordenador?->id,
+                    'gestor_id'      => $dados['status'] === 'ativa' ? $gestor?->id : null,
+                    'autorizada_em'  => $dados['status'] === 'ativa' ? now() : null,
+                    'notificar_email'=> true,
+                    'pais'           => 'Brasil',
+                ])
+            );
         }
     }
 }

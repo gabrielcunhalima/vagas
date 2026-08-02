@@ -6,7 +6,7 @@
 
 <div class="info-box">
     <div class="info-row"><span class="info-label">Vaga:</span><span class="info-value">{{ $vaga->titulo }}</span></div>
-    <div class="info-row"><span class="info-label">Projeto:</span><span class="info-value">{{ $vaga->projeto_nome ?? '—' }}</span></div>
+    <div class="info-row"><span class="info-label">Projeto:</span><span class="info-value">{{ $vaga->projeto_nome ?? 'N/A' }}</span></div>
     <div class="info-row"><span class="info-label">Tipo:</span><span class="info-value">{{ $vaga->tipo_label }}</span></div>
     <div class="info-row"><span class="info-label">Encerramento:</span><span class="info-value">{{ $vaga->data_encerramento->format('d/m/Y') }}</span></div>
     <div class="info-row"><span class="info-label">Publicada em:</span><span class="info-value">{{ $vaga->autorizada_em?->format('d/m/Y H:i') }}</span></div>

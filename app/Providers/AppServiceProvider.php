@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Pagination\Paginator;
+use Illuminate\Foundation\Vite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,10 +13,10 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
-    public function boot(): void
+    public function boot(Vite $vite): void
     {
         Schema::defaultStringLength(191);
-        Paginator::defaultView('vendor.pagination.bootstrap-5');
-        Paginator::defaultSimpleView('vendor.pagination.simple-bootstrap-5');
+
+        $vite->prefetch(concurrency: 3);
     }
 }
