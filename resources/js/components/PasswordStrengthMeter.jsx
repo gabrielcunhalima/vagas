@@ -40,7 +40,7 @@ export default function PasswordStrengthMeter({ password }) {
                         <span
                             key={r.label}
                             className={cn(
-                                'inline-flex items-center gap-1 text-[0.7rem]',
+                                'inline-flex items-center gap-1 text-[0.825rem]',
                                 ok ? 'font-medium text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground',
                             )}
                         >

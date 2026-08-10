@@ -53,6 +53,10 @@ class HandleInertiaRequests extends Middleware
                     'nome' => $candidato->nome,
                     'email' => $candidato->email,
                     'email_verified' => $candidato->hasVerifiedEmail(),
+                    // Sustentam o aviso de verificação pendente e o de perfil
+                    // incompleto em qualquer tela da área autenticada.
+                    'perfil_completo' => $candidato->perfilCompleto(),
+                    'pendencias' => count($candidato->pendencias()),
                 ] : null,
             ],
 

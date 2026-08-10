@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Candidato;
 use App\Models\Vagas\AlertaVaga;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -10,137 +11,167 @@ class AlertaVagaTest extends TestCase
 {
     use RefreshDatabase;
 
-    // ── Página de criação ─────────────────────────────────────────────────────
+    // ─── Exigência de conta ──────────────────────────────────────────────────
 
-    public function test_pagina_alertas_acessivel(): void
+    public function test_visitante_nao_autenticado_e_levado_ao_login(): void
     {
-        $response = $this->get('/alertas');
+        $this->get('/alertas')->assertRedirect(route('candidato.login', ['redirect' => 'alertas']));
+    }
+
+    public function test_candidato_sem_email_verificado_nao_ativa_alerta(): void
+    {
+        $candidato = Candidato::factory()->naoVerificado()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->post('/alertas', ['areas' => ['Administração']])
+            ->assertRedirect(route('candidato.verification.notice'));
+
+        $this->assertDatabaseCount('vaga_alertas', 0);
+    }
+
+    public function test_pagina_alertas_acessivel_para_conta_verificada(): void
+    {
+        $response = $this->actingAs(Candidato::factory()->create(), 'candidato')->get('/alertas');
+
         $response->assertStatus(200);
         $this->assertComponenteInertia($response, 'Publico/Alertas');
     }
 
     public function test_pagina_alertas_exibe_areas_e_tipos(): void
     {
-        $response = $this->get('/alertas');
+        $response = $this->actingAs(Candidato::factory()->create(), 'candidato')->get('/alertas');
+
         $this->assertPropInertia($response, 'areas');
         $this->assertPropInertia($response, 'tipos');
         $this->assertPropInertia($response, 'modalidades');
     }
 
-    // ── Criação de alerta ─────────────────────────────────────────────────────
+    public function test_perfil_incompleto_nao_impede_o_alerta(): void
+    {
+        $candidato = Candidato::factory()->minimo()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->post('/alertas', ['areas' => ['Administração']])
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('vaga_alertas', ['candidato_id' => $candidato->id, 'ativo' => true]);
+    }
+
+    // ─── Destino vem da conta ────────────────────────────────────────────────
+
+    public function test_alerta_usa_o_email_da_conta(): void
+    {
+        $candidato = Candidato::factory()->create(['email' => 'dono@email.com']);
+
+        $this->actingAs($candidato, 'candidato')->post('/alertas', ['areas' => []]);
+
+        $this->assertDatabaseHas('vaga_alertas', [
+            'candidato_id' => $candidato->id,
+            'email'        => 'dono@email.com',
+        ]);
+    }
+
+    public function test_endereco_informado_no_envio_e_ignorado(): void
+    {
+        $candidato = Candidato::factory()->create(['email' => 'dono@email.com']);
+
+        $this->actingAs($candidato, 'candidato')
+            ->post('/alertas', ['email' => 'terceiro@email.com', 'areas' => []]);
+
+        $this->assertDatabaseMissing('vaga_alertas', ['email' => 'terceiro@email.com']);
+        $this->assertDatabaseHas('vaga_alertas', ['email' => 'dono@email.com']);
+    }
+
+    // ─── Preferências ────────────────────────────────────────────────────────
 
     public function test_cria_alerta_sem_filtros(): void
     {
-        $response = $this->post('/alertas', [
-            'email'              => 'usuario@email.com',
-            'lgpd_consentimento' => true,
-        ]);
+        $candidato = Candidato::factory()->create();
+
+        $response = $this->actingAs($candidato, 'candidato')->post('/alertas', []);
+
         $response->assertRedirect();
         $response->assertSessionHas('success');
-        $this->assertDatabaseHas('vaga_alertas', [
-            'email' => 'usuario@email.com',
-            'ativo' => true,
-        ]);
+        $this->assertDatabaseHas('vaga_alertas', ['candidato_id' => $candidato->id, 'ativo' => true]);
     }
 
     public function test_cria_alerta_com_filtros_de_area(): void
     {
-        $response = $this->post('/alertas', [
-            'email'              => 'usuario@email.com',
-            'areas'              => ['Tecnologia da Informação', 'Administração'],
-            'lgpd_consentimento' => true,
-        ]);
-        $response->assertRedirect();
-        $alerta = AlertaVaga::where('email', 'usuario@email.com')->first();
-        $this->assertNotNull($alerta);
-        $this->assertContains('Tecnologia da Informação', $alerta->areas);
+        $candidato = Candidato::factory()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->post('/alertas', ['areas' => ['Tecnologia da Informação', 'Administração']]);
+
+        $this->assertContains('Tecnologia da Informação', $candidato->fresh()->alerta->areas);
     }
 
     public function test_cria_alerta_com_filtros_de_tipo_e_modalidade(): void
     {
-        $this->post('/alertas', [
-            'email'              => 'usuario@email.com',
-            'tipos'              => ['estagio', 'bolsa'],
-            'modalidades'        => ['remoto'],
-            'lgpd_consentimento' => true,
-        ]);
-        $alerta = AlertaVaga::where('email', 'usuario@email.com')->first();
-        $this->assertContains('estagio', $alerta->tipos);
-        $this->assertContains('remoto', $alerta->modalidades);
+        $candidato = Candidato::factory()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->post('/alertas', ['tipos' => ['estagio', 'bolsa'], 'modalidades' => ['remoto']]);
+
+        $this->assertContains('estagio', $candidato->fresh()->alerta->tipos);
+        $this->assertContains('remoto', $candidato->fresh()->alerta->modalidades);
     }
 
     public function test_alerta_token_gerado_automaticamente(): void
     {
-        $this->post('/alertas', ['email' => 'usuario@email.com', 'lgpd_consentimento' => true]);
-        $alerta = AlertaVaga::where('email', 'usuario@email.com')->first();
-        $this->assertEquals(64, strlen($alerta->token));
+        $candidato = Candidato::factory()->create();
+
+        $this->actingAs($candidato, 'candidato')->post('/alertas', []);
+
+        $this->assertEquals(64, strlen($candidato->fresh()->alerta->token));
     }
 
-    // ── Atualização de alerta existente ──────────────────────────────────────
+    // ─── Um alerta por conta ─────────────────────────────────────────────────
 
-    public function test_atualiza_alerta_existente_para_mesmo_email(): void
+    public function test_reconfigurar_atualiza_o_alerta_existente(): void
     {
-        AlertaVaga::create([
-            'email'      => 'repetido@email.com',
-            'areas'      => ['Administração'],
-            'modalidades'=> [],
-            'tipos'      => [],
-            'ativo'      => false,
-            'token'      => str_repeat('x', 64),
-        ]);
+        $candidato = Candidato::factory()->create();
 
-        $this->post('/alertas', [
-            'email'              => 'repetido@email.com',
-            'areas'              => ['Tecnologia da Informação'],
-            'lgpd_consentimento' => true,
-        ]);
+        $this->actingAs($candidato, 'candidato')->post('/alertas', ['areas' => ['Administração']]);
+        $this->actingAs($candidato, 'candidato')->post('/alertas', ['areas' => ['Tecnologia da Informação']]);
 
-        $this->assertEquals(1, AlertaVaga::where('email', 'repetido@email.com')->count());
-        $alerta = AlertaVaga::where('email', 'repetido@email.com')->first();
-        $this->assertContains('Tecnologia da Informação', $alerta->areas);
-        $this->assertTrue($alerta->ativo); // Reativado
+        $this->assertEquals(1, AlertaVaga::where('candidato_id', $candidato->id)->count());
+        $this->assertContains('Tecnologia da Informação', $candidato->fresh()->alerta->areas);
     }
 
-    // ── Validação ─────────────────────────────────────────────────────────────
-
-    public function test_criar_alerta_sem_email_falha(): void
+    public function test_reativa_alerta_cancelado_pelo_link(): void
     {
-        $response = $this->post('/alertas', []);
-        $response->assertSessionHasErrors('email');
+        $candidato = Candidato::factory()->create();
+        $this->actingAs($candidato, 'candidato')->post('/alertas', []);
+
+        $this->get("/alertas/cancelar/{$candidato->fresh()->alerta->token}");
+        $this->assertFalse($candidato->fresh()->alerta->ativo);
+
+        $this->actingAs($candidato, 'candidato')->post('/alertas', ['areas' => ['Administração']]);
+
+        $this->assertTrue($candidato->fresh()->alerta->ativo);
+        $this->assertEquals(1, AlertaVaga::where('candidato_id', $candidato->id)->count());
     }
 
-    public function test_criar_alerta_email_invalido_falha(): void
-    {
-        $response = $this->post('/alertas', ['email' => 'nao_e_email']);
-        $response->assertSessionHasErrors('email');
-    }
+    // ─── Cancelamento sem autenticação ───────────────────────────────────────
 
-    // ── Cancelar alerta ───────────────────────────────────────────────────────
-
-    public function test_cancelar_alerta_por_token(): void
+    public function test_cancelar_alerta_por_token_dispensa_login(): void
     {
-        $token = str_repeat('a', 64);
-        AlertaVaga::create([
-            'email'      => 'cancelar@email.com',
-            'areas'      => [],
-            'modalidades'=> [],
-            'tipos'      => [],
-            'ativo'      => true,
-            'token'      => $token,
-        ]);
+        $candidato = Candidato::factory()->create();
+        $this->actingAs($candidato, 'candidato')->post('/alertas', []);
+        $token = $candidato->fresh()->alerta->token;
+
+        // Sessão encerrada: sair de uma lista de e-mails não pode exigir conta.
+        $this->post(route('candidato.logout'));
 
         $response = $this->get("/alertas/cancelar/{$token}");
+
         $response->assertStatus(200);
         $this->assertComponenteInertia($response, 'Publico/AlertaCancelado');
-        $this->assertDatabaseHas('vaga_alertas', [
-            'token' => $token,
-            'ativo' => false,
-        ]);
+        $this->assertDatabaseHas('vaga_alertas', ['token' => $token, 'ativo' => false]);
     }
 
     public function test_cancelar_alerta_token_invalido_retorna_404(): void
     {
-        $response = $this->get('/alertas/cancelar/' . str_repeat('z', 64));
-        $response->assertStatus(404);
+        $this->get('/alertas/cancelar/' . str_repeat('z', 64))->assertStatus(404);
     }
 }

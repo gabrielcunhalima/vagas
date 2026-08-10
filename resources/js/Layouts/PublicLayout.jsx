@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Bell, Briefcase, ChevronDown, FileCheck2, LogOut, Menu, SearchCheck, UserRound } from 'lucide-react';
+import { Bell, Briefcase, ChevronDown, FileCheck2, LogOut, MailWarning, Menu, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -15,6 +15,7 @@ import FlashMessages from '@/components/FlashMessages';
 import Logo from '@/components/Logo';
 import ThemeToggle from '@/components/ThemeToggle';
 import { iniciais } from '@/lib/format';
+import { CONTAINER_LARGO } from '@/lib/layout';
 
 function MenuMobile({ candidato }) {
     return (
@@ -32,10 +33,6 @@ function MenuMobile({ candidato }) {
                     <Link href={route('alertas.create')} className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted">
                         <Bell className="size-4 text-primary" /> Alertas de vagas
                     </Link>
-                    <Link href={route('candidatura.consulta')} className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted">
-                        <SearchCheck className="size-4 text-primary" /> Acompanhar candidatura
-                    </Link>
-
                     <div className="my-3 border-t" />
 
                     {candidato ? (
@@ -71,6 +68,63 @@ function MenuMobile({ candidato }) {
     );
 }
 
+/*
+ * O cadastro mínimo deixa duas pendências possíveis: e-mail por confirmar e perfil
+ * por completar. Ambas aparecem desde o primeiro acesso — descobrir isso só ao ser
+ * barrado na candidatura empurraria a frustração em vez de removê-la.
+ */
+function AvisosConta({ candidato }) {
+    if (!candidato) return null;
+
+    if (!candidato.email_verified) {
+        return (
+            <div className="border-b border-amber-500/30 bg-amber-500/10">
+                <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
+                    <MailWarning className="size-4 shrink-0 text-amber-600 dark:text-amber-500" />
+                    <span>
+                        Confirme seu e-mail para se candidatar e ativar alertas.
+                    </span>
+                    <Link
+                        href={route('candidato.verification.notice')}
+                        className="font-semibold text-primary hover:underline"
+                    >
+                        Reenviar confirmação
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (!candidato.perfil_completo) {
+        return (
+            <div className="border-b bg-muted/60">
+                <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
+                    <UserRound className="size-4 shrink-0 text-muted-foreground" />
+                    <span>
+                        Faltam {candidato.pendencias}{' '}
+                        {candidato.pendencias === 1 ? 'informação' : 'informações'} no seu perfil para você poder se
+                        candidatar.
+                    </span>
+                    <Link href={route('candidato.perfil.edit')} className="font-semibold text-primary hover:underline">
+                        Completar perfil
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    return null;
+}
+
+/*
+ * Com o cadastro mínimo a conta nasce sem nome — ele só chega quando o candidato
+ * preenche o perfil. Até lá, o e-mail identifica a pessoa na interface.
+ */
+function primeiroNome(candidato) {
+    if (candidato.nome) return candidato.nome.split(' ')[0];
+    return candidato.email.split('@')[0];
+}
+
 export default function PublicLayout({ title, children }) {
     const { auth } = usePage().props;
     const candidato = auth?.candidato;
@@ -81,45 +135,35 @@ export default function PublicLayout({ title, children }) {
             <Toaster position="top-right" richColors />
             <FlashMessages />
 
+            <AvisosConta candidato={candidato} />
+
             <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur-md">
-                <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
+                <div className={`${CONTAINER_LARGO} flex h-16 items-center justify-between gap-4`}>
                     <Link href={route('home')} className="flex shrink-0 items-center gap-3">
                         <Logo className="h-9" />
-                        <span className="hidden flex-col leading-none sm:flex">
-                            <span className="text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">Portal de</span>
-                            <span className="text-[1.25rem] font-bold tracking-tight text-foreground-vagas">Vagas</span>
+                        <span className="hidden items-baseline gap-1.5 sm:flex">
+                            <span className="text-sm font-medium text-muted-foreground">Portal de</span>
+                            <span className="text-lg font-bold tracking-tight text-foreground">Vagas</span>
                         </span>
                     </Link>
 
-                    <nav className="hidden items-center gap-1 lg:flex">
-                        <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                            <Link href={route('vagas.publicas.index')}>Vagas</Link>
-                        </Button>
-                        <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                            <Link href={route('alertas.create')}>Alertas</Link>
-                        </Button>
-                        <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                            <Link href={route('candidatura.consulta')}>Acompanhar candidatura</Link>
-                        </Button>
-                    </nav>
-
-                    <div className="flex items-center gap-1.5">
-                        <ThemeToggle className="text-muted-foreground" />
+                    <div className="flex items-center gap-2.5">
+                        <ThemeToggle size="icon-lg" className="text-muted-foreground" iconClassName="size-5" />
 
                         {candidato ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className="hidden gap-2 rounded-full pl-1.5 lg:inline-flex">
-                                        <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[0.6rem] font-bold text-primary-foreground">
+                                    <Button variant="outline" className="hidden h-10 gap-2.5 rounded-full pl-2 lg:inline-flex">
+                                        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                                             {iniciais(candidato.nome)}
                                         </span>
-                                        {candidato.nome.split(' ')[0]}
-                                        <ChevronDown className="size-3.5 text-muted-foreground" />
+                                        <span className="text-[0.925rem] font-medium">{primeiroNome(candidato)}</span>
+                                        <ChevronDown className="size-4 text-muted-foreground" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="min-w-56">
                                     <DropdownMenuLabel className="font-normal">
-                                        <div className="text-sm font-semibold">{candidato.nome}</div>
+                                        <div className="text-sm font-semibold">{candidato.nome ?? primeiroNome(candidato)}</div>
                                         <div className="text-xs text-muted-foreground">{candidato.email}</div>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
@@ -142,11 +186,11 @@ export default function PublicLayout({ title, children }) {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <div className="hidden items-center gap-1.5 lg:flex">
-                                <Button asChild variant="ghost" size="sm">
+                            <div className="hidden items-center gap-2 lg:flex">
+                                <Button asChild variant="ghost" size="lg">
                                     <Link href={route('candidato.login')}>Entrar</Link>
                                 </Button>
-                                <Button asChild size="sm">
+                                <Button asChild size="lg">
                                     <Link href={route('candidato.registro')}>Criar conta</Link>
                                 </Button>
                             </div>
@@ -189,7 +233,6 @@ export default function PublicLayout({ title, children }) {
                                     <li><Link href={route('candidato.registro')} className="text-muted-foreground transition-colors hover:text-foreground">Criar conta</Link></li>
                                 </>
                             )}
-                            <li><Link href={route('candidatura.consulta')} className="text-muted-foreground transition-colors hover:text-foreground">Acompanhar candidatura</Link></li>
                         </ul>
                     </div>
                 </div>

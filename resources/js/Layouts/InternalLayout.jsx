@@ -48,7 +48,7 @@ function NavItem({ href, icon: Icon, children, active, external = false }) {
 
 function SidebarSection({ children }) {
     return (
-        <div className="px-6 pb-1.5 pt-5 text-[0.65rem] font-bold uppercase tracking-widest text-sidebar-foreground/40">
+        <div className="px-6 pb-1.5 pt-5 text-[0.775rem] font-bold uppercase tracking-widest text-sidebar-foreground/40">
             {children}
         </div>
     );
@@ -118,7 +118,7 @@ function SidebarContent({ user, atual }) {
                 </nav>
             </div>
 
-            <div className="border-t border-sidebar-border px-4 py-3.5">
+            <div className="border-t border-sidebar-border px-3 py-3.5">
                 <div className="flex items-center gap-2.5">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
                         {iniciais(user.name)}

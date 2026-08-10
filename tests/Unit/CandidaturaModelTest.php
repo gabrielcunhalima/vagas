@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Candidato;
 use App\Models\User;
 use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
@@ -32,26 +33,25 @@ class CandidaturaModelTest extends TestCase
         ]);
     }
 
+    /**
+     * Atributos de pessoa vão para o PERFIL; os de processo, para a candidatura.
+     * A candidatura não guarda mais cópia de identidade — ver CAMPOS_DO_PERFIL.
+     */
     private function makeCandidatura(Vaga $vaga, array $attrs = []): Candidatura
     {
-        static $cpfCounter = 0;
-        $cpfCounter++;
-        $cpfs = ['52998224725', '71428793860', '87748248800', '11144477735', '47593888856',
-                 '65571705827', '72605533701', '22233388813', '33344455567', '44455566676'];
-        $cpf = $cpfs[$cpfCounter % count($cpfs)];
+        $doPerfil = array_intersect_key($attrs, array_flip([
+            'nome', 'email', 'cpf', 'telefone', 'linkedin',
+            'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
+            'pretensao_salarial', 'disponibilidade', 'pcd', 'pcd_tipo',
+        ]));
+
+        $candidato = Candidato::factory()->create($doPerfil);
 
         return Candidatura::create(array_merge([
-            'vaga_id'               => $vaga->id,
-            'nome'                  => 'Candidato Teste ' . $cpfCounter,
-            'email'                 => "candidato{$cpfCounter}@email.com",
-            'cpf'                   => $cpf,
-            'curso'                 => 'Ciência da Computação',
-            'instituicao'           => 'UFSC',
-            'status'                => 'recebida',
-            'pais'                  => 'Brasil',
-            'curriculo_path'        => "vagas/curriculos/fake{$cpfCounter}.pdf",
-            'curriculo_nome_original' => "curriculo{$cpfCounter}.pdf",
-        ], $attrs));
+            'vaga_id'      => $vaga->id,
+            'candidato_id' => $candidato->id,
+            'status'       => 'recebida',
+        ], array_diff_key($attrs, $doPerfil)));
     }
 
     // ── Accessors / Labels ────────────────────────────────────────────────────
@@ -119,18 +119,30 @@ class CandidaturaModelTest extends TestCase
         $this->assertEquals('529.982.247-25', $c->cpf_formatado);
     }
 
-    public function test_tem_curriculo_com_path(): void
+    public function test_dados_pessoais_sao_lidos_do_perfil(): void
     {
         $vaga = $this->makeVaga();
-        $c = $this->makeCandidatura($vaga, ['curriculo_path' => 'vagas/curriculos/teste.pdf']);
-        $this->assertTrue($c->temCurriculo());
+        $c = $this->makeCandidatura($vaga, ['nome' => 'Ana Souza']);
+        $c->candidato->formacoes()->update(['curso' => 'Direito']);
+
+        $this->assertSame('Ana Souza', $c->nome);
+        $this->assertSame('Direito', $c->formacoes->first()->curso);
+
+        // Nenhuma cópia: alterar o perfil altera o que a candidatura apresenta.
+        $c->candidato->update(['nome' => 'Ana Souza Lima']);
+        $this->assertSame('Ana Souza Lima', $c->fresh()->nome);
     }
 
-    public function test_tem_curriculo_sem_path(): void
+    public function test_formacoes_da_candidatura_vem_do_candidato(): void
     {
         $vaga = $this->makeVaga();
-        $c = $this->makeCandidatura($vaga, ['curriculo_path' => null]);
-        $this->assertFalse($c->temCurriculo());
+        $c = $this->makeCandidatura($vaga);
+        $c->candidato->formacoes()->delete();
+        $c->candidato->formacoes()->create(['curso' => 'Curso 1']);
+        $c->candidato->formacoes()->create(['curso' => 'Curso 2']);
+
+        $this->assertCount(2, $c->fresh()->formacoes);
+        $this->assertSame(['Curso 1', 'Curso 2'], $c->fresh()->formacoes->pluck('curso')->all());
     }
 
     public function test_endereco_completo(): void
@@ -229,18 +241,42 @@ class CandidaturaModelTest extends TestCase
 
     // ── tem_curriculo ─────────────────────────────────────────────────────────
 
-    public function test_tem_curriculo_true(): void
+    public function test_tem_curriculo_quando_o_perfil_tem_versao_vigente(): void
     {
         $vaga = $this->makeVaga();
-        $c = $this->makeCandidatura($vaga, ['curriculo_path' => 'vagas/curriculos/teste.pdf']);
+        $c = $this->makeCandidatura($vaga);
+
         $this->assertTrue($c->temCurriculo());
+        $this->assertSame('curriculo.pdf', $c->curriculo_nome_original);
     }
 
-    public function test_tem_curriculo_false(): void
+    public function test_nao_tem_curriculo_quando_o_perfil_nao_tem(): void
     {
         $vaga = $this->makeVaga();
-        $c = $this->makeCandidatura($vaga, ['curriculo_path' => null]);
+        $candidato = Candidato::factory()->semCurriculo()->create();
+
+        $c = Candidatura::create([
+            'vaga_id'      => $vaga->id,
+            'candidato_id' => $candidato->id,
+            'status'       => 'recebida',
+        ]);
+
         $this->assertFalse($c->temCurriculo());
+    }
+
+    public function test_curriculo_substituido_aparece_na_candidatura(): void
+    {
+        $vaga = $this->makeVaga();
+        $c = $this->makeCandidatura($vaga);
+
+        $nova = $c->candidato->curriculos()->create([
+            'path'          => 'candidatos/curriculos/v2.pdf',
+            'nome_original' => 'curriculo-v2.pdf',
+            'enviado_em'    => now(),
+        ]);
+        $c->candidato->forceFill(['curriculo_atual_id' => $nova->id])->save();
+
+        $this->assertSame('curriculo-v2.pdf', $c->fresh()->curriculo_nome_original);
     }
 
     // ── Scopes ────────────────────────────────────────────────────────────────
@@ -264,6 +300,19 @@ class CandidaturaModelTest extends TestCase
 
         $resultado = Candidatura::busca('Buscável')->get();
         $this->assertCount(1, $resultado);
+    }
+
+    public function test_scope_busca_por_curso(): void
+    {
+        $vaga = $this->makeVaga();
+        $c1 = $this->makeCandidatura($vaga);
+        $c1->candidato->formacoes()->update(['curso' => 'Engenharia Civil']);
+        $c2 = $this->makeCandidatura($vaga);
+        $c2->candidato->formacoes()->update(['curso' => 'Direito']);
+
+        $resultado = Candidatura::busca('Engenharia')->get();
+        $this->assertCount(1, $resultado);
+        $this->assertSame($c1->id, $resultado->first()->id);
     }
 
     // ── PCD ──────────────────────────────────────────────────────────────────

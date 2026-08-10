@@ -7,6 +7,7 @@ use App\Models\Candidato;
 use App\Services\AnonimizacaoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -22,19 +23,36 @@ class PerfilController extends Controller
         return Auth::guard('candidato')->user();
     }
 
+    private function formacoesParaFrontend(Candidato $candidato): array
+    {
+        return $candidato->formacoes->map(fn ($f) => [
+            'nivel_escolaridade' => $f->nivel_escolaridade,
+            'situacao_curso'     => $f->situacao_curso,
+            'curso'              => $f->curso,
+            'instituicao'        => $f->instituicao,
+            'semestre'           => $f->semestre,
+            'previsao_conclusao' => $f->previsao_conclusao?->format('Y-m-d'),
+        ])->values()->all();
+    }
+
     public function edit()
     {
         $candidato = $this->candidato();
+        $candidato->load('formacoes');
 
         return Inertia::render('Candidato/Perfil/Edit', [
             'candidato' => array_merge($candidato->only([
                 'nome', 'nome_social', 'nacionalidade', 'email', 'cpf', 'telefone', 'linkedin',
-                'curso', 'instituicao', 'nivel_escolaridade', 'situacao_curso', 'semestre', 'previsao_conclusao',
+                'outras_formacoes_mec', 'outros_cursos',
                 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
                 'pretensao_salarial', 'disponibilidade', 'pcd', 'pcd_tipo',
-                'curriculo_nome_original', 'created_at',
+                'created_at',
             ]), [
-                'tem_curriculo' => $candidato->temCurriculo(),
+                'formacoes'               => $this->formacoesParaFrontend($candidato),
+                'tem_curriculo'           => $candidato->temCurriculo(),
+                'curriculo_nome_original' => $candidato->curriculoAtual?->nome_original,
+                'possui_acessibilidade'   => $candidato->possui_acessibilidade,
+                'acessibilidade_detalhe'  => $candidato->acessibilidade_detalhe,
             ]),
         ]);
     }
@@ -43,16 +61,31 @@ class PerfilController extends Controller
     {
         $candidato = $this->candidato();
 
+        /*
+         * Nada aqui é obrigatório: o perfil pode ficar incompleto pelo tempo que o
+         * candidato quiser. O que estes campos precisam garantir é o formato — a
+         * exigência de preenchimento é do gate da candidatura, e o critério de
+         * completude mora em Candidato::CAMPOS_OBRIGATORIOS.
+         */
         $dados = $request->validate([
-            'nome'               => ['required', 'string', 'max:255'],
-            'email'              => ['required', 'email', Rule::unique('candidatos')->ignore($candidato->id)],
-            'cpf'                => ['required', 'string', 'size:14', Rule::unique('candidatos')->ignore($candidato->id)],
-            'telefone'           => ['nullable', 'string', 'max:20'],
-            'linkedin'           => ['nullable', 'url', 'max:255'],
-            'curso'              => ['nullable', 'string', 'max:255'],
-            'instituicao'        => ['nullable', 'string', 'max:255'],
-            'semestre'           => ['nullable', 'string', 'max:10'],
-            'previsao_conclusao' => ['nullable', 'date'],
+            'nome'                 => ['nullable', 'string', 'max:255'],
+            'nome_social'          => ['nullable', 'string', 'max:255'],
+            'nacionalidade'        => ['nullable', 'string', 'max:100'],
+            'email'                => ['required', 'email', Rule::unique('candidatos')->ignore($candidato->id)],
+            'cpf'                  => ['required', 'string', 'size:14', Rule::unique('candidatos')->ignore($candidato->id)],
+            'telefone'             => ['nullable', 'string', 'max:20'],
+            'linkedin'             => ['nullable', 'url', 'max:255'],
+            'formacoes'                       => ['nullable', 'array'],
+            'formacoes.*.nivel_escolaridade'  => ['nullable', 'string', 'max:50'],
+            'formacoes.*.situacao_curso'      => ['nullable', 'in:cursando,concluido'],
+            'formacoes.*.curso'               => ['nullable', 'string', 'max:255'],
+            'formacoes.*.instituicao'         => ['nullable', 'string', 'max:255'],
+            'formacoes.*.semestre'            => ['nullable', 'string', 'max:10'],
+            'formacoes.*.previsao_conclusao'  => ['nullable', 'date'],
+            'outras_formacoes_mec'   => ['nullable', 'string', 'max:2000'],
+            'outros_cursos'          => ['nullable', 'string', 'max:2000'],
+            'possui_acessibilidade'  => ['nullable', 'boolean'],
+            'acessibilidade_detalhe' => ['nullable', 'string', 'max:2000', 'required_if:possui_acessibilidade,1'],
             'cep'                => ['nullable', 'string', 'max:9'],
             'logradouro'         => ['nullable', 'string', 'max:255'],
             'numero'             => ['nullable', 'string', 'max:20'],
@@ -67,21 +100,43 @@ class PerfilController extends Controller
             'curriculo'          => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
         ]);
 
+        // Versão nova em vez de sobrescrita: a anterior precisa continuar
+        // identificável pelos eventos dos processos que a julgaram.
         if ($request->hasFile('curriculo')) {
-            if ($candidato->curriculo_path) {
-                Storage::disk('local')->delete($candidato->curriculo_path);
-            }
-            $arquivo = $request->file('curriculo');
-            $dados['curriculo_path']          = $arquivo->store('candidatos/curriculos', 'local');
-            $dados['curriculo_nome_original'] = $arquivo->getClientOriginalName();
+            $candidato->adicionarCurriculo($request->file('curriculo'));
         }
 
         $dados['cpf'] = preg_replace('/\D/', '', $dados['cpf']);
         $dados['pcd'] = $request->boolean('pcd');
 
-        unset($dados['curriculo']);
+        // Vazio é "ainda não respondeu" e precisa continuar nulo — do contrário
+        // o cast para boolean gravaria "não" e a pendência sumiria sem resposta.
+        $dados['possui_acessibilidade'] = $request->filled('possui_acessibilidade')
+            ? $request->boolean('possui_acessibilidade')
+            : null;
 
-        $candidato->update($dados);
+        $formacoes = $dados['formacoes'] ?? [];
+        unset($dados['curriculo'], $dados['formacoes']);
+
+        DB::transaction(function () use ($candidato, $dados, $formacoes) {
+            $candidato->update($dados);
+
+            // Substitui a lista inteira a cada envio: nenhuma outra tabela
+            // referencia uma formação específica por id, então recriar é
+            // mais simples e seguro do que casar por id enviado.
+            $candidato->formacoes()->delete();
+
+            foreach ($formacoes as $formacao) {
+                if (collect($formacao)->filter(fn ($valor) => filled($valor))->isEmpty()) {
+                    continue;
+                }
+
+                $candidato->formacoes()->create($formacao);
+            }
+        });
+
+        // Mexer no perfil é uso da conta tanto quanto entrar nela.
+        $candidato->registrarAtividade();
 
         return back()->with('success', 'Dados atualizados com sucesso!');
     }
@@ -113,15 +168,10 @@ class PerfilController extends Controller
     {
         $candidato = $this->candidato();
 
-        if ($candidato->curriculo_path) {
-            Storage::disk('local')->delete($candidato->curriculo_path);
-            $candidato->update([
-                'curriculo_path'          => null,
-                'curriculo_nome_original' => null,
-            ]);
-        }
+        // O arquivo permanece armazenado; só deixa de ser a versão vigente.
+        $candidato->removerCurriculoAtual();
 
-        return back()->with('success', 'Currículo removido.');
+        return back()->with('success', 'Currículo removido. Seu perfil ficou incompleto.');
     }
 
     public function downloadCurriculo()
@@ -130,37 +180,48 @@ class PerfilController extends Controller
 
         abort_unless($candidato->temCurriculo(), 404, 'Currículo não encontrado.');
 
+        $versao = $candidato->curriculoAtual;
+
         return Storage::disk('local')->download(
-            $candidato->curriculo_path,
-            $candidato->curriculo_nome_original ?? 'curriculo.pdf'
+            $versao->path,
+            $versao->nome_original ?? 'curriculo.pdf'
         );
     }
 
     public function exportarDados()
     {
         $candidato = $this->candidato();
-        $candidato->load(['candidaturas.vaga']);
+        $candidato->load(['candidaturas.vaga', 'curriculos', 'formacoes']);
 
         $dados = [
             'exportado_em' => now()->toIso8601String(),
-            'perfil' => $candidato->only([
+            'perfil' => array_merge($candidato->only([
                 'id', 'nome', 'nome_social', 'nacionalidade', 'email', 'cpf', 'telefone', 'linkedin',
-                'curso', 'instituicao', 'nivel_escolaridade', 'situacao_curso', 'semestre', 'previsao_conclusao',
                 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'pais',
                 'pretensao_salarial', 'disponibilidade', 'pcd', 'pcd_tipo',
                 'possui_acessibilidade', 'acessibilidade_detalhe',
-                'conflito_interesse', 'conflito_interesse_detalhe',
-                'curriculo_nome_original', 'lgpd_consentimento', 'lgpd_consentimento_em',
-                'codigo_conduta_aceito_em', 'created_at',
+                'outras_formacoes_mec', 'outros_cursos',
+                'lgpd_consentimento', 'lgpd_consentimento_em', 'created_at',
+            ]), [
+                'formacoes' => $this->formacoesParaFrontend($candidato),
+            ]),
+            // Uma entrada por versão: exportar só a vigente esconderia currículos
+            // que a pessoa enviou e que ainda constam de processos anteriores.
+            'curriculos' => $candidato->curriculos->map(fn ($cv) => [
+                'nome_original' => $cv->nome_original,
+                'enviado_em'    => $cv->enviado_em?->toIso8601String(),
+                'vigente'       => $cv->id === $candidato->curriculo_atual_id,
             ]),
             'candidaturas' => $candidato->candidaturas->map(fn ($c) => [
-                'vaga'                   => $c->vaga?->titulo,
-                'status'                 => $c->statusLabel,
-                'enviada_em'             => $c->created_at?->toIso8601String(),
-                'curriculo_nome_original' => $c->curriculo_nome_original,
-                'carta_apresentacao'     => $c->carta_apresentacao,
-                'entrevista_data'        => $c->entrevista_data?->toIso8601String(),
-                'entrevista_local'       => $c->entrevista_local,
+                'vaga'                       => $c->vaga?->titulo,
+                'status'                     => $c->statusLabel,
+                'enviada_em'                 => $c->created_at?->toIso8601String(),
+                'carta_apresentacao'         => $c->carta_apresentacao,
+                'conflito_interesse'         => $c->conflito_interesse,
+                'conflito_interesse_detalhe' => $c->conflito_interesse_detalhe,
+                'codigo_conduta_aceito_em'   => $c->codigo_conduta_aceito_em?->toIso8601String(),
+                'entrevista_data'            => $c->entrevista_data?->toIso8601String(),
+                'entrevista_local'           => $c->entrevista_local,
             ]),
         ];
 
@@ -191,38 +252,9 @@ class PerfilController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        foreach ($candidato->candidaturas as $candidatura) {
-            $this->anonimizacao->anonimizarCandidatura($candidatura);
-        }
-
-        if ($candidato->curriculo_path) {
-            Storage::disk('local')->delete($candidato->curriculo_path);
-        }
-
-        $anonimo = 'excluido_' . $candidato->id . '_' . substr(hash('sha256', $candidato->id . $candidato->cpf), 0, 16);
-
-        $candidato->update([
-            'nome'                       => 'Candidato excluído',
-            'nome_social'                => null,
-            'email'                      => $anonimo . '@removido.invalid',
-            'cpf'                        => substr(hash('sha256', $candidato->cpf), 0, 14),
-            'telefone'                   => null,
-            'linkedin'                   => null,
-            'cep'                        => null,
-            'logradouro'                 => null,
-            'numero'                     => null,
-            'complemento'                => null,
-            'bairro'                     => null,
-            'cidade'                     => null,
-            'estado'                     => null,
-            'acessibilidade_detalhe'     => null,
-            'conflito_interesse_detalhe' => null,
-            'curriculo_path'             => null,
-            'curriculo_nome_original'    => null,
-            'lgpd_consentimento'         => false,
-            'ativo'                      => false,
-        ]);
-        $candidato->delete();
+        // Uma chamada, um lugar: as candidaturas leem do perfil, então não há
+        // cópia a percorrer. Elas permanecem como registro de processo.
+        $this->anonimizacao->anonimizarCandidato($candidato);
 
         return redirect()->route('home')
             ->with('success', 'Sua conta foi excluída. Seus dados foram anonimizados conforme a LGPD.');

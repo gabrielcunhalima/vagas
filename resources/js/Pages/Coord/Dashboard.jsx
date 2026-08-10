@@ -66,7 +66,7 @@ export default function Dashboard({ stats, vagasRecentes, candidaturasRecentes }
                                 <TableBody>
                                     {vagasRecentes.map((v) => (
                                         <TableRow key={v.id}>
-                                            <TableCell className="max-w-56">
+                                            <TableCell className="max-w-72">
                                                 <div className="flex items-center gap-2">
                                                     <TipoBadge tipo={v.tipo} />
                                                     <span className="truncate font-medium">{v.titulo}</span>

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Candidato;
 use App\Models\User;
 use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
@@ -21,6 +22,7 @@ class CandidaturaTriagemTest extends TestCase
     private User $coord2;
     private User $admin;
     private Vaga $vaga;
+    private Candidato $candidato;
     private Candidatura $candidatura;
 
     protected function setUp(): void
@@ -46,17 +48,29 @@ class CandidaturaTriagemTest extends TestCase
             'notificar_email'   => true,
         ]);
 
+        $this->candidato = Candidato::factory()->create([
+            'nome'  => 'Candidato de Teste',
+            'email' => 'candidato@teste.com',
+            'cpf'   => '52998224725',
+        ]);
+
         $this->candidatura = Candidatura::create([
-            'vaga_id'               => $this->vaga->id,
-            'nome'                  => 'Candidato de Teste',
-            'email'                 => 'candidato@teste.com',
-            'cpf'                   => '52998224725',
-            'curso'                 => 'Ciência da Computação',
-            'instituicao'           => 'UFSC',
-            'status'                => 'recebida',
-            'pais'                  => 'Brasil',
-            'curriculo_path'        => 'vagas/curriculos/fake.pdf',
-            'curriculo_nome_original' => 'curriculo.pdf',
+            'vaga_id'      => $this->vaga->id,
+            'candidato_id' => $this->candidato->id,
+            'status'       => 'recebida',
+        ]);
+    }
+
+    /** Coloca a candidatura num estado terminal com a data da decisão registrada. */
+    private function decidirEm(string $status, \DateTimeInterface $quando): void
+    {
+        $this->candidatura->update(['status' => $status]);
+        $this->candidatura->eventos()->create([
+            'tipo'            => \App\Models\Vagas\CandidaturaEvento::TIPO_TRANSICAO,
+            'status_anterior' => 'entrevista',
+            'status_novo'     => $status,
+            'autor_id'        => $this->coord->id,
+            'ocorrido_em'     => $quando,
         ]);
     }
 
@@ -84,16 +98,16 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_filtro_por_status_na_listagem(): void
     {
+        $outroCandidato = Candidato::factory()->create([
+            'nome'  => 'Candidato Em Análise',
+            'email' => 'analise@teste.com',
+            'cpf'   => '71428793860',
+        ]);
+
         Candidatura::create([
-            'vaga_id'     => $this->vaga->id,
-            'nome'        => 'Candidato Em Análise',
-            'email'       => 'analise@teste.com',
-            'cpf'         => '71428793860',
-            'curso'       => 'Sistemas',
-            'instituicao' => 'UFSC',
-            'status'      => 'em_analise',
-            'pais'        => 'Brasil',
-            'curriculo_path' => 'vagas/curriculos/fake2.pdf',
+            'vaga_id'      => $this->vaga->id,
+            'candidato_id' => $outroCandidato->id,
+            'status'       => 'em_analise',
         ]);
 
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas?status=recebida");
@@ -350,7 +364,7 @@ class CandidaturaTriagemTest extends TestCase
     public function test_download_curriculo_disponivel(): void
     {
         Storage::fake('local');
-        Storage::disk('local')->put('vagas/curriculos/fake.pdf', 'conteúdo do pdf');
+        Storage::disk('local')->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
 
         $response = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo"
@@ -358,14 +372,148 @@ class CandidaturaTriagemTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_download_curriculo_sem_arquivo_retorna_404(): void
+    public function test_download_curriculo_sem_curriculo_no_perfil_e_recusado(): void
     {
-        $this->candidatura->update(['curriculo_path' => null]);
+        $this->candidato->removerCurriculoAtual();
 
         $response = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo"
         );
-        $response->assertStatus(404);
+        $response->assertForbidden();
+    }
+
+    // ─── Decaimento de acesso ────────────────────────────────────────────────
+
+    public function test_reprovada_dentro_da_carencia_mantem_os_dados_visiveis(): void
+    {
+        $this->decidirEm('reprovado', now()->subDays(10));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertFalse($this->propsInertia($res)['acessoExpirado']);
+        $this->assertVeInertia($res, 'Candidato de Teste');
+    }
+
+    public function test_reprovada_apos_a_carencia_esconde_os_dados_pessoais(): void
+    {
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertTrue($this->propsInertia($res)['acessoExpirado']);
+        $this->assertNaoVeInertia($res, 'Candidato de Teste');
+        $this->assertNaoVeInertia($res, 'candidato@teste.com');
+    }
+
+    public function test_aprovada_nao_perde_acesso_com_o_tempo(): void
+    {
+        $this->decidirEm('aprovado', now()->subDays(400));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertFalse($this->propsInertia($res)['acessoExpirado']);
+        $this->assertVeInertia($res, 'Candidato de Teste');
+    }
+
+    public function test_candidatura_parada_em_vaga_encerrada_perde_acesso(): void
+    {
+        $this->vaga->update([
+            'status'            => 'encerrada',
+            'data_encerramento' => now()->subDays(120)->toDateString(),
+        ]);
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertTrue($this->propsInertia($res)['acessoExpirado']);
+    }
+
+    public function test_registro_do_processo_permanece_apos_o_decaimento(): void
+    {
+        $this->candidatura->update(['observacoes_internas' => 'Anotação da equipe.']);
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $this->assertVeInertia($res, 'Anotação da equipe.');
+        $this->assertNotEmpty($this->propsInertia($res)['motivoExpiracao']);
+    }
+
+    public function test_download_de_curriculo_recusado_apos_o_decaimento(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $this->actingAs($this->coord)
+            ->get("/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo")
+            ->assertForbidden();
+    }
+
+    public function test_listagem_nao_expoe_dados_de_candidatura_com_acesso_expirado(): void
+    {
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $res = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas");
+
+        $this->assertNaoVeInertia($res, 'Candidato de Teste');
+        $this->assertNaoVeInertia($res, 'candidato@teste.com');
+    }
+
+    public function test_conta_excluida_encerra_o_acesso_na_hora(): void
+    {
+        app(\App\Services\AnonimizacaoService::class)->anonimizarCandidato($this->candidato);
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertTrue($this->propsInertia($res)['acessoExpirado']);
+        $this->assertNaoVeInertia($res, 'candidato@teste.com');
+    }
+
+    // ─── Histórico do processo ───────────────────────────────────────────────
+
+    public function test_transicao_de_status_registra_evento(): void
+    {
+        $this->actingAs($this->coord)->patch(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
+            ['status' => 'em_analise']
+        );
+
+        $evento = $this->candidatura->eventos()->latest('ocorrido_em')->first();
+
+        $this->assertSame('recebida', $evento->status_anterior);
+        $this->assertSame('em_analise', $evento->status_novo);
+        $this->assertSame($this->coord->id, $evento->autor_id);
+    }
+
+    public function test_historico_chega_na_tela_da_candidatura(): void
+    {
+        $this->actingAs($this->coord)->patch(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
+            ['status' => 'em_analise']
+        );
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $this->assertNotEmpty($this->propsInertia($res)['candidatura']['eventos']);
     }
 
     public function test_coordenador_nao_acessa_candidatura_de_vaga_alheia_status(): void

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Vagas;
 
 use App\Http\Controllers\Controller;
+use App\Models\Candidato;
 use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
+use App\Models\Vagas\CandidaturaEvento;
 use App\Http\Requests\Vagas\InscricaoRequest;
 use App\Mail\Vagas\CandidaturaRecebidaMail;
 use App\Mail\Vagas\NovaCandidaturaMail;
@@ -15,7 +17,7 @@ use Inertia\Inertia;
 
 class InscricaoController extends Controller
 {
-    private function candidatoLogado()
+    private function candidatoLogado(): Candidato
     {
         return Auth::guard('candidato')->user();
     }
@@ -26,14 +28,10 @@ class InscricaoController extends Controller
 
         $candidato = $this->candidatoLogado();
 
-        // Se candidato logado já se candidatou, redireciona para suas candidaturas
-        if ($candidato && $candidato->jaSeInscreveuNa($vaga->id)) {
+        if ($candidato->jaSeInscreveuNa($vaga->id)) {
             return redirect()->route('candidato.candidaturas.index')
                 ->with('info', 'Você já se candidatou a esta vaga.');
         }
-
-        // Pré-preenchimento: prioridade old() → perfil do candidato → vazio
-        $prefill = $candidato ? $candidato->dadosParaCandidatura() : [];
 
         return Inertia::render('Publico/Candidatura', [
             'vaga' => $vaga->only([
@@ -41,13 +39,10 @@ class InscricaoController extends Controller
                 'remuneracao', 'remuneracao_max', 'cidade', 'estado',
                 'local_trabalho', 'data_encerramento',
             ]),
-            'candidato' => $candidato ? [
-                'nome'           => $candidato->nome,
-                'email'          => $candidato->email,
-                'tem_curriculo'  => $candidato->temCurriculo(),
-                'curriculo_nome' => $candidato->curriculo_nome_original,
-            ] : null,
-            'prefill' => $prefill,
+            // Os dados vão para conferência, não para preenchimento: o que estiver
+            // aqui é o que o coordenador verá, e editar grava na conta.
+            'perfil'     => $this->perfilParaConferencia($candidato),
+            'completude' => $candidato->estadoCompletude(),
         ]);
     }
 
@@ -57,48 +52,41 @@ class InscricaoController extends Controller
 
         $candidato = $this->candidatoLogado();
 
-        // Impede dupla candidatura mesmo via POST direto
-        if ($candidato && $candidato->jaSeInscreveuNa($vaga->id)) {
+        if ($candidato->jaSeInscreveuNa($vaga->id)) {
             return redirect()->route('candidato.candidaturas.index')
                 ->with('info', 'Você já se candidatou a esta vaga.');
         }
 
+        // O perfil é a fonte dos dados que o coordenador lê; incompleto, não há
+        // ficha para avaliar. A interface já bloqueia, isto é a garantia final.
+        if (!$candidato->perfilCompleto()) {
+            return redirect()->route('candidato.perfil.edit')
+                ->with('info', 'Complete seu perfil para se candidatar a esta vaga.');
+        }
+
         $dados = $request->validated();
 
-        if ($request->hasFile('curriculo')) {
-            $arquivo = $request->file('curriculo');
-            $dados['curriculo_path']          = $arquivo->store('vagas/curriculos', 'local');
-            $dados['curriculo_nome_original'] = $arquivo->getClientOriginalName();
-        } elseif ($candidato && $candidato->temCurriculo()) {
-            // Usa currículo do perfil se não foi enviado novo
-            $dados['curriculo_path']          = $candidato->curriculo_path;
-            $dados['curriculo_nome_original'] = $candidato->curriculo_nome_original;
-        }
+        $candidatura = Candidatura::create([
+            'vaga_id'                    => $vaga->id,
+            'candidato_id'               => $candidato->id,
+            'carta_apresentacao'         => $dados['carta_apresentacao'] ?? null,
+            'conflito_interesse'         => $request->boolean('conflito_interesse'),
+            'conflito_interesse_detalhe' => $dados['conflito_interesse_detalhe'] ?? null,
+            'codigo_conduta_aceito_em'   => now(),
+            'status'                     => 'recebida',
+        ]);
 
-        unset($dados['curriculo'], $dados['_honeypot'], $dados['usar_curriculo_perfil']);
-
-        $dados['vaga_id']      = $vaga->id;
-        $dados['status']       = 'recebida';
-        $dados['candidato_id'] = $candidato?->id;
-
-        $candidatura = Candidatura::create($dados);
-
-        // Atualiza perfil do candidato com dados mais recentes (optional: pode-se oferecer)
-        if ($candidato) {
-            $candidato->update(array_filter([
-                'telefone'           => $dados['telefone'] ?? $candidato->telefone,
-                'curso'              => $dados['curso'] ?? $candidato->curso,
-                'instituicao'        => $dados['instituicao'] ?? $candidato->instituicao,
-                'semestre'           => $dados['semestre'] ?? $candidato->semestre,
-                'previsao_conclusao' => $dados['previsao_conclusao'] ?? $candidato->previsao_conclusao,
-                'linkedin'           => $dados['linkedin'] ?? $candidato->linkedin,
-                'pretensao_salarial' => $dados['pretensao_salarial'] ?? $candidato->pretensao_salarial,
-                'disponibilidade'    => $dados['disponibilidade'] ?? $candidato->disponibilidade,
-            ], fn($v) => $v !== null));
-        }
+        // Registra a submissão e qual currículo estava vigente nela. É o que
+        // permite, depois, saber qual PDF o processo recebeu.
+        $candidatura->eventos()->create([
+            'tipo'                 => CandidaturaEvento::TIPO_SUBMISSAO,
+            'status_novo'          => 'recebida',
+            'curriculo_id_vigente' => $candidato->curriculo_atual_id,
+            'ocorrido_em'          => now(),
+        ]);
 
         try {
-            Mail::to($candidatura->email)->send(new CandidaturaRecebidaMail($candidatura));
+            Mail::to($candidato->email)->send(new CandidaturaRecebidaMail($candidatura));
         } catch (\Exception $e) {
             Log::error('Erro ao enviar e-mail de candidatura: ' . $e->getMessage());
         }
@@ -111,64 +99,46 @@ class InscricaoController extends Controller
             }
         }
 
-        if ($candidato) {
-            return redirect()
-                ->route('candidato.candidaturas.index')
-                ->with('success', 'Candidatura enviada com sucesso! Acompanhe o status aqui.');
-        }
-
         return redirect()
-            ->route('inscricao.confirmacao', $vaga)
-            ->with('candidatura_nome', $candidatura->nome);
+            ->route('candidato.candidaturas.index')
+            ->with('success', 'Candidatura enviada com sucesso! Acompanhe o status aqui.');
     }
 
     public function confirmacao(Vaga $vaga)
     {
         return Inertia::render('Publico/Confirmacao', [
             'vaga' => $vaga->only(['id', 'titulo']),
-            'nome' => session('candidatura_nome'),
+            'nome' => $this->candidatoLogado()->nome,
         ]);
     }
 
-    public function consultaForm()
+    /** O que o coordenador verá — apresentado ao candidato antes do envio. */
+    private function perfilParaConferencia(Candidato $candidato): array
     {
-        if ($this->candidatoLogado()) {
-            return redirect()->route('candidato.candidaturas.index');
-        }
-
-        return Inertia::render('Publico/ConsultaCandidatura');
-    }
-
-    public function consulta(\Illuminate\Http\Request $request)
-    {
-        $request->validate([
-            'cpf'   => ['required', 'string'],
-            'email' => ['required', 'email'],
-        ]);
-
-        $cpf = preg_replace('/\D/', '', $request->cpf);
-
-        $candidaturas = Candidatura::with('vaga')
-            ->where('cpf', $cpf)
-            ->where('email', $request->email)
-            ->orderByDesc('created_at')
-            ->get();
-
-        // Consulta pública: nunca expor observações internas do coordenador
-        return Inertia::render('Publico/ConsultaCandidatura', [
-            'candidaturas' => $candidaturas->map(fn(Candidatura $c) => [
-                'id'                     => $c->id,
-                'status'                 => $c->status,
-                'created_at'             => $c->created_at,
-                'entrevista_data'        => $c->entrevista_data,
-                'entrevista_local'       => $c->entrevista_local,
-                'entrevista_observacoes' => $c->entrevista_observacoes,
-                'vaga'                   => $c->vaga?->only(['id', 'titulo', 'tipo', 'area', 'modalidade']),
-            ]),
-            'busca' => [
-                'cpf'   => $request->cpf,
-                'email' => $request->email,
-            ],
-        ]);
+        return [
+            'nome'                  => $candidato->nome,
+            'nome_social'           => $candidato->nome_social,
+            'email'                 => $candidato->email,
+            'cpf_formatado'         => $candidato->cpf_formatado,
+            'telefone'              => $candidato->telefone,
+            'nacionalidade'         => $candidato->nacionalidade,
+            'linkedin'              => $candidato->linkedin,
+            'formacoes'             => $candidato->formacoes->map(fn ($f) => [
+                'nivel_escolaridade' => $f->nivel_escolaridade,
+                'situacao_curso'     => $f->situacao_curso,
+                'curso'              => $f->curso,
+                'instituicao'        => $f->instituicao,
+                'semestre'           => $f->semestre,
+                'previsao_conclusao' => $f->previsao_conclusao?->format('Y-m-d'),
+            ])->values(),
+            'outras_formacoes_mec'  => $candidato->outras_formacoes_mec,
+            'outros_cursos'         => $candidato->outros_cursos,
+            'cidade'                => $candidato->cidade,
+            'estado'                => $candidato->estado,
+            'pretensao_salarial'    => $candidato->pretensao_salarial,
+            'disponibilidade'       => $candidato->disponibilidade,
+            'possui_acessibilidade' => $candidato->possui_acessibilidade,
+            'curriculo_nome'        => $candidato->curriculoAtual?->nome_original,
+        ];
     }
 }

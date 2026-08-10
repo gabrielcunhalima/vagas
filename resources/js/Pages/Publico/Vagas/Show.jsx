@@ -14,15 +14,17 @@ import { toast } from 'sonner';
 import PublicLayout from '@/Layouts/PublicLayout';
 import VagaCard from '@/components/VagaCard';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ModalidadeBadge, NovaBadge, TipoBadge } from '@/components/badges';
 import { diasRestantes, faixaSalarial, formatDate, isNova, localVaga } from '@/lib/format';
 
+const tituloSecaoClasses =
+    'inline-flex w-fit items-center rounded-4xl bg-secondary px-3 py-1 text-[1.25rem] font-bold uppercase tracking-wider text-secondary-foreground';
+
 function Secao({ titulo, children }) {
     return (
         <section>
-            <h2 className="text-[1.125rem] font-bold uppercase tracking-wider text-muted-foreground">{titulo}</h2>
+            <h2 className={tituloSecaoClasses}>{titulo}</h2>
             <div className="mt-2.5 whitespace-pre-line text-sm leading-relaxed">{children}</div>
         </section>
     );
@@ -93,16 +95,12 @@ export default function Show({ vaga, relacionadas }) {
 
                         {vaga.curso_desejado?.length > 0 && (
                             <section>
-                                <h2 className="text-[1.125rem] font-bold uppercase tracking-wider text-muted-foreground">
-                                    Cursos desejados
-                                </h2>
-                                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                                <h2 className={tituloSecaoClasses}>Cursos desejados</h2>
+                                <ul className="mt-2.5 list-disc space-y-1 pl-5 text-sm leading-relaxed marker:text-muted-foreground">
                                     {vaga.curso_desejado.map((curso) => (
-                                        <Badge key={curso} variant="secondary">
-                                            {curso}
-                                        </Badge>
+                                        <li key={curso}>{curso}</li>
                                     ))}
-                                </div>
+                                </ul>
                             </section>
                         )}
 

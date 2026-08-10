@@ -29,7 +29,7 @@
     </a>
 </div>
 
-<p style="color:#999;font-size:12px;text-align:center;margin-top:24px">
+<p style="color:#999;font-size:14px;text-align:center;margin-top:24px">
     Você recebe este e-mail porque cadastrou um alerta de vagas.
     <a href="{{ url('/alertas/cancelar/' . $alerta->token) }}" style="color:#999">Cancelar alertas</a>
 </p>

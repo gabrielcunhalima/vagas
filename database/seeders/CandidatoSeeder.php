@@ -22,7 +22,7 @@ class CandidatoSeeder extends Seeder
     {
         $curriculoPath = $this->gerarCurriculo();
 
-        Candidato::updateOrCreate(
+        $candidato = Candidato::updateOrCreate(
             ['email' => self::EMAIL],
             [
                 // Autenticação
@@ -37,13 +37,9 @@ class CandidatoSeeder extends Seeder
                 'telefone'      => '48988776655',
                 'linkedin'      => 'https://www.linkedin.com/in/mariana-ferreira-ficticia',
 
-                // Formação
-                'curso'              => 'Engenharia de Produção',
-                'instituicao'        => 'Universidade Federal de Santa Catarina',
-                'nivel_escolaridade' => 'graduacao',
-                'situacao_curso'     => 'cursando',
-                'semestre'           => '7º',
-                'previsao_conclusao' => now()->addMonths(14)->toDateString(),
+                // Outras qualificações em texto livre
+                'outras_formacoes_mec' => 'Especialização em Gestão de Projetos - 2025',
+                'outros_cursos'        => 'Curso de Excel Avançado - SENAC - 2024',
 
                 // Endereço
                 'cep'         => '88040900',
@@ -70,17 +66,24 @@ class CandidatoSeeder extends Seeder
                 'curriculo_path'          => $curriculoPath,
                 'curriculo_nome_original' => 'curriculo-mariana-ferreira.pdf',
 
-                // LGPD e questionário
-                'lgpd_consentimento'         => true,
-                'lgpd_consentimento_em'      => now()->subDays(30),
-                'conflito_interesse'         => true,
-                'conflito_interesse_detalhe' => 'Meu tio é servidor da UFSC e atua como coordenador '
-                    . 'de projeto com convênio administrado pela FAPEU.',
-                'codigo_conduta_aceito_em'   => now()->subDays(30),
+                // LGPD
+                'lgpd_consentimento'    => true,
+                'lgpd_consentimento_em' => now()->subDays(30),
 
                 'ativo' => true,
             ]
         );
+
+        // Idempotente: substitui a lista inteira a cada execução do seeder.
+        $candidato->formacoes()->delete();
+        $candidato->formacoes()->create([
+            'nivel_escolaridade' => 'graduacao',
+            'situacao_curso'     => 'cursando',
+            'curso'              => 'Engenharia de Produção',
+            'instituicao'        => 'Universidade Federal de Santa Catarina',
+            'semestre'           => '7º',
+            'previsao_conclusao' => now()->addMonths(14)->toDateString(),
+        ]);
 
         $this->command?->info('Candidato: ' . self::EMAIL . ' / ' . self::SENHA);
     }

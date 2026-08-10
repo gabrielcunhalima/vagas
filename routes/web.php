@@ -27,16 +27,25 @@ Route::get('/vagas/{vaga}', [VagaPublicaController::class, 'show'])->name('vagas
 
 Route::inertia('/fazenda-ressacada', 'Publico/FazendaRessacada')->name('fazenda.ressacada');
 
-Route::get('/candidatura/{vaga}', [InscricaoController::class, 'create'])->name('inscricao.create');
-Route::post('/candidatura/{vaga}', [InscricaoController::class, 'store'])->name('inscricao.store');
-Route::get('/candidatura/{vaga}/confirmacao', [InscricaoController::class, 'confirmacao'])->name('inscricao.confirmacao');
+// Candidatar-se e gerenciar alertas exigem conta com e-mail verificado.
+Route::middleware(['candidato.auth', 'candidato.verified'])->group(function () {
+    Route::get('/candidatura/{vaga}', [InscricaoController::class, 'create'])->name('inscricao.create');
+    Route::post('/candidatura/{vaga}', [InscricaoController::class, 'store'])->name('inscricao.store');
+    Route::get('/candidatura/{vaga}/confirmacao', [InscricaoController::class, 'confirmacao'])->name('inscricao.confirmacao');
 
-Route::get('/minhas-candidaturas', [InscricaoController::class, 'consultaForm'])->name('candidatura.consulta');
-Route::post('/minhas-candidaturas', [InscricaoController::class, 'consulta'])->name('candidatura.consulta.busca');
+    Route::get('/alertas', [AlertaVagaController::class, 'create'])->name('alertas.create');
+    Route::post('/alertas', [AlertaVagaController::class, 'store'])->name('alertas.store');
+});
 
-Route::get('/alertas', [AlertaVagaController::class, 'create'])->name('alertas.create');
-Route::post('/alertas', [AlertaVagaController::class, 'store'])->name('alertas.store');
+// Sair de uma lista de e-mails nunca pode exigir login.
 Route::get('/alertas/cancelar/{token}', [AlertaVagaController::class, 'cancelar'])->name('alertas.cancelar');
+
+/*
+ * Legado: a consulta por CPF + e-mail existia para quem se candidatava sem conta.
+ * Como toda candidatura passa a pertencer a uma conta, o acompanhamento agora é
+ * pela área autenticada. Mantido como redirecionamento para não quebrar links.
+ */
+Route::redirect('/minhas-candidaturas', '/minha-conta/candidaturas')->name('candidatura.consulta');
 
 Route::get('/api/cep/{cep}', [CepController::class, 'buscar'])
     ->where('cep', '[0-9\-]{8,9}')
@@ -51,7 +60,9 @@ Route::prefix('minha-conta')->name('candidato.')->group(function () {
 
     Route::get('/cadastro', [CandidatoRegistroController::class, 'showForm'])->name('registro');
     Route::post('/cadastro', [CandidatoRegistroController::class, 'store'])->name('registro.post');
-    Route::get('/cadastro/verificar-cpf', [CandidatoRegistroController::class, 'verificarCpf'])->name('registro.verificar-cpf');
+    Route::get('/cadastro/verificar-cpf', [CandidatoRegistroController::class, 'verificarCpf'])
+        ->middleware('throttle:30,1')
+        ->name('registro.verificar-cpf');
 
     // ─── Recuperação de senha ─────────────────────────────────────────────────
     Route::get('/esqueci-senha', [CandidatoRecuperarSenhaController::class, 'showLinkRequestForm'])->name('senha.request');
@@ -63,20 +74,24 @@ Route::prefix('minha-conta')->name('candidato.')->group(function () {
         ->middleware('throttle:6,1')
         ->name('senha.update');
 
-    // ─── Área logada (e-mail ainda não verificado) ───────────────────────────
+    /*
+     * A verificação de e-mail passa a valer por ATO, não por área.
+     *
+     * Bloquear a área inteira devolveria na saída o atrito que o cadastro mínimo
+     * removeu na entrada: a pessoa cria a conta e não consegue nem preencher o
+     * perfil antes de sair para o e-mail. Navegar e mexer nos próprios dados não
+     * tem efeito externo; candidatar-se e ativar alertas têm.
+     */
     Route::middleware('candidato.auth')->group(function () {
+
         Route::get('/verificar-email', [CandidatoVerificacaoController::class, 'notice'])->name('verification.notice');
         Route::get('/verificar-email/{id}/{hash}', [CandidatoVerificacaoController::class, 'verify'])
             ->middleware('signed')->name('verification.verify');
         Route::post('/verificar-email/reenviar', [CandidatoVerificacaoController::class, 'resend'])->name('verification.send');
-    });
-
-    // ─── Área autenticada do candidato (e-mail verificado) ───────────────────
-    Route::middleware(['candidato.auth', 'candidato.verified'])->group(function () {
 
         Route::get('/vagas', [VagaPublicaController::class, 'index'])->name('vagas');
 
-        // Perfil / Meus Dados
+        // Perfil / Meus Dados — dado próprio, sem efeito externo: liberado sem verificação.
         Route::get('/meus-dados', [CandidatoPerfilController::class, 'edit'])->name('perfil.edit');
         Route::put('/meus-dados', [CandidatoPerfilController::class, 'update'])->name('perfil.update');
         Route::put('/meus-dados/senha', [CandidatoPerfilController::class, 'updateSenha'])->name('perfil.senha');
@@ -85,10 +100,16 @@ Route::prefix('minha-conta')->name('candidato.')->group(function () {
         Route::get('/meus-dados/exportar', [CandidatoPerfilController::class, 'exportarDados'])->name('perfil.exportar');
         Route::delete('/minha-conta', [CandidatoPerfilController::class, 'excluirConta'])->name('excluir');
 
-        // Minhas Candidaturas
-        Route::get('/candidaturas', [MinhaCandidaturaController::class, 'index'])->name('candidaturas.index');
-        Route::get('/candidaturas/{candidatura}', [MinhaCandidaturaController::class, 'show'])->name('candidaturas.show');
-        Route::get('/candidaturas/{candidatura}/curriculo', [MinhaCandidaturaController::class, 'downloadCurriculo'])->name('candidaturas.curriculo');
+        /*
+         * Candidaturas exigem verificação: como candidatar-se já a exige, tudo que
+         * uma conta não verificada veria aqui só pode ter vindo da incorporação de
+         * histórico anterior, cuja titularidade ainda não foi comprovada.
+         */
+        Route::middleware('candidato.verified')->group(function () {
+            Route::get('/candidaturas', [MinhaCandidaturaController::class, 'index'])->name('candidaturas.index');
+            Route::get('/candidaturas/{candidatura}', [MinhaCandidaturaController::class, 'show'])->name('candidaturas.show');
+            Route::get('/candidaturas/{candidatura}/curriculo', [MinhaCandidaturaController::class, 'downloadCurriculo'])->name('candidaturas.curriculo');
+        });
     });
 });
 

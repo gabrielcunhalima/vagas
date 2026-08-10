@@ -72,23 +72,23 @@ Componente único: [Logo.jsx](resources/js/Components/Logo.jsx), arte `public/im
 - **Dark / fundos escuros fixos** (`white` prop): imagem branca original.
 - **Light**: tingida com `--primary` via **CSS mask** (cor sempre fiel ao token).
 
-### 4.1 Lockup do nome do sistema (padrão FAPEU, reaplicar em todo novo sistema)
+### 4.1 Lockup do nome do sistema
 
-Ao lado da logo no header, o nome do sistema segue sempre a mesma estrutura de duas linhas — **nunca** um `<span>` único com o nome inteiro no mesmo peso:
+Ao lado da logo no header, o nome do sistema fica em **uma única linha**, com a mesma distinção de peso/cor entre categoria e nome (nunca um `<span>` único com o texto inteiro no mesmo peso):
 
-1. **Linha 1 — categoria do sistema**: "Portal de", "Sistema de", "Portal do(a)"… — minúsculo por extenso, mas exibido em `uppercase`, pequeno, peso médio, cor **muted** (nunca a cor de texto principal).
-2. **Linha 2 — nome do sistema**: a palavra/expressão que identifica o sistema em si (ex.: "Vagas") — grande, `font-bold`, cor de texto principal (`--foreground`). É o elemento com mais peso visual do lockup.
+1. **Categoria do sistema**: "Portal de", "Sistema de", "Portal do(a)"… — peso médio, cor **muted** (nunca a cor de texto principal).
+2. **Nome do sistema**: a palavra/expressão que identifica o sistema em si (ex.: "Vagas") — maior, `font-bold`, cor de texto principal (`--foreground`). É o elemento com mais peso visual do lockup.
 
 Markup de referência (Tailwind):
 
 ```jsx
 <Link href={route('home')} className="flex shrink-0 items-center gap-3">
     <Logo className="h-9" />
-    <span className="hidden flex-col leading-none sm:flex">
-        <span className="text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+    <span className="hidden items-baseline gap-1.5 sm:flex">
+        <span className="text-sm font-medium text-muted-foreground">
             Portal de
         </span>
-        <span className="text-[1.25rem] font-bold tracking-tight text-foreground">
+        <span className="text-lg font-bold tracking-tight text-foreground">
             Vagas
         </span>
     </span>
@@ -97,11 +97,13 @@ Markup de referência (Tailwind):
 
 Regras fixas do lockup:
 
-- Linha 1: `text-[0.65rem]` (~10.4px), `font-medium`, `uppercase`, `tracking-wider`, `text-muted-foreground`.
-- Linha 2: `text-[1.25rem]` (20px), `font-bold`, `tracking-tight`, `text-foreground`. É o único valor que muda de sistema para sistema — troque apenas o texto ("Vagas", "RH", "Financeiro"…), nunca a hierarquia de tamanho/peso/cor.
-- Container do texto: `flex flex-col leading-none` (duas linhas coladas, sem espaçamento vertical extra); `hidden sm:flex` para esconder em telas muito estreitas (a logo sozinha já identifica a marca).
-- `gap-3` entre a logo e o bloco de texto (não usar `gap-2` ou `gap-2.5` — o texto em duas linhas precisa de mais respiro que um texto de uma linha só).
-- Nunca aplicar `font-bold` às duas linhas, nem deixá-las do mesmo tamanho — a hierarquia (categoria pequena/muted → nome grande/bold) é o que torna o lockup reconhecível entre sistemas.
+- Categoria: `text-sm`, `font-medium`, `text-muted-foreground`.
+- Nome do sistema: `text-lg`, `font-bold`, `tracking-tight`, `text-foreground`. É o único valor que muda de sistema para sistema — troque apenas o texto ("Vagas", "RH", "Financeiro"…), nunca a hierarquia de tamanho/peso/cor.
+
+> **Revisado em 2026-08-03**: o lockup era em duas linhas empilhadas (categoria pequena/uppercase em cima, nome grande embaixo) — trocado para uma linha só, lado a lado, por pedido direto do dono do produto ("deixe o 'Portal de vagas' em uma linha só junto da logo"). Os demais sistemas FAPEU ainda usam o formato antigo de duas linhas; ao replicar o padrão, adotar o novo formato de uma linha.
+- Container do texto: `flex items-baseline gap-1.5` (uma linha só, alinhamento pela base do texto); `hidden sm:flex` para esconder em telas muito estreitas (a logo sozinha já identifica a marca).
+- `gap-3` entre a logo e o bloco de texto.
+- Nunca aplicar `font-bold` aos dois trechos, nem deixá-los do mesmo tamanho — a hierarquia (categoria pequena/muted → nome grande/bold) é o que torna o lockup reconhecível entre sistemas.
 
 ## 5. Cores de status (definidas em `Components/badges.jsx`)
 
@@ -149,9 +151,10 @@ Split-screen: painel esquerdo com **foto (`auth-hero.jpg`) + overlay preto 50%**
 
 ## 8. Padrões de página
 
-- **Hero público (home)**: foto `home-hero.jpg` + `bg-black/50` + gradiente lateral `brand-deep/80`, título branco, busca em destaque, contagem de vagas.
-- **Listagem pública (split view)**: única página em **10-80-10** (`mx-auto w-full px-4 lg:w-4/5 lg:px-0`, sem `max-w-6xl`) — navbar e footer seguem em `max-w-6xl`. Grid `xl:[240px_minmax(340px,420px)_1fr]`: filtros sticky, lista compacta e painel de detalhe. Os itens da lista ficam **colados** (`divide-y`, sem `gap`) e mostram só cargo, localização, projeto e prazo; clicar seleciona (não navega) e o painel à direita traz resumo rápido, descrição, requisitos e o CTA "Candidatar-se". Seleção marcada por `bg-accent` + título em `primary` — nunca por filete lateral (regra 10). Entre `lg` e `xl`, e no mobile, o detalhe vai para um `Sheet` inferior com o mesmo painel.
+- **Hero público (home)**: foto `home-hero.jpg` + `bg-black/50` + gradiente lateral `brand-deep/80`. A partir de `lg` abre em duas colunas (`grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center`): à esquerda título branco, contagem de vagas e busca em destaque; à direita o card "Não perca nenhuma vaga" com o CTA de alerta, em superfície própria (`bg-white/10` + `ring-white/25` + `backdrop-blur-sm`) porque ali o gradiente já se dissolveu. Abaixo de `lg` o card empilha sob a busca. Padding `py-10 lg:py-14` — a hero é baixa de propósito, para a lista chegar perto da dobra.
+- **Listagem pública (split view)**: uma das duas páginas em **10-80-10** (`CONTAINER_LARGO` de `lib/layout.js` — `mx-auto w-full px-4 lg:w-4/5 lg:px-0`, sem `max-w-6xl`; a outra é a de alertas) — a navbar do `PublicLayout` também segue `CONTAINER_LARGO` (2026-08-03); o rodapé segue em `max-w-6xl`. Grid `xl:[240px_minmax(340px,420px)_1fr]`: filtros sticky, lista compacta e painel de detalhe. Os itens da lista ficam **colados** (`divide-y`, sem `gap`) e mostram só cargo, localização, projeto e prazo; clicar seleciona (não navega) e o painel à direita traz resumo rápido, descrição, requisitos e o CTA "Candidatar-se". Seleção marcada por `bg-accent` + título em `primary` — nunca por filete lateral (regra 10). Entre `lg` e `xl`, e no mobile, o detalhe vai para um `Sheet` inferior com o mesmo painel.
 - **Detalhe de vaga (`/vagas/{id}`)**: grid `[1fr_330px]` — conteúdo em seções (label uppercase muted + texto `whitespace-pre-line`), aside sticky com prazo, remuneração e CTA grande. **Sem ponto de entrada na interface** desde o split view: a rota segue viva para acesso direto (e-mails de alerta, links compartilhados) e é alcançada também pelos links "Ver vaga" da área do candidato e da tela de candidatura.
+- **Alertas de vagas (`/alertas`)**: segunda página em **10-80-10** (`CONTAINER_LARGO`). Card único com grid `xl:grid-cols-[320px_minmax(0,1fr)] xl:grid-rows-[auto_1fr]` em três blocos: **A** identificação (h1 + e-mail) em `col-start-1 row-start-1`, **B** preferências (áreas em `xl:grid-cols-3`, tipos e modalidades lado a lado separados por `sm:border-l sm:pl-8`) em `col-start-2 row-span-2` com `xl:border-l` de divisor, **C** consentimento LGPD + botão em `col-start-1 row-start-2`, com o sticky (`xl:top-20`) num wrapper interno — o item de grid esticado por `1fr` não teria curso. A ordem no JSX é A → B → C porque é ela que dá o empilhamento e a tabulação corretos abaixo de `xl` (e-mail → preferências → consentimento → envio); reordenar por `order-*` quebraria o teclado.
 - **Formulários longos**: seções em cards (`Secao`), grid responsivo `sm:grid-cols-2`, CEP com autofill ViaCEP no blur, máscaras de CPF/telefone/CEP (`lib/cpf.js`).
 - **Wizard (registro)**: stepper horizontal (desktop) / barra de progresso (mobile), validação por etapa no cliente, checagem AJAX de CPF, força de senha em 5 regras, salto automático para a etapa com erro do servidor.
 - **Painel interno**: chips de contadores por status, tabela em card, ações em `DropdownMenu`, confirmações destrutivas em `AlertDialog`, formulários contextuais em `Dialog` (entrevista, recusa).
@@ -169,8 +172,9 @@ Split-screen: painel esquerdo com **foto (`auth-hero.jpg`) + overlay preto 50%**
 8. **Nunca aplicar translate de "levantar" no hover** (`hover:-translate-y-*`) — hover comunica apenas via sombra/ring/cor. (Regra do dono do produto.)
 9. **Tipo de vaga (Estágio/CLT/Bolsa) nunca é diferenciado por ícone** — só por cor (badge, wash). (Regra do dono do produto.)
 10. **Nunca usar filete/borda lateral colorida em cards** — proibido. Elevação do card público de vaga: sombra suave de flutuação (`shadow-lg shadow-black/[0.07]` + ring), intensificada no hover. (Regra do dono do produto.)
-11. **Nome do sistema ao lado da logo sempre segue o lockup de duas linhas da seção 4.1** — categoria pequena/uppercase/muted em cima, nome do sistema grande/bold embaixo. Padrão a replicar em todos os sistemas FAPEU ao criar/editar um header. (Regra do dono do produto.)
+11. **Nome do sistema ao lado da logo sempre segue o lockup de uma linha só da seção 4.1** — categoria pequena/muted ao lado do nome do sistema grande/bold, ambos na mesma linha. Padrão a replicar em todos os sistemas FAPEU ao criar/editar um header. (Regra do dono do produto.)
+12. **Navbar do `PublicLayout` segue a largura 10-80-10** (`CONTAINER_LARGO` de `lib/layout.js`), igual à listagem de vagas e à página de alertas — não usa `max-w-6xl`. (Regra do dono do produto.)
 
 ---
 
-*Última atualização: julho de 2026 — migração completa Blade/Bootstrap → Inertia/React/shadcn.*
+*Última atualização: agosto de 2026 — navbar pública em 10-80-10 e lockup do nome do sistema em uma linha só.*

@@ -1,14 +1,13 @@
 import { Link, useForm } from '@inertiajs/react';
-import { BellRing, Loader2 } from 'lucide-react';
+import { BellRing, Loader2, Mail } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
-import Field from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { CONTAINER_LARGO } from '@/lib/layout';
 
-function GrupoCheckbox({ titulo, descricao, opcoes, selecionados, onToggle, colunas = 'sm:grid-cols-3' }) {
+function GrupoCheckbox({ titulo, descricao, opcoes, selecionados, onToggle, colunas = 'sm:grid-cols-3', className = '' }) {
     return (
-        <div>
+        <div className={className}>
             <h3 className="text-sm font-semibold">{titulo}</h3>
             {descricao && <p className="mt-0.5 text-xs text-muted-foreground">{descricao}</p>}
             <div className={`mt-3 grid grid-cols-2 gap-2 ${colunas}`}>
@@ -31,15 +30,11 @@ function GrupoCheckbox({ titulo, descricao, opcoes, selecionados, onToggle, colu
     );
 }
 
-export default function Alertas({ areas, modalidades, tipos, email }) {
-    const emailFixo = Boolean(email);
-
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: email ?? '',
-        areas: [],
-        tipos: [],
-        modalidades: [],
-        lgpd_consentimento: false,
+export default function Alertas({ areas, modalidades, tipos, email, alerta }) {
+    const { data, setData, post, processing } = useForm({
+        areas: alerta?.areas ?? [],
+        tipos: alerta?.tipos ?? [],
+        modalidades: alerta?.modalidades ?? [],
     });
 
     function toggle(campo, valor) {
@@ -49,84 +44,100 @@ export default function Alertas({ areas, modalidades, tipos, email }) {
 
     function submit(e) {
         e.preventDefault();
-        post(route('alertas.store'), {
-            preserveScroll: true,
-            onSuccess: () => reset(),
-        });
+        post(route('alertas.store'), { preserveScroll: true });
     }
 
     return (
         <PublicLayout title="Alertas de vagas">
-            <div className="mx-auto w-full max-w-2xl px-4 pt-10">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Alertas de vagas</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Receba por e-mail as novas vagas do seu interesse, assim que forem publicadas.
-                    </p>
-                </div>
+            <div className={`${CONTAINER_LARGO} py-10`}>
+                {/* A ordem dos blocos aqui (identificação → preferências → envio) é a ordem
+                    empilhada abaixo de xl e a ordem de tabulação: o teclado passa pelas
+                    preferências antes de chegar ao envio. Em xl são as classes col-start/row-start
+                    que remontam as duas colunas — não mexa na ordem do JSX para ajustar o visual. */}
+                <form
+                    onSubmit={submit}
+                    className="grid gap-x-10 gap-y-8 rounded-xl bg-card p-6 ring-1 ring-foreground/10 xl:grid-cols-[320px_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:p-8"
+                >
+                    {/* A — identificação */}
+                    <div className="flex flex-col gap-6 xl:col-start-1 xl:row-start-1">
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">Alertas de vagas</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Receba por e-mail as novas vagas do seu interesse, assim que forem publicadas.
+                            </p>
+                        </div>
 
-                <form onSubmit={submit} className="mt-7 flex flex-col gap-6 rounded-xl bg-card p-6 ring-1 ring-foreground/10">
-                    <Field label="Seu e-mail" htmlFor="email" required error={errors.email}>
-                        <Input
-                            id="email"
-                            type="email"
-                            className="h-10 disabled:opacity-100"
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            placeholder="seu@email.com"
-                            required
-                            disabled={emailFixo}
-                        />
-                    </Field>
-
-                    <GrupoCheckbox
-                        titulo="Áreas de interesse"
-                        descricao="Deixe em branco para receber vagas de todas as áreas."
-                        opcoes={areas.map((a) => [a, a])}
-                        selecionados={data.areas}
-                        onToggle={(v) => toggle('areas', v)}
-                        colunas="sm:grid-cols-2"
-                    />
-
-                    <GrupoCheckbox
-                        titulo="Tipos de vaga"
-                        opcoes={Object.entries(tipos)}
-                        selecionados={data.tipos}
-                        onToggle={(v) => toggle('tipos', v)}
-                    />
-
-                    <GrupoCheckbox
-                        titulo="Modalidades"
-                        opcoes={Object.entries(modalidades)}
-                        selecionados={data.modalidades}
-                        onToggle={(v) => toggle('modalidades', v)}
-                    />
-
-                    <div className="border-t pt-5">
-                        <label className="flex items-start gap-2.5">
-                            <Checkbox
-                                checked={data.lgpd_consentimento}
-                                onCheckedChange={(v) => setData('lgpd_consentimento', Boolean(v))}
-                                className="mt-0.5"
-                            />
-                            <span className="text-sm leading-relaxed">
-                                Autorizo o uso do meu e-mail para envio de alertas de vagas, conforme a{' '}
-                                <Link href={route('politica.privacidade')} className="font-semibold text-primary hover:underline">
-                                    Política de Privacidade
+                        {/* Destino não é escolhido: é o e-mail da conta, e acompanha a troca dela.
+                            Permanece visível junto do envio para ninguém confirmar às cegas. */}
+                        <div>
+                            <span className="text-sm font-medium">Enviaremos para</span>
+                            <p className="mt-1 flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+                                <Mail className="size-4 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{email}</span>
+                            </p>
+                            <p className="mt-1.5 text-xs text-muted-foreground">
+                                Para receber em outro endereço, altere o e-mail em{' '}
+                                <Link href={route('candidato.perfil.edit')} className="font-medium text-primary hover:underline">
+                                    Meus dados
                                 </Link>
-                                . Posso cancelar a qualquer momento pelo link presente em cada e-mail.{' '}
-                                <span className="text-destructive">*</span>
-                            </span>
-                        </label>
-                        {errors.lgpd_consentimento && (
-                            <p className="mt-2 text-xs font-medium text-destructive">{errors.lgpd_consentimento}</p>
-                        )}
+                                .
+                            </p>
+                        </div>
                     </div>
 
-                    <Button type="submit" className="h-10" disabled={processing}>
-                        {processing ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <BellRing data-icon="inline-start" />}
-                        Ativar alertas
-                    </Button>
+                    {/* B — preferências. Atravessa as duas linhas em xl, então o border-l vira um
+                        filete contínuo entre as áreas (separa conteúdo, não marca seleção). */}
+                    <div className="flex flex-col gap-6 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:border-l xl:pl-10">
+                        <GrupoCheckbox
+                            titulo="Áreas de interesse"
+                            descricao="Deixe em branco para receber vagas de todas as áreas."
+                            opcoes={areas.map((a) => [a, a])}
+                            selecionados={data.areas}
+                            onToggle={(v) => toggle('areas', v)}
+                            colunas="sm:grid-cols-2 xl:grid-cols-3"
+                        />
+
+                        {/* Tipos e modalidades têm 3 opções cada: lado a lado fecham o bloco na altura
+                            das áreas, em vez de deixarem duas linhas quase vazias. O filete só existe
+                            quando estão lado a lado — empilhados, o gap já separa os dois. */}
+                        <div className="grid gap-6 sm:grid-cols-2 sm:gap-8">
+                            <GrupoCheckbox
+                                titulo="Tipos de vaga"
+                                opcoes={Object.entries(tipos)}
+                                selecionados={data.tipos}
+                                onToggle={(v) => toggle('tipos', v)}
+                            />
+
+                            <GrupoCheckbox
+                                titulo="Modalidades"
+                                opcoes={Object.entries(modalidades)}
+                                selecionados={data.modalidades}
+                                onToggle={(v) => toggle('modalidades', v)}
+                                className="sm:border-l sm:pl-8"
+                            />
+                        </div>
+                    </div>
+
+                    {/* C — envio. O bloco estica até a altura de B (grid-rows auto_1fr), e o sticky
+                        vai no wrapper interno: um item de grid esticado não teria curso.
+                        O consentimento saiu daqui: já foi concedido na criação da conta. */}
+                    <div className="xl:col-start-1 xl:row-start-2">
+                        <div className="flex flex-col gap-5 border-t pt-6 xl:sticky xl:top-20 xl:border-t-0 xl:pt-0">
+                            <Button type="submit" className="h-10" disabled={processing}>
+                                {processing ? (
+                                    <Loader2 className="animate-spin" data-icon="inline-start" />
+                                ) : (
+                                    <BellRing data-icon="inline-start" />
+                                )}
+                                {alerta?.ativo ? 'Salvar preferências' : 'Ativar alertas'}
+                            </Button>
+
+                            <p className="text-xs text-muted-foreground">
+                                Você pode cancelar a qualquer momento pelo link presente em cada e-mail, sem precisar
+                                entrar na conta.
+                            </p>
+                        </div>
+                    </div>
                 </form>
             </div>
         </PublicLayout>

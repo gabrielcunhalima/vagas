@@ -9,6 +9,7 @@ import {
     ExternalLink,
     FileSearch,
     Loader2,
+    Lock,
     Mail,
     MapPin,
     Phone,
@@ -42,6 +43,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { niveisEscolaridade } from '@/lib/enums';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 
 function Info({ label, children }) {
@@ -54,7 +56,91 @@ function Info({ label, children }) {
     );
 }
 
-export default function Show({ vaga, candidatura: c, proximosStatus }) {
+function TextoLivre({ label, valor }) {
+    if (!valor) return null;
+    return (
+        <div className="flex flex-col gap-0.5 sm:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
+            <dd className="whitespace-pre-line text-sm">{valor}</dd>
+        </div>
+    );
+}
+
+function Formacoes({ formacoes }) {
+    if (!formacoes?.length) return null;
+    return (
+        <div className="flex flex-col gap-0.5 sm:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formação</dt>
+            <dd className="mt-1 flex flex-col gap-2">
+                {formacoes.map((formacao, i) => (
+                    <div key={i} className="text-sm">
+                        <span className="font-medium">{formacao.curso}</span>
+                        {formacao.instituicao && <span className="text-muted-foreground"> — {formacao.instituicao}</span>}
+                        <div className="text-xs text-muted-foreground">
+                            {[
+                                niveisEscolaridade[formacao.nivel_escolaridade] || formacao.nivel_escolaridade,
+                                formacao.situacao_curso === 'cursando'
+                                    ? `Cursando${formacao.semestre ? ` — ${formacao.semestre}` : ''}`
+                                    : formacao.situacao_curso === 'concluido'
+                                      ? 'Concluído'
+                                      : null,
+                                formacao.previsao_conclusao ? formatDate(formacao.previsao_conclusao) : null,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        </div>
+                    </div>
+                ))}
+            </dd>
+        </div>
+    );
+}
+
+/*
+ * Encerrado o processo, o coordenador deixa de ver os dados atuais do candidato —
+ * é o que permite manter o perfil vivo sem que uma vaga de 2024 dê acompanhamento
+ * permanente da vida de quem se candidatou. O registro do processo permanece.
+ */
+function AcessoExpirado({ motivo }) {
+    return (
+        <section className="rounded-xl bg-card p-5 ring-1 ring-foreground/10 sm:p-6">
+            <div className="flex items-start gap-3">
+                <Lock className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+                <div>
+                    <h2 className="text-sm font-bold">Dados pessoais não disponíveis</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{motivo}</p>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function HistoricoProcesso({ eventos }) {
+    if (!eventos?.length) return null;
+
+    return (
+        <section className="rounded-xl bg-card p-5 ring-1 ring-foreground/10 sm:p-6">
+            <h2 className="text-sm font-bold">Histórico do processo</h2>
+            <ol className="mt-4 flex flex-col gap-3">
+                {eventos.map((ev, i) => (
+                    <li key={i} className="flex gap-3 text-sm">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                        <div className="min-w-0">
+                            <p className="font-medium">{ev.descricao}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {formatDate(ev.ocorrido_em)}
+                                {ev.autor ? ` · ${ev.autor}` : ''}
+                                {ev.curriculo ? ` · currículo: ${ev.curriculo}` : ''}
+                            </p>
+                        </div>
+                    </li>
+                ))}
+            </ol>
+        </section>
+    );
+}
+
+export default function Show({ vaga, candidatura: c, proximosStatus, acessoExpirado, motivoExpiracao }) {
     const { errors } = usePage().props;
     const [dialogEntrevista, setDialogEntrevista] = useState(false);
     const [entrevista, setEntrevista] = useState({
@@ -89,7 +175,7 @@ export default function Show({ vaga, candidatura: c, proximosStatus }) {
     }
 
     return (
-        <InternalLayout title={`Candidatura: ${c.nome}`} pageTitle="Candidatura" breadcrumb="Coordenador / Candidaturas">
+        <InternalLayout title={`Candidatura: ${c.nome ?? 'sem acesso'}`} pageTitle="Candidatura" breadcrumb="Coordenador / Candidaturas">
             <Link
                 href={route('coord.candidaturas.index', vaga.id)}
                 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -105,7 +191,9 @@ export default function Show({ vaga, candidatura: c, proximosStatus }) {
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <h1 className="text-lg font-bold tracking-tight">{c.nome}</h1>
+                            <h1 className="text-lg font-bold tracking-tight">
+                                {acessoExpirado ? 'Candidato não identificado' : c.nome}
+                            </h1>
                             <StatusCandidaturaBadge status={c.status} />
                             {c.pcd && (
                                 <Badge variant="secondary" className="gap-1">
@@ -114,28 +202,36 @@ export default function Show({ vaga, candidatura: c, proximosStatus }) {
                             )}
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                            <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
-                                <Mail className="size-3" /> {c.email}
-                            </a>
-                            {c.telefone && (
-                                <span className="inline-flex items-center gap-1">
-                                    <Phone className="size-3" /> {c.telefone}
-                                </span>
+                            {!acessoExpirado && (
+                                <>
+                                    <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                                        <Mail className="size-3" /> {c.email}
+                                    </a>
+                                    {c.telefone && (
+                                        <span className="inline-flex items-center gap-1">
+                                            <Phone className="size-3" /> {c.telefone}
+                                        </span>
+                                    )}
+                                </>
                             )}
                             <span>Recebida em {formatDate(c.created_at)}</span>
+                            {/* A ficha é viva: sem esta data ela seria tomada por um retrato da inscrição. */}
+                            {!acessoExpirado && c.perfil_atualizado_em && (
+                                <span>Dados atualizados em {formatDate(c.perfil_atualizado_em)}</span>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {c.linkedin && (
+                    {!acessoExpirado && c.linkedin && (
                         <Button asChild variant="outline" size="sm">
                             <a href={c.linkedin} target="_blank" rel="noreferrer">
                                 <ExternalLink data-icon="inline-start" /> LinkedIn
                             </a>
                         </Button>
                     )}
-                    {c.tem_curriculo && (
+                    {!acessoExpirado && c.tem_curriculo && (
                         <Button asChild size="sm">
                             <a href={route('coord.candidaturas.curriculo', [vaga.id, c.id])}>
                                 <Download data-icon="inline-start" /> Currículo
@@ -148,19 +244,33 @@ export default function Show({ vaga, candidatura: c, proximosStatus }) {
             <div className="mt-5 grid items-start gap-5 xl:grid-cols-[1fr_340px]">
                 {/* Dados */}
                 <div className="flex min-w-0 flex-col gap-5">
+                    {acessoExpirado ? (
+                        <AcessoExpirado motivo={motivoExpiracao} />
+                    ) : (
+                        <section className="rounded-xl bg-card p-5 ring-1 ring-foreground/10 sm:p-6">
+                            <h2 className="text-sm font-bold">Dados do candidato</h2>
+                            <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                                <Info label="CPF">{c.cpf_formatado}</Info>
+                                <Info label="Pretensão salarial">{formatMoney(c.pretensao_salarial)}</Info>
+                                <Info label="Disponibilidade">{c.disponibilidade}</Info>
+                                <Info label="Endereço">{c.endereco_completo || null}</Info>
+                                <Formacoes formacoes={c.formacoes} />
+                                <TextoLivre label="Outras formações reconhecidas pelo MEC" valor={c.outras_formacoes_mec} />
+                                <TextoLivre label="Outros cursos, palestras, etc." valor={c.outros_cursos} />
+                            </dl>
+                        </section>
+                    )}
+
                     <section className="rounded-xl bg-card p-5 ring-1 ring-foreground/10 sm:p-6">
-                        <h2 className="text-sm font-bold">Dados do candidato</h2>
+                        <h2 className="text-sm font-bold">Respostas desta vaga</h2>
                         <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-                            <Info label="CPF">{c.cpf_formatado}</Info>
-                            <Info label="Curso">{c.curso}</Info>
-                            <Info label="Instituição">{c.instituicao}</Info>
-                            <Info label="Semestre">{c.semestre}</Info>
-                            <Info label="Previsão de conclusão">
-                                {c.previsao_conclusao ? formatDate(c.previsao_conclusao) : null}
+                            <Info label="Conflito de interesse">{c.conflito_interesse ? 'Sim' : 'Não'}</Info>
+                            <Info label="Código de conduta aceito em">
+                                {c.codigo_conduta_aceito_em ? formatDate(c.codigo_conduta_aceito_em) : null}
                             </Info>
-                            <Info label="Pretensão salarial">{formatMoney(c.pretensao_salarial)}</Info>
-                            <Info label="Disponibilidade">{c.disponibilidade}</Info>
-                            <Info label="Endereço">{c.endereco_completo || null}</Info>
+                            {c.conflito_interesse && (
+                                <Info label="Relação declarada">{c.conflito_interesse_detalhe}</Info>
+                            )}
                         </dl>
 
                         {c.carta_apresentacao && (
@@ -172,6 +282,8 @@ export default function Show({ vaga, candidatura: c, proximosStatus }) {
                             </div>
                         )}
                     </section>
+
+                    <HistoricoProcesso eventos={c.eventos} />
 
                     {/* Observações internas */}
                     <form onSubmit={salvarObs} className="rounded-xl bg-card p-5 ring-1 ring-foreground/10 sm:p-6">
@@ -301,7 +413,7 @@ export default function Show({ vaga, candidatura: c, proximosStatus }) {
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                             <AlertDialogHeader>
-                                                <AlertDialogTitle>Aprovar {c.nome.split(' ')[0]}?</AlertDialogTitle>
+                                                <AlertDialogTitle>Aprovar {c.nome?.split(' ')[0] ?? 'este candidato'}?</AlertDialogTitle>
                                                 <AlertDialogDescription>
                                                     O candidato será notificado da aprovação por e-mail. Esta decisão é
                                                     final.
@@ -324,7 +436,7 @@ export default function Show({ vaga, candidatura: c, proximosStatus }) {
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                             <AlertDialogHeader>
-                                                <AlertDialogTitle>Reprovar {c.nome.split(' ')[0]}?</AlertDialogTitle>
+                                                <AlertDialogTitle>Reprovar {c.nome?.split(' ')[0] ?? 'este candidato'}?</AlertDialogTitle>
                                                 <AlertDialogDescription>
                                                     O candidato será notificado por e-mail de que não seguirá no processo.
                                                     Esta decisão é final.

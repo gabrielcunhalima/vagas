@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
-import { Download, FileText, Loader2, Save, ShieldAlert, Trash2 } from 'lucide-react';
+import { Check, CheckCircle2, Download, FileText, Loader2, Plus, Save, ShieldAlert, Trash2 } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import CurriculoDropzone from '@/components/CurriculoDropzone';
 import Field from '@/components/Field';
@@ -17,11 +17,137 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { maskCep, maskCpf, maskTelefone, onlyDigits } from '@/lib/cpf';
-import { disponibilidades, ufs } from '@/lib/enums';
+import { disponibilidades, niveisEscolaridade, ufs } from '@/lib/enums';
 import { toDateInput } from '@/lib/format';
+import { cn } from '@/lib/utils';
+
+/*
+ * Mesma lista de Candidato::CAMPOS_OBRIGATORIOS/pendencias() no servidor —
+ * duplicada aqui de propósito, porque a barra precisa reagir a cada tecla
+ * digitada sem esperar o roundtrip de salvar. O servidor continua sendo
+ * quem decide de fato se a candidatura pode ser enviada.
+ */
+const CAMPOS_COMPLETUDE = [
+    { chave: 'nome', rotulo: 'Nome completo' },
+    { chave: 'nacionalidade', rotulo: 'Nacionalidade' },
+    { chave: 'telefone', rotulo: 'Telefone' },
+];
+
+/** Mesma regra de Candidato::temFormacaoCompleta() — uma formação da lista com tudo preenchido. */
+function formacaoCompleta(formacao) {
+    const camposExigidos = ['nivel_escolaridade', 'situacao_curso', 'curso', 'instituicao', 'previsao_conclusao'];
+    const preenchidos = camposExigidos.every((campo) => String(formacao?.[campo] ?? '').trim() !== '');
+    if (!preenchidos) return false;
+    if (formacao.situacao_curso === 'cursando') {
+        return String(formacao.semestre ?? '').trim() !== '';
+    }
+    return true;
+}
+
+function formacaoVazia() {
+    return {
+        nivel_escolaridade: '',
+        situacao_curso: '',
+        curso: '',
+        instituicao: '',
+        semestre: '',
+        previsao_conclusao: '',
+    };
+}
+
+function normalizarFormacoes(formacoes) {
+    if (!formacoes?.length) return [formacaoVazia()];
+    return formacoes.map((f) => ({
+        nivel_escolaridade: f.nivel_escolaridade ?? '',
+        situacao_curso: f.situacao_curso ?? '',
+        curso: f.curso ?? '',
+        instituicao: f.instituicao ?? '',
+        semestre: f.semestre ?? '',
+        previsao_conclusao: toDateInput(f.previsao_conclusao),
+    }));
+}
+
+function montarCompletude(data, candidato) {
+    const itens = CAMPOS_COMPLETUDE.map(({ chave, rotulo }) => ({
+        chave,
+        rotulo,
+        completo: String(data[chave] ?? '').trim() !== '',
+    }));
+
+    itens.push({
+        chave: 'formacao',
+        rotulo: 'Formação acadêmica',
+        completo: (data.formacoes ?? []).some(formacaoCompleta),
+    });
+
+    itens.push({
+        chave: 'possui_acessibilidade',
+        rotulo: 'Necessidade de acessibilidade',
+        completo: data.possui_acessibilidade !== '',
+    });
+
+    itens.push({
+        chave: 'curriculo',
+        rotulo: 'Currículo em PDF',
+        completo: candidato.tem_curriculo || Boolean(data.curriculo),
+    });
+
+    const atendidos = itens.filter((item) => item.completo).length;
+
+    return {
+        itens,
+        atendidos,
+        total: itens.length,
+        progresso: Math.round((atendidos / itens.length) * 100),
+        completo: atendidos === itens.length,
+    };
+}
+
+function BarraCompletude({ itens, atendidos, total, progresso, completo }) {
+    return (
+        <div className="mt-5 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-bold tracking-tight">
+                    {completo ? (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
+                            <CheckCircle2 className="size-4 shrink-0" />
+                            Perfil completo — você já pode se candidatar
+                        </span>
+                    ) : (
+                        'Complete seu perfil para se candidatar'
+                    )}
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                    {atendidos} de {total}
+                </span>
+            </div>
+
+            <Progress value={progresso} className="mt-3 h-1.5" />
+
+            <ul className="mt-3 flex flex-wrap gap-1.5">
+                {itens.map((item) => (
+                    <li
+                        key={item.chave}
+                        className={cn(
+                            'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                            item.completo
+                                ? 'bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/25 dark:text-emerald-500'
+                                : 'bg-muted text-muted-foreground',
+                        )}
+                    >
+                        {item.completo && <Check className="size-3" />}
+                        {item.rotulo}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
 
 function Secao({ titulo, descricao, children }) {
     return (
@@ -37,14 +163,22 @@ export default function Edit({ candidato }) {
     const perfil = useForm({
         _method: 'put',
         nome: candidato.nome ?? '',
+        nome_social: candidato.nome_social ?? '',
+        nacionalidade: candidato.nacionalidade ?? 'Brasileira',
+        possui_acessibilidade:
+            candidato.possui_acessibilidade === null || candidato.possui_acessibilidade === undefined
+                ? ''
+                : candidato.possui_acessibilidade
+                  ? '1'
+                  : '0',
+        acessibilidade_detalhe: candidato.acessibilidade_detalhe ?? '',
         email: candidato.email ?? '',
         cpf: candidato.cpf ? maskCpf(candidato.cpf) : '',
         telefone: candidato.telefone ? maskTelefone(candidato.telefone) : '',
         linkedin: candidato.linkedin ?? '',
-        curso: candidato.curso ?? '',
-        instituicao: candidato.instituicao ?? '',
-        semestre: candidato.semestre ?? '',
-        previsao_conclusao: toDateInput(candidato.previsao_conclusao),
+        formacoes: normalizarFormacoes(candidato.formacoes),
+        outras_formacoes_mec: candidato.outras_formacoes_mec ?? '',
+        outros_cursos: candidato.outros_cursos ?? '',
         cep: candidato.cep ? maskCep(candidato.cep) : '',
         logradouro: candidato.logradouro ?? '',
         numero: candidato.numero ?? '',
@@ -71,6 +205,26 @@ export default function Edit({ candidato }) {
     });
 
     const [buscandoCep, setBuscandoCep] = useState(false);
+
+    const completude = montarCompletude(perfil.data, candidato);
+
+    function atualizarFormacao(index, campo, valor) {
+        perfil.setData(
+            'formacoes',
+            perfil.data.formacoes.map((f, i) => (i === index ? { ...f, [campo]: valor } : f)),
+        );
+    }
+
+    function adicionarFormacao() {
+        perfil.setData('formacoes', [...perfil.data.formacoes, formacaoVazia()]);
+    }
+
+    function removerFormacao(index) {
+        perfil.setData(
+            'formacoes',
+            perfil.data.formacoes.filter((_, i) => i !== index),
+        );
+    }
 
     function salvarPerfil(e) {
         e.preventDefault();
@@ -142,6 +296,8 @@ export default function Edit({ candidato }) {
                     </Button>
                 </div>
 
+                <BarraCompletude {...completude} />
+
                 <form onSubmit={salvarPerfil} className="mt-7 flex flex-col gap-5">
                     <Secao titulo="Dados pessoais">
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -178,28 +334,188 @@ export default function Edit({ candidato }) {
                                     placeholder="https://linkedin.com/in/voce"
                                 />
                             </Field>
+                            <Field label="Nome social" htmlFor="nome_social" error={e.nome_social}>
+                                <Input
+                                    id="nome_social"
+                                    value={perfil.data.nome_social}
+                                    onChange={(ev) => perfil.setData('nome_social', ev.target.value)}
+                                />
+                            </Field>
+                            <Field label="Nacionalidade" htmlFor="nacionalidade" required error={e.nacionalidade}>
+                                <Input
+                                    id="nacionalidade"
+                                    value={perfil.data.nacionalidade}
+                                    onChange={(ev) => perfil.setData('nacionalidade', ev.target.value)}
+                                />
+                            </Field>
                         </div>
                     </Secao>
 
-                    <Secao titulo="Formação">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <Field label="Curso" htmlFor="curso" error={e.curso}>
-                                <Input id="curso" value={perfil.data.curso} onChange={(ev) => perfil.setData('curso', ev.target.value)} />
-                            </Field>
-                            <Field label="Instituição" htmlFor="instituicao" error={e.instituicao}>
-                                <Input id="instituicao" value={perfil.data.instituicao} onChange={(ev) => perfil.setData('instituicao', ev.target.value)} />
-                            </Field>
-                            <Field label="Semestre" htmlFor="semestre" error={e.semestre}>
-                                <Input id="semestre" value={perfil.data.semestre} onChange={(ev) => perfil.setData('semestre', ev.target.value)} placeholder="Ex.: 5º" />
-                            </Field>
-                            <Field label="Previsão de conclusão" htmlFor="previsao_conclusao" error={e.previsao_conclusao}>
-                                <Input
-                                    id="previsao_conclusao"
-                                    type="date"
-                                    value={perfil.data.previsao_conclusao}
-                                    onChange={(ev) => perfil.setData('previsao_conclusao', ev.target.value)}
+                    <Secao titulo="Formação" descricao="Adicione quantas formações desejar. Ao menos uma completa é exigida para se candidatar.">
+                        <div className="flex flex-col gap-4">
+                            {perfil.data.formacoes.map((formacao, index) => (
+                                <div key={index} className="rounded-lg bg-muted/30 p-4 ring-1 ring-foreground/10">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Formação {index + 1}
+                                        </h3>
+                                        {perfil.data.formacoes.length > 1 && (
+                                            <Button type="button" variant="ghost" size="sm" onClick={() => removerFormacao(index)}>
+                                                <Trash2 data-icon="inline-start" /> Remover
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                                        <Field
+                                            label="Nível de escolaridade"
+                                            htmlFor={`nivel_escolaridade_${index}`}
+                                            error={e[`formacoes.${index}.nivel_escolaridade`]}
+                                        >
+                                            <Select
+                                                value={formacao.nivel_escolaridade}
+                                                onValueChange={(v) => atualizarFormacao(index, 'nivel_escolaridade', v)}
+                                            >
+                                                <SelectTrigger id={`nivel_escolaridade_${index}`}>
+                                                    <SelectValue placeholder="Selecione" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {Object.entries(niveisEscolaridade).map(([value, label]) => (
+                                                        <SelectItem key={value} value={value}>
+                                                            {label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                        <Field
+                                            label="Situação do curso"
+                                            htmlFor={`situacao_curso_${index}`}
+                                            error={e[`formacoes.${index}.situacao_curso`]}
+                                        >
+                                            <Select
+                                                value={formacao.situacao_curso}
+                                                onValueChange={(v) => atualizarFormacao(index, 'situacao_curso', v)}
+                                            >
+                                                <SelectTrigger id={`situacao_curso_${index}`}>
+                                                    <SelectValue placeholder="Selecione" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="cursando">Cursando</SelectItem>
+                                                    <SelectItem value="concluido">Concluído</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                        <Field label="Curso" htmlFor={`curso_${index}`} error={e[`formacoes.${index}.curso`]}>
+                                            <Input
+                                                id={`curso_${index}`}
+                                                value={formacao.curso}
+                                                onChange={(ev) => atualizarFormacao(index, 'curso', ev.target.value)}
+                                            />
+                                        </Field>
+                                        <Field label="Instituição" htmlFor={`instituicao_${index}`} error={e[`formacoes.${index}.instituicao`]}>
+                                            <Input
+                                                id={`instituicao_${index}`}
+                                                value={formacao.instituicao}
+                                                onChange={(ev) => atualizarFormacao(index, 'instituicao', ev.target.value)}
+                                            />
+                                        </Field>
+                                        {formacao.situacao_curso === 'cursando' && (
+                                            <Field label="Semestre" htmlFor={`semestre_${index}`} error={e[`formacoes.${index}.semestre`]}>
+                                                <Input
+                                                    id={`semestre_${index}`}
+                                                    value={formacao.semestre}
+                                                    onChange={(ev) => atualizarFormacao(index, 'semestre', ev.target.value)}
+                                                    placeholder="Ex.: 5º"
+                                                />
+                                            </Field>
+                                        )}
+                                        <Field
+                                            label="Previsão de conclusão"
+                                            htmlFor={`previsao_conclusao_${index}`}
+                                            error={e[`formacoes.${index}.previsao_conclusao`]}
+                                        >
+                                            <Input
+                                                id={`previsao_conclusao_${index}`}
+                                                type="date"
+                                                value={formacao.previsao_conclusao}
+                                                onChange={(ev) => atualizarFormacao(index, 'previsao_conclusao', ev.target.value)}
+                                            />
+                                        </Field>
+                                    </div>
+                                </div>
+                            ))}
+                            <Button type="button" variant="outline" size="sm" className="self-start" onClick={adicionarFormacao}>
+                                <Plus data-icon="inline-start" /> Adicionar formação
+                            </Button>
+                        </div>
+
+                        <div className="mt-5 grid gap-4 border-t pt-5">
+                            <Field
+                                label="Outras Formações Superiores reconhecidas pelo MEC (Ex.: Especialização em XXX - ANO, Mestrado em XXX - ANO e Doutorado em XXX - ANO):"
+                                htmlFor="outras_formacoes_mec"
+                                error={e.outras_formacoes_mec}
+                            >
+                                <Textarea
+                                    id="outras_formacoes_mec"
+                                    rows={3}
+                                    value={perfil.data.outras_formacoes_mec}
+                                    onChange={(ev) => perfil.setData('outras_formacoes_mec', ev.target.value)}
                                 />
                             </Field>
+                            <Field
+                                label="Outros Cursos, Palestras, Etc., informar nome e data:"
+                                htmlFor="outros_cursos"
+                                error={e.outros_cursos}
+                            >
+                                <Textarea
+                                    id="outros_cursos"
+                                    rows={3}
+                                    value={perfil.data.outros_cursos}
+                                    onChange={(ev) => perfil.setData('outros_cursos', ev.target.value)}
+                                />
+                            </Field>
+                        </div>
+                    </Secao>
+
+                    <Secao
+                        titulo="Acessibilidade"
+                        descricao="Usado apenas para garantir condições adequadas no processo seletivo."
+                    >
+                        <div className="grid gap-4">
+                            <Field
+                                label="Você precisa de alguma adaptação de acessibilidade?"
+                                htmlFor="possui_acessibilidade"
+                                required
+                                error={e.possui_acessibilidade}
+                            >
+                                <Select
+                                    value={perfil.data.possui_acessibilidade}
+                                    onValueChange={(v) => perfil.setData('possui_acessibilidade', v)}
+                                >
+                                    <SelectTrigger id="possui_acessibilidade">
+                                        <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="0">Não</SelectItem>
+                                        <SelectItem value="1">Sim</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </Field>
+                            {perfil.data.possui_acessibilidade === '1' && (
+                                <Field
+                                    label="Qual adaptação você precisa?"
+                                    htmlFor="acessibilidade_detalhe"
+                                    required
+                                    error={e.acessibilidade_detalhe}
+                                >
+                                    <Textarea
+                                        id="acessibilidade_detalhe"
+                                        rows={3}
+                                        value={perfil.data.acessibilidade_detalhe}
+                                        onChange={(ev) => perfil.setData('acessibilidade_detalhe', ev.target.value)}
+                                    />
+                                </Field>
+                            )}
                         </div>
                     </Secao>
 

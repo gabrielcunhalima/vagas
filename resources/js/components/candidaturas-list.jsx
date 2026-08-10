@@ -66,18 +66,26 @@ export function CandidaturasTabela({ candidaturas, mostrarVaga = false }) {
                                     href={route('coord.candidaturas.show', [c.vaga_id, c.id])}
                                     className="block truncate font-medium hover:text-primary"
                                 >
-                                    {c.nome}
+                                    {/* Sem acesso vigente, a listagem não pode ser a porta lateral
+                                        que expõe o que a tela de detalhe já esconde. */}
+                                    {c.acesso_expirado ? (
+                                        <span className="italic text-muted-foreground">Candidato não identificado</span>
+                                    ) : (
+                                        c.nome
+                                    )}
                                 </Link>
                                 <div className="flex items-center gap-1.5">
-                                    <span className="truncate text-xs text-muted-foreground">{c.email}</span>
+                                    <span className="truncate text-xs text-muted-foreground">
+                                        {c.acesso_expirado ? 'Dados não disponíveis' : c.email}
+                                    </span>
                                     {c.pcd && (
-                                        <Badge variant="secondary" className="h-4 gap-0.5 px-1.5 text-[0.6rem]">
+                                        <Badge variant="secondary" className="h-6 gap-0.5 px-1.5 text-[0.725rem]">
                                             <Accessibility className="size-2.5!" /> PcD
                                         </Badge>
                                     )}
                                 </div>
                             </TableCell>
-                            <TableCell className="max-w-40 truncate text-muted-foreground">{c.curso}</TableCell>
+                            <TableCell className="max-w-40 truncate text-muted-foreground">{c.cursos}</TableCell>
                             {mostrarVaga && (
                                 <TableCell className="max-w-48 truncate text-muted-foreground">
                                     {c.vaga?.titulo ?? 'N/A'}

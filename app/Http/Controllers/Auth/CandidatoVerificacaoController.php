@@ -36,7 +36,9 @@ class CandidatoVerificacaoController extends Controller
             event(new Verified($candidato));
         }
 
-        return redirect()->route('candidato.vagas')->with('success', 'E-mail confirmado com sucesso!');
+        // Retoma o que o candidato tentava fazer antes de ser barrado pela verificação.
+        return redirect()->intended(route('candidato.vagas'))
+            ->with('success', 'E-mail confirmado com sucesso!');
     }
 
     public function resend(Request $request)

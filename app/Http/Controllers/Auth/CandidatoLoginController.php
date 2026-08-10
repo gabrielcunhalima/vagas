@@ -50,6 +50,9 @@ class CandidatoLoginController extends Controller
 
         $request->session()->regenerate();
 
+        // Sinal de vida da conta, e o que cancela um aviso de inatividade em curso.
+        $candidato->registrarAtividade();
+
         $redirect = $request->input('redirect');
         if ($redirect && str_starts_with($redirect, '/')) {
             return redirect($redirect);

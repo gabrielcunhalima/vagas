@@ -396,7 +396,7 @@ export default function Form({ vaga, areas, cursos }) {
 
                     <Secao titulo="Condições">
                         <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 items-end gap-3">
                                 <Field label="Remuneração (R$)" htmlFor="remuneracao" error={errors.remuneracao}>
                                     <Input
                                         id="remuneracao"

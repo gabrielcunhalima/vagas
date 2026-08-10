@@ -92,7 +92,7 @@ export default function Index({ vagas, status, busca: buscaInicial = '' }) {
                             <TableBody>
                                 {vagas.data.map((v) => (
                                     <TableRow key={v.id}>
-                                        <TableCell className="max-w-64">
+                                        <TableCell className="max-w-72">
                                             <div className="flex items-center gap-2">
                                                 <TipoBadge tipo={v.tipo} />
                                                 <Link

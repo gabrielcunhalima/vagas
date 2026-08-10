@@ -4,6 +4,7 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import CandidaturaTimeline from '@/components/CandidaturaTimeline';
 import { ModalidadeBadge, StatusCandidaturaBadge, TipoBadge } from '@/components/badges';
 import { Button } from '@/components/ui/button';
+import { niveisEscolaridade } from '@/lib/enums';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 
 function Info({ label, children }) {
@@ -12,6 +13,46 @@ function Info({ label, children }) {
         <div className="flex flex-col gap-0.5">
             <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
             <dd className="text-sm">{children}</dd>
+        </div>
+    );
+}
+
+function TextoLivre({ label, valor }) {
+    if (!valor) return null;
+    return (
+        <div className="flex flex-col gap-0.5 sm:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
+            <dd className="whitespace-pre-line text-sm">{valor}</dd>
+        </div>
+    );
+}
+
+function Formacoes({ formacoes }) {
+    if (!formacoes?.length) return null;
+    return (
+        <div className="flex flex-col gap-0.5 sm:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formação</dt>
+            <dd className="mt-1 flex flex-col gap-2">
+                {formacoes.map((formacao, i) => (
+                    <div key={i} className="text-sm">
+                        <span className="font-medium">{formacao.curso}</span>
+                        {formacao.instituicao && <span className="text-muted-foreground"> — {formacao.instituicao}</span>}
+                        <div className="text-xs text-muted-foreground">
+                            {[
+                                niveisEscolaridade[formacao.nivel_escolaridade] || formacao.nivel_escolaridade,
+                                formacao.situacao_curso === 'cursando'
+                                    ? `Cursando${formacao.semestre ? ` — ${formacao.semestre}` : ''}`
+                                    : formacao.situacao_curso === 'concluido'
+                                      ? 'Concluído'
+                                      : null,
+                                formacao.previsao_conclusao ? formatDate(formacao.previsao_conclusao) : null,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        </div>
+                    </div>
+                ))}
+            </dd>
         </div>
     );
 }
@@ -95,15 +136,14 @@ export default function Show({ candidatura: c }) {
                         <Info label="E-mail">{c.email}</Info>
                         <Info label="CPF">{c.cpf_formatado}</Info>
                         <Info label="Telefone">{c.telefone}</Info>
-                        <Info label="Curso">{c.curso}</Info>
-                        <Info label="Instituição">{c.instituicao}</Info>
-                        <Info label="Semestre">{c.semestre}</Info>
-                        <Info label="Previsão de conclusão">{c.previsao_conclusao ? formatDate(c.previsao_conclusao) : null}</Info>
                         <Info label="LinkedIn">{c.linkedin}</Info>
                         <Info label="Pretensão salarial">{formatMoney(c.pretensao_salarial)}</Info>
                         <Info label="Disponibilidade">{c.disponibilidade}</Info>
                         <Info label="PcD">{c.pcd ? (c.pcd_tipo ? `Sim, ${c.pcd_tipo}` : 'Sim') : null}</Info>
                         <Info label="Endereço">{c.endereco_completo || null}</Info>
+                        <Formacoes formacoes={c.formacoes} />
+                        <TextoLivre label="Outras formações reconhecidas pelo MEC" valor={c.outras_formacoes_mec} />
+                        <TextoLivre label="Outros cursos, palestras, etc." valor={c.outros_cursos} />
                     </dl>
 
                     {c.carta_apresentacao && (

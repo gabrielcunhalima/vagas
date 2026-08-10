@@ -163,7 +163,7 @@ export default function FazendaRessacada() {
                                 className="min-w-28 rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-center"
                             >
                                 <div className="text-xl font-bold text-white">{num}</div>
-                                <div className="mt-0.5 text-[0.7rem] text-white/65">{label}</div>
+                                <div className="mt-0.5 text-[0.825rem] text-white/65">{label}</div>
                             </div>
                         ))}
                     </div>
@@ -233,7 +233,7 @@ export default function FazendaRessacada() {
                                     {e.pills.map((p) => (
                                         <span
                                             key={p}
-                                            className={cn('rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold', e.cor)}
+                                            className={cn('rounded-full px-2.5 py-0.5 text-[0.825rem] font-semibold', e.cor)}
                                         >
                                             {p}
                                         </span>
@@ -340,7 +340,7 @@ export default function FazendaRessacada() {
                             <div key={p.nome} className="rounded-xl bg-card p-4 text-center ring-1 ring-foreground/10">
                                 <p.icon className="mx-auto size-6 text-primary" />
                                 <div className="mt-2 text-sm font-bold">{p.nome}</div>
-                                <div className="mt-0.5 text-[0.7rem] leading-snug text-muted-foreground">{p.desc}</div>
+                                <div className="mt-0.5 text-[0.825rem] leading-snug text-muted-foreground">{p.desc}</div>
                             </div>
                         ))}
                     </div>

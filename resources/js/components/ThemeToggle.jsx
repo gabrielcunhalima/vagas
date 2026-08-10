@@ -1,7 +1,7 @@
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function ThemeToggle({ className }) {
+export default function ThemeToggle({ className, size = 'icon', iconClassName = '' }) {
     function toggle() {
         const isDark = !document.documentElement.classList.contains('dark');
         document.documentElement.classList.toggle('dark', isDark);
@@ -12,13 +12,13 @@ export default function ThemeToggle({ className }) {
         <Button
             type="button"
             variant="ghost"
-            size="icon"
+            size={size}
             onClick={toggle}
             className={className}
             aria-label="Alternar tema claro/escuro"
         >
-            <Sun className="dark:hidden" />
-            <Moon className="hidden dark:block" />
+            <Sun className={`dark:hidden ${iconClassName}`} />
+            <Moon className={`hidden dark:block ${iconClassName}`} />
         </Button>
     );
 }

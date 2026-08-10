@@ -1,19 +1,15 @@
-import { useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
-import { CalendarDays, FileText, Loader2, MapPin, Send, UserCheck } from 'lucide-react';
+import { CalendarDays, FileText, Loader2, MapPin, PencilLine, Send, TriangleAlert } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
-import CurriculoDropzone from '@/components/CurriculoDropzone';
 import Field from '@/components/Field';
 import { ModalidadeBadge, TipoBadge } from '@/components/badges';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { maskCep, maskCpf, maskTelefone, onlyDigits, validarCpf } from '@/lib/cpf';
-import { disponibilidades, ufs } from '@/lib/enums';
-import { diasRestantes, faixaSalarial, prazoInscricao } from '@/lib/format';
+import { niveisEscolaridade } from '@/lib/enums';
+import { diasRestantes, faixaSalarial, formatDate, prazoInscricao } from '@/lib/format';
 
 function Secao({ titulo, descricao, children }) {
     return (
@@ -25,75 +21,110 @@ function Secao({ titulo, descricao, children }) {
     );
 }
 
-export default function Candidatura({ vaga, candidato, prefill = {} }) {
+function Dado({ rotulo, valor }) {
+    if (!valor) return null;
+    return (
+        <div className="min-w-0">
+            <dt className="text-xs text-muted-foreground">{rotulo}</dt>
+            <dd className="truncate text-sm font-medium">{valor}</dd>
+        </div>
+    );
+}
+
+function TextoLivre({ rotulo, valor }) {
+    if (!valor) return null;
+    return (
+        <div className="min-w-0 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">{rotulo}</dt>
+            <dd className="mt-0.5 whitespace-pre-line text-sm font-medium">{valor}</dd>
+        </div>
+    );
+}
+
+function Formacoes({ formacoes }) {
+    if (!formacoes?.length) return null;
+    return (
+        <div className="min-w-0 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">Formação</dt>
+            <dd className="mt-1 flex flex-col gap-2">
+                {formacoes.map((formacao, i) => (
+                    <div key={i} className="text-sm">
+                        <span className="font-medium">{formacao.curso}</span>
+                        {formacao.instituicao && <span className="text-muted-foreground"> — {formacao.instituicao}</span>}
+                        <div className="text-xs text-muted-foreground">
+                            {[
+                                niveisEscolaridade[formacao.nivel_escolaridade] || formacao.nivel_escolaridade,
+                                formacao.situacao_curso === 'cursando'
+                                    ? `Cursando${formacao.semestre ? ` — ${formacao.semestre}` : ''}`
+                                    : formacao.situacao_curso === 'concluido'
+                                      ? 'Concluído'
+                                      : null,
+                                formacao.previsao_conclusao ? formatDate(formacao.previsao_conclusao) : null,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        </div>
+                    </div>
+                ))}
+            </dd>
+        </div>
+    );
+}
+
+/*
+ * Perfil incompleto não tem ficha para o coordenador avaliar, então a inscrição
+ * não segue. A vaga fica identificada aqui para que completar o perfil não custe
+ * reencontrá-la depois.
+ */
+function PerfilIncompleto({ completude, vaga }) {
+    const pendentes = Object.values(completude.pendencias);
+
+    return (
+        <div className="rounded-xl bg-card p-5 ring-1 ring-amber-500/30 sm:p-6">
+            <div className="flex items-start gap-3">
+                <TriangleAlert className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-500" />
+                <div className="min-w-0">
+                    <h2 className="text-sm font-bold tracking-tight">Complete seu perfil para se candidatar</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Faltam {pendentes.length} {pendentes.length === 1 ? 'informação' : 'informações'} para você
+                        concorrer a <span className="font-medium text-foreground">{vaga.titulo}</span>.
+                    </p>
+                </div>
+            </div>
+
+            <Progress value={completude.progresso} className="mt-4 h-1.5" />
+
+            <ul className="mt-3 flex flex-wrap gap-1.5">
+                {pendentes.map((rotulo) => (
+                    <li key={rotulo} className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                        {rotulo}
+                    </li>
+                ))}
+            </ul>
+
+            <Button asChild className="mt-5">
+                <Link href={route('candidato.perfil.edit')}>Completar meu perfil</Link>
+            </Button>
+        </div>
+    );
+}
+
+export default function Candidatura({ vaga, perfil, completude }) {
     const { data, setData, post, processing, errors } = useForm({
         _honeypot: '',
-        nome: prefill.nome ?? '',
-        email: prefill.email ?? '',
-        cpf: prefill.cpf ? maskCpf(prefill.cpf) : '',
-        telefone: prefill.telefone ? maskTelefone(prefill.telefone) : '',
-        curso: prefill.curso ?? '',
-        instituicao: prefill.instituicao ?? '',
-        semestre: prefill.semestre ?? '',
-        previsao_conclusao: prefill.previsao_conclusao ?? '',
         carta_apresentacao: '',
-        cep: prefill.cep ? maskCep(prefill.cep) : '',
-        logradouro: prefill.logradouro ?? '',
-        numero: prefill.numero ?? '',
-        complemento: prefill.complemento ?? '',
-        bairro: prefill.bairro ?? '',
-        cidade: prefill.cidade ?? '',
-        estado: prefill.estado ?? '',
-        linkedin: prefill.linkedin ?? '',
-        pretensao_salarial: prefill.pretensao_salarial ?? '',
-        disponibilidade: prefill.disponibilidade ?? '',
-        pcd: prefill.pcd === '1',
-        pcd_tipo: prefill.pcd_tipo ?? '',
-        curriculo: null,
-        lgpd_consentimento: false,
+        conflito_interesse: '',
+        conflito_interesse_detalhe: '',
+        codigo_conduta_aceite: false,
     });
 
-    const [cpfInvalido, setCpfInvalido] = useState(false);
-    const [buscandoCep, setBuscandoCep] = useState(false);
-    const [usarCurriculoPerfil, setUsarCurriculoPerfil] = useState(Boolean(candidato?.tem_curriculo));
-
-    const cpfBloqueado = Boolean(candidato && prefill.cpf);
     const dias = diasRestantes(vaga.data_encerramento);
     const prazo = prazoInscricao(vaga.data_encerramento);
-
-    function validarCpfLocal() {
-        const digits = onlyDigits(data.cpf);
-        setCpfInvalido(digits.length > 0 && !validarCpf(digits));
-    }
-
-    async function buscarCep() {
-        const digits = onlyDigits(data.cep);
-        if (digits.length !== 8) return;
-        setBuscandoCep(true);
-        try {
-            const res = await fetch(route('api.cep', { cep: digits }));
-            if (res.ok) {
-                const d = await res.json();
-                if (d && !d.erro) {
-                    setData((prev) => ({
-                        ...prev,
-                        logradouro: d.logradouro || prev.logradouro,
-                        bairro: d.bairro || prev.bairro,
-                        cidade: d.cidade || prev.cidade,
-                        estado: d.estado || prev.estado,
-                    }));
-                }
-            }
-        } catch {
-            /* preenchimento manual segue disponível */
-        } finally {
-            setBuscandoCep(false);
-        }
-    }
+    const endereco = perfil.cidade && perfil.estado ? `${perfil.cidade}/${perfil.estado}` : perfil.cidade;
 
     function submit(e) {
         e.preventDefault();
-        post(route('inscricao.store', vaga.id), { forceFormData: true });
+        post(route('inscricao.store', vaga.id));
     }
 
     return (
@@ -101,318 +132,150 @@ export default function Candidatura({ vaga, candidato, prefill = {} }) {
             <div className="mx-auto w-full max-w-6xl px-4 pt-8">
                 <h1 className="text-2xl font-bold tracking-tight">Candidatar-se</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Preencha seus dados para concorrer à vaga. Campos com <span className="text-destructive">*</span> são
-                    obrigatórios.
+                    Confira os dados que o coordenador vai receber e responda às perguntas desta vaga.
                 </p>
 
                 <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_320px]">
-                    <form onSubmit={submit} className="flex min-w-0 flex-col gap-5">
-                        {/* Honeypot anti-spam: invisível para humanos */}
-                        <input
-                            type="text"
-                            name="_honeypot"
-                            value={data._honeypot}
-                            onChange={(e) => setData('_honeypot', e.target.value)}
-                            className="absolute -left-[9999px] size-px opacity-0"
-                            tabIndex={-1}
-                            autoComplete="off"
-                            aria-hidden="true"
-                        />
+                    {completude.completo ? (
+                        <form onSubmit={submit} className="flex min-w-0 flex-col gap-5">
+                            {/* Honeypot anti-spam: invisível para humanos */}
+                            <input
+                                type="text"
+                                name="_honeypot"
+                                value={data._honeypot}
+                                onChange={(e) => setData('_honeypot', e.target.value)}
+                                className="absolute -left-[9999px] size-px opacity-0"
+                                tabIndex={-1}
+                                autoComplete="off"
+                                aria-hidden="true"
+                            />
 
-                        {candidato ? (
-                            <div className="flex items-center gap-3 rounded-xl bg-accent/60 p-4 text-sm ring-1 ring-primary/20">
-                                <UserCheck className="size-5 shrink-0 text-primary" />
-                                <p>
-                                    Olá, <span className="font-semibold">{candidato.nome.split(' ')[0]}</span>! Seus dados do
-                                    perfil já foram preenchidos, revise e envie.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-card p-4 text-sm ring-1 ring-foreground/10">
-                                <p className="text-muted-foreground">
-                                    Já tem conta? Entre para preencher tudo automaticamente.
-                                </p>
-                                <Button asChild variant="outline" size="sm">
-                                    <Link href={route('candidato.login', { redirect: `/candidatura/${vaga.id}` })}>
-                                        Entrar
-                                    </Link>
-                                </Button>
-                            </div>
-                        )}
+                            <Secao
+                                titulo="Seus dados"
+                                descricao="É isto que o coordenador desta vaga vai ver. Alterar aqui altera os dados da sua conta e vale para todas as suas candidaturas."
+                            >
+                                <dl className="grid gap-4 sm:grid-cols-2">
+                                    <Dado rotulo="Nome completo" valor={perfil.nome} />
+                                    <Dado rotulo="Nome social" valor={perfil.nome_social} />
+                                    <Dado rotulo="E-mail" valor={perfil.email} />
+                                    <Dado rotulo="CPF" valor={perfil.cpf_formatado} />
+                                    <Dado rotulo="Telefone" valor={perfil.telefone} />
+                                    <Dado rotulo="Nacionalidade" valor={perfil.nacionalidade} />
+                                    <Dado rotulo="Cidade" valor={endereco} />
+                                    <Dado rotulo="LinkedIn" valor={perfil.linkedin} />
+                                    <Dado rotulo="Disponibilidade" valor={perfil.disponibilidade} />
+                                    <Formacoes formacoes={perfil.formacoes} />
+                                    <TextoLivre rotulo="Outras formações reconhecidas pelo MEC" valor={perfil.outras_formacoes_mec} />
+                                    <TextoLivre rotulo="Outros cursos, palestras, etc." valor={perfil.outros_cursos} />
+                                </dl>
 
-                        <Secao titulo="Dados pessoais">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Field label="Nome completo" htmlFor="nome" required error={errors.nome} className="sm:col-span-2">
-                                    <Input id="nome" value={data.nome} onChange={(e) => setData('nome', e.target.value)} required />
-                                </Field>
-                                <Field label="E-mail" htmlFor="email" required error={errors.email}>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        required
-                                    />
-                                </Field>
-                                <Field
-                                    label="CPF"
-                                    htmlFor="cpf"
-                                    required
-                                    error={errors.cpf ?? (cpfInvalido ? 'CPF inválido.' : undefined)}
-                                >
-                                    <Input
-                                        id="cpf"
-                                        inputMode="numeric"
-                                        value={data.cpf}
-                                        onChange={(e) => {
-                                            setData('cpf', maskCpf(e.target.value));
-                                            setCpfInvalido(false);
-                                        }}
-                                        onBlur={validarCpfLocal}
-                                        placeholder="000.000.000-00"
-                                        readOnly={cpfBloqueado}
-                                        className={cpfBloqueado ? 'bg-muted/60' : undefined}
-                                        required
-                                    />
-                                </Field>
-                                <Field label="Telefone" htmlFor="telefone" error={errors.telefone} className="sm:col-span-2">
-                                    <Input
-                                        id="telefone"
-                                        inputMode="numeric"
-                                        value={data.telefone}
-                                        onChange={(e) => setData('telefone', maskTelefone(e.target.value))}
-                                        placeholder="(48) 99999-9999"
-                                    />
-                                </Field>
-                            </div>
-                        </Secao>
+                                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+                                    <span className="inline-flex min-w-0 items-center gap-2 text-sm">
+                                        <FileText className="size-4 shrink-0 text-primary" />
+                                        <span className="truncate font-medium">{perfil.curriculo_nome}</span>
+                                    </span>
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={route('candidato.perfil.edit')}>
+                                            <PencilLine data-icon="inline-start" /> Editar meus dados
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </Secao>
 
-                        <Secao titulo="Formação">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Field label="Curso" htmlFor="curso" required error={errors.curso}>
-                                    <Input id="curso" value={data.curso} onChange={(e) => setData('curso', e.target.value)} required />
-                                </Field>
-                                <Field label="Instituição de ensino" htmlFor="instituicao" required error={errors.instituicao}>
-                                    <Input
-                                        id="instituicao"
-                                        value={data.instituicao}
-                                        onChange={(e) => setData('instituicao', e.target.value)}
-                                        required
-                                    />
-                                </Field>
-                                <Field label="Semestre atual" htmlFor="semestre" error={errors.semestre}>
-                                    <Input
-                                        id="semestre"
-                                        value={data.semestre}
-                                        onChange={(e) => setData('semestre', e.target.value)}
-                                        placeholder="Ex.: 5º"
-                                    />
-                                </Field>
-                                <Field label="Previsão de conclusão" htmlFor="previsao_conclusao" error={errors.previsao_conclusao}>
-                                    <Input
-                                        id="previsao_conclusao"
-                                        type="date"
-                                        value={data.previsao_conclusao}
-                                        onChange={(e) => setData('previsao_conclusao', e.target.value)}
-                                    />
-                                </Field>
-                            </div>
-                        </Secao>
-
-                        <Secao titulo="Endereço" descricao="Opcional, informe o CEP para preenchimento automático.">
-                            <div className="grid gap-4 sm:grid-cols-6">
-                                <Field
-                                    label="CEP"
-                                    htmlFor="cep"
-                                    error={errors.cep}
-                                    className="sm:col-span-2"
-                                    hint={buscandoCep ? 'Buscando endereço…' : undefined}
-                                >
-                                    <Input
-                                        id="cep"
-                                        inputMode="numeric"
-                                        value={data.cep}
-                                        onChange={(e) => setData('cep', maskCep(e.target.value))}
-                                        onBlur={buscarCep}
-                                        placeholder="00000-000"
-                                    />
-                                </Field>
-                                <Field label="Cidade" htmlFor="cidade" error={errors.cidade} className="sm:col-span-3">
-                                    <Input id="cidade" value={data.cidade} onChange={(e) => setData('cidade', e.target.value)} />
-                                </Field>
-                                <Field label="UF" htmlFor="estado" error={errors.estado} className="sm:col-span-1">
-                                    <Select value={data.estado || undefined} onValueChange={(v) => setData('estado', v)}>
-                                        <SelectTrigger id="estado" className="w-full">
-                                            <SelectValue placeholder="UF" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {ufs.map((uf) => (
-                                                <SelectItem key={uf} value={uf}>
-                                                    {uf}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </Field>
-                                <Field label="Bairro" htmlFor="bairro" error={errors.bairro} className="sm:col-span-3">
-                                    <Input id="bairro" value={data.bairro} onChange={(e) => setData('bairro', e.target.value)} />
-                                </Field>
-                                <Field label="Logradouro" htmlFor="logradouro" error={errors.logradouro} className="sm:col-span-3">
-                                    <Input
-                                        id="logradouro"
-                                        value={data.logradouro}
-                                        onChange={(e) => setData('logradouro', e.target.value)}
-                                    />
-                                </Field>
-                                <Field label="Número" htmlFor="numero" error={errors.numero} className="sm:col-span-2">
-                                    <Input id="numero" value={data.numero} onChange={(e) => setData('numero', e.target.value)} />
-                                </Field>
-                                <Field label="Complemento" htmlFor="complemento" error={errors.complemento} className="sm:col-span-4">
-                                    <Input
-                                        id="complemento"
-                                        value={data.complemento}
-                                        onChange={(e) => setData('complemento', e.target.value)}
-                                    />
-                                </Field>
-                            </div>
-                        </Secao>
-
-                        <Secao titulo="Informações adicionais" descricao="Opcionais, mas ajudam o coordenador a te conhecer melhor.">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Field label="LinkedIn" htmlFor="linkedin" error={errors.linkedin} className="sm:col-span-2">
-                                    <Input
-                                        id="linkedin"
-                                        type="url"
-                                        value={data.linkedin}
-                                        onChange={(e) => setData('linkedin', e.target.value)}
-                                        placeholder="https://linkedin.com/in/voce"
-                                    />
-                                </Field>
-                                <Field label="Pretensão salarial (R$)" htmlFor="pretensao_salarial" error={errors.pretensao_salarial}>
-                                    <Input
-                                        id="pretensao_salarial"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={data.pretensao_salarial}
-                                        onChange={(e) => setData('pretensao_salarial', e.target.value)}
-                                    />
-                                </Field>
-                                <Field label="Disponibilidade para início" htmlFor="disponibilidade" error={errors.disponibilidade}>
-                                    <Select
-                                        value={data.disponibilidade || undefined}
-                                        onValueChange={(v) => setData('disponibilidade', v)}
+                            <Secao titulo="Sobre esta vaga">
+                                <div className="grid gap-4">
+                                    <Field
+                                        label="Carta de apresentação"
+                                        htmlFor="carta_apresentacao"
+                                        error={errors.carta_apresentacao}
+                                        hint="Opcional. Conte por que você se interessou por esta vaga."
                                     >
-                                        <SelectTrigger id="disponibilidade" className="w-full">
-                                            <SelectValue placeholder="Selecione" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {disponibilidades.map((d) => (
-                                                <SelectItem key={d} value={d}>
-                                                    {d}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </Field>
-                                <div className="flex flex-col gap-3 sm:col-span-2">
-                                    <label className="flex items-center gap-3">
-                                        <Switch checked={data.pcd} onCheckedChange={(v) => setData('pcd', Boolean(v))} />
-                                        <span className="text-sm font-medium">Sou pessoa com deficiência (PcD)</span>
-                                    </label>
-                                    {data.pcd && (
-                                        <Field label="Tipo de deficiência" htmlFor="pcd_tipo" error={errors.pcd_tipo}>
-                                            <Input
-                                                id="pcd_tipo"
-                                                value={data.pcd_tipo}
-                                                onChange={(e) => setData('pcd_tipo', e.target.value)}
+                                        <Textarea
+                                            id="carta_apresentacao"
+                                            rows={5}
+                                            value={data.carta_apresentacao}
+                                            onChange={(e) => setData('carta_apresentacao', e.target.value)}
+                                        />
+                                    </Field>
+
+                                    <Field
+                                        label="Você tem vínculo de parentesco ou relação pessoal com alguém da equipe desta vaga?"
+                                        htmlFor="conflito_interesse"
+                                        required
+                                        error={errors.conflito_interesse}
+                                    >
+                                        <Select
+                                            value={data.conflito_interesse}
+                                            onValueChange={(v) => setData('conflito_interesse', v)}
+                                        >
+                                            <SelectTrigger id="conflito_interesse">
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="0">Não</SelectItem>
+                                                <SelectItem value="1">Sim</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+
+                                    {data.conflito_interesse === '1' && (
+                                        <Field
+                                            label="Descreva a relação"
+                                            htmlFor="conflito_interesse_detalhe"
+                                            required
+                                            error={errors.conflito_interesse_detalhe}
+                                        >
+                                            <Textarea
+                                                id="conflito_interesse_detalhe"
+                                                rows={3}
+                                                value={data.conflito_interesse_detalhe}
+                                                onChange={(e) => setData('conflito_interesse_detalhe', e.target.value)}
                                             />
                                         </Field>
                                     )}
                                 </div>
-                            </div>
-                        </Secao>
+                            </Secao>
 
-                        <Secao titulo="Carta de apresentação" descricao="Opcional, conte por que você é a pessoa certa para esta vaga.">
-                            <Field error={errors.carta_apresentacao}>
-                                <Textarea
-                                    rows={5}
-                                    maxLength={5000}
-                                    value={data.carta_apresentacao}
-                                    onChange={(e) => setData('carta_apresentacao', e.target.value)}
-                                    placeholder="Escreva aqui…"
-                                />
-                            </Field>
-                        </Secao>
-
-                        <Secao titulo="Currículo">
-                            {candidato?.tem_curriculo && (
-                                <label className="mb-4 flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5 ring-1 ring-foreground/10">
-                                    <Checkbox
-                                        checked={usarCurriculoPerfil}
-                                        onCheckedChange={(v) => {
-                                            setUsarCurriculoPerfil(Boolean(v));
-                                            if (v) setData('curriculo', null);
-                                        }}
-                                    />
-                                    <span className="inline-flex items-center gap-2 text-sm">
-                                        <FileText className="size-4 text-primary" />
-                                        Usar currículo do perfil
-                                        <span className="text-muted-foreground">({candidato.curriculo_nome})</span>
-                                    </span>
-                                </label>
-                            )}
-
-                            {!usarCurriculoPerfil && (
-                                <Field
-                                    error={errors.curriculo}
-                                    hint={!candidato ? 'Obrigatório para visitantes.' : undefined}
-                                >
-                                    <CurriculoDropzone
-                                        file={data.curriculo}
-                                        onChange={(f) => setData('curriculo', f)}
-                                        error={errors.curriculo}
-                                    />
-                                </Field>
-                            )}
-                        </Secao>
-
-                        {!candidato && (
                             <div className="rounded-xl bg-card p-5 ring-1 ring-foreground/10">
                                 <label className="flex items-start gap-2.5">
                                     <Checkbox
-                                        checked={data.lgpd_consentimento}
-                                        onCheckedChange={(v) => setData('lgpd_consentimento', Boolean(v))}
+                                        checked={data.codigo_conduta_aceite}
+                                        onCheckedChange={(v) => setData('codigo_conduta_aceite', Boolean(v))}
                                         className="mt-0.5"
                                     />
                                     <span className="text-sm leading-relaxed">
-                                        Autorizo o uso dos meus dados pessoais para este processo seletivo, conforme a{' '}
-                                        <Link href={route('politica.privacidade')} className="font-semibold text-primary hover:underline">
-                                            Política de Privacidade
-                                        </Link>{' '}
-                                        (LGPD). <span className="text-destructive">*</span>
+                                        Li e aceito o{' '}
+                                        <a
+                                            href="https://fapeu.org.br/codigoconduta"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="font-semibold text-primary hover:underline"
+                                        >
+                                            Código de Conduta da FAPEU
+                                        </a>{' '}
+                                        para este processo seletivo. <span className="text-destructive">*</span>
                                     </span>
                                 </label>
-                                {errors.lgpd_consentimento && (
-                                    <p className="mt-2 text-xs font-medium text-destructive">{errors.lgpd_consentimento}</p>
+                                {errors.codigo_conduta_aceite && (
+                                    <p className="mt-2 text-xs font-medium text-destructive">
+                                        {errors.codigo_conduta_aceite}
+                                    </p>
                                 )}
                             </div>
-                        )}
 
-                        <Button
-                            type="submit"
-                            size="lg"
-                            className="h-11 w-full gap-2 px-6 sm:w-auto sm:self-end pr-[27px]"
-                            disabled={processing}
-                        >
-                            {processing ? (
-                                <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                                <Send className="size-4" />
-                            )}
-                            Enviar candidatura
-                        </Button>
-                    </form>
+                            <Button
+                                type="submit"
+                                size="lg"
+                                className="h-11 w-full gap-2 px-6 sm:w-auto sm:self-end"
+                                disabled={processing}
+                            >
+                                {processing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                                Enviar candidatura
+                            </Button>
+                        </form>
+                    ) : (
+                        <PerfilIncompleto completude={completude} vaga={vaga} />
+                    )}
 
                     {/* Resumo da vaga */}
                     <aside className="order-first lg:order-none lg:sticky lg:top-20">
@@ -425,15 +288,15 @@ export default function Candidatura({ vaga, candidato, prefill = {} }) {
                             <div className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
                                 <span className="inline-flex items-center gap-2">
                                     <MapPin className="size-4" />
-                                    {vaga.modalidade === 'remoto' ? 'Remoto' : vaga.cidade ? `${vaga.cidade}/${vaga.estado}` : 'A definir'}
+                                    {vaga.modalidade === 'remoto'
+                                        ? 'Remoto'
+                                        : vaga.cidade
+                                          ? `${vaga.cidade}/${vaga.estado}`
+                                          : 'A definir'}
                                 </span>
                                 <span className="inline-flex items-center gap-2">
                                     <CalendarDays className="size-4" />
-                                    {dias <= 5 ? (
-                                        <span className="font-semibold text-primary">{prazo}</span>
-                                    ) : (
-                                        prazo
-                                    )}
+                                    {dias <= 5 ? <span className="font-semibold text-primary">{prazo}</span> : prazo}
                                 </span>
                                 <span className="font-medium text-foreground">{faixaSalarial(vaga)}</span>
                             </div>

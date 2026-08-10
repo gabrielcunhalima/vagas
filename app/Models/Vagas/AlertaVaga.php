@@ -9,7 +9,7 @@ class AlertaVaga extends Model
 {
     protected $table = 'vaga_alertas';
 
-    protected $fillable = ['email', 'areas', 'modalidades', 'tipos', 'ativo', 'token', 'lgpd_consentimento', 'lgpd_consentimento_em'];
+    protected $fillable = ['candidato_id', 'email', 'areas', 'modalidades', 'tipos', 'ativo', 'token', 'lgpd_consentimento', 'lgpd_consentimento_em'];
 
     protected $casts = [
         'areas'      => 'array',
@@ -31,6 +31,17 @@ class AlertaVaga extends Model
     public function scopeAtivos($query)
     {
         return $query->where('ativo', true);
+    }
+
+    public function candidato()
+    {
+        return $this->belongsTo(\App\Models\Candidato::class, 'candidato_id');
+    }
+
+    /** Destino do alerta: sempre o e-mail da conta, nunca um endereço digitado. */
+    public function getDestinoAttribute(): ?string
+    {
+        return $this->candidato?->email ?? $this->email;
     }
 
     public function compativel(Vaga $vaga): bool

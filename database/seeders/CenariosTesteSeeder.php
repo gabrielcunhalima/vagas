@@ -76,12 +76,6 @@ class CenariosTesteSeeder extends Seeder
                 'cpf'                     => '52998224725',
                 'telefone'                => '48999110001',
                 'linkedin'                => 'https://linkedin.com/in/ana-souza-teste',
-                'curso'                   => 'Ciência da Computação',
-                'instituicao'             => 'UFSC',
-                'nivel_escolaridade'      => 'graduacao',
-                'situacao_curso'          => 'cursando',
-                'semestre'                => '6º',
-                'previsao_conclusao'      => now()->addYear()->toDateString(),
                 'cep'                     => '88034001',
                 'logradouro'              => 'Rodovia Admar Gonzaga',
                 'numero'                  => '1346',
@@ -94,10 +88,17 @@ class CenariosTesteSeeder extends Seeder
                 'curriculo_nome_original' => 'curriculo-ana-souza.pdf',
                 'lgpd_consentimento'      => true,
                 'lgpd_consentimento_em'   => now(),
-                'codigo_conduta_aceito_em'=> now(),
                 'ativo'                   => true,
             ]
         );
+        $this->formacaoUnica($verificado, [
+            'curso'              => 'Ciência da Computação',
+            'instituicao'        => 'UFSC',
+            'nivel_escolaridade' => 'graduacao',
+            'situacao_curso'     => 'cursando',
+            'semestre'           => '6º',
+            'previsao_conclusao' => now()->addYear()->toDateString(),
+        ]);
 
         $naoVerificado = Candidato::updateOrCreate(
             ['email' => 'candidato.novo@teste.com'],
@@ -108,18 +109,19 @@ class CenariosTesteSeeder extends Seeder
                 'nacionalidade'           => 'Brasileira',
                 'cpf'                     => '11144477735',
                 'telefone'                => '48999110002',
-                'curso'                   => 'Administração',
-                'instituicao'             => 'UDESC',
-                'nivel_escolaridade'      => 'graduacao',
-                'situacao_curso'          => 'cursando',
-                'semestre'                => '3º',
-                'previsao_conclusao'      => now()->addYears(2)->toDateString(),
                 'lgpd_consentimento'      => true,
                 'lgpd_consentimento_em'   => now(),
-                'codigo_conduta_aceito_em'=> now(),
                 'ativo'                   => true,
             ]
         );
+        $this->formacaoUnica($naoVerificado, [
+            'curso'              => 'Administração',
+            'instituicao'        => 'UDESC',
+            'nivel_escolaridade' => 'graduacao',
+            'situacao_curso'     => 'cursando',
+            'semestre'           => '3º',
+            'previsao_conclusao' => now()->addYears(2)->toDateString(),
+        ]);
 
         $pcd = Candidato::updateOrCreate(
             ['email' => 'candidato.pcd@teste.com'],
@@ -131,26 +133,32 @@ class CenariosTesteSeeder extends Seeder
                 'nacionalidade'              => 'Brasileira',
                 'cpf'                        => '93541134780',
                 'telefone'                   => '48999110003',
-                'curso'                      => 'Biblioteconomia',
-                'instituicao'                => 'UFSC',
-                'nivel_escolaridade'         => 'pos',
-                'situacao_curso'             => 'concluido',
-                'previsao_conclusao'         => now()->subYear()->toDateString(),
                 'pcd'                        => true,
                 'pcd_tipo'                   => 'Deficiência auditiva',
                 'possui_acessibilidade'      => true,
                 'acessibilidade_detalhe'     => 'Necessito de intérprete de Libras em entrevistas presenciais.',
-                'conflito_interesse'         => true,
-                'conflito_interesse_detalhe' => 'Prima trabalha no setor financeiro da FAPEU.',
                 'disponibilidade'            => '30 dias',
                 'lgpd_consentimento'         => true,
                 'lgpd_consentimento_em'      => now(),
-                'codigo_conduta_aceito_em'   => now(),
                 'ativo'                      => true,
             ]
         );
+        $this->formacaoUnica($pcd, [
+            'curso'              => 'Biblioteconomia',
+            'instituicao'        => 'UFSC',
+            'nivel_escolaridade' => 'pos',
+            'situacao_curso'     => 'concluido',
+            'previsao_conclusao' => now()->subYear()->toDateString(),
+        ]);
 
         return compact('verificado', 'naoVerificado', 'pcd');
+    }
+
+    /** Idempotente: substitui a formação única do candidato de cenário. */
+    private function formacaoUnica(Candidato $candidato, array $dados): void
+    {
+        $candidato->formacoes()->delete();
+        $candidato->formacoes()->create($dados);
     }
 
     /** Uma vaga por status para exercitar todas as telas internas e públicas. */
@@ -245,86 +253,98 @@ class CenariosTesteSeeder extends Seeder
         return $vagas;
     }
 
-    /** Candidaturas em todos os status na vaga ativa (única constraint: vaga_id + cpf). */
+    /**
+     * Um candidato-conta por cenário de candidatura "de visitante": desde
+     * `candidatura-vinculada-a-conta`, toda candidatura exige `candidato_id`
+     * (agora também NOT NULL no banco), então não há mais como representar
+     * esses cenários sem uma conta por trás.
+     */
+    private function candidatoDeCenario(string $email, string $nome, string $cpf, array $over = []): Candidato
+    {
+        $candidato = Candidato::updateOrCreate(
+            ['email' => $email],
+            array_merge([
+                'password'              => Hash::make(self::SENHA_CANDIDATO),
+                'email_verified_at'     => now(),
+                'nome'                  => $nome,
+                'nacionalidade'         => 'Brasileira',
+                'cpf'                   => $cpf,
+                'cidade'                => 'Florianópolis',
+                'estado'                => 'SC',
+                'lgpd_consentimento'    => true,
+                'lgpd_consentimento_em' => now(),
+                'ativo'                 => true,
+            ], $over)
+        );
+
+        $this->formacaoUnica($candidato, [
+            'curso'              => 'Administração',
+            'instituicao'        => 'UFSC',
+            'nivel_escolaridade' => 'graduacao',
+            'situacao_curso'     => 'cursando',
+            'semestre'           => '5º',
+        ]);
+
+        return $candidato;
+    }
+
+    /** Candidaturas em todos os status na vaga ativa (única constraint: vaga_id + candidato_id). */
     private function candidaturas(Vaga $vagaAtiva, array $candidatos): void
     {
-        $base = [
-            'curso'       => 'Administração',
-            'instituicao' => 'UFSC',
-            'semestre'    => '5º',
-            'cidade'      => 'Florianópolis',
-            'estado'      => 'SC',
-            'pais'        => 'Brasil',
-        ];
+        $diego = $this->candidatoDeCenario('diego.visitante@teste.com', 'Diego Ferreira Nunes', '15350946056');
+        $elisa = $this->candidatoDeCenario('elisa.entrevista@teste.com', 'Elisa Martins Rocha', '31753961033', [
+            'telefone' => '48999110004',
+        ]);
+        $felipe = $this->candidatoDeCenario('felipe.aprovado@teste.com', 'Felipe Andrade Santos', '81074815010');
 
         // Vinculada a candidato logado (com currículo do perfil)
         Candidatura::updateOrCreate(
-            ['vaga_id' => $vagaAtiva->id, 'cpf' => $candidatos['verificado']->cpf],
-            array_merge($base, [
-                'candidato_id'            => $candidatos['verificado']->id,
-                'nome'                    => $candidatos['verificado']->nome,
-                'email'                   => $candidatos['verificado']->email,
-                'telefone'                => '48999110001',
-                'curso'                   => $candidatos['verificado']->curso,
-                'linkedin'                => $candidatos['verificado']->linkedin,
-                'pretensao_salarial'      => 1500.00,
-                'disponibilidade'         => 'Imediata',
-                'curriculo_path'          => $candidatos['verificado']->curriculo_path,
-                'curriculo_nome_original' => $candidatos['verificado']->curriculo_nome_original,
-                'carta_apresentacao'      => 'Tenho grande interesse na vaga e experiência prévia com projetos de extensão.',
-                'status'                  => 'recebida',
-            ])
+            ['vaga_id' => $vagaAtiva->id, 'candidato_id' => $candidatos['verificado']->id],
+            [
+                'carta_apresentacao' => 'Tenho grande interesse na vaga e experiência prévia com projetos de extensão.',
+                'status'             => 'recebida',
+            ]
         );
 
-        // Visitante sem conta — em análise
+        // Em análise
         Candidatura::updateOrCreate(
-            ['vaga_id' => $vagaAtiva->id, 'cpf' => '15350946056'],
-            array_merge($base, [
-                'nome'   => 'Diego Ferreira Nunes',
-                'email'  => 'diego.visitante@teste.com',
-                'status' => 'em_analise',
+            ['vaga_id' => $vagaAtiva->id, 'candidato_id' => $diego->id],
+            [
+                'status'               => 'em_analise',
                 'observacoes_internas' => 'Perfil interessante; validar disponibilidade de horário.',
-            ])
+            ]
         );
 
         // Entrevista agendada (futura)
         Candidatura::updateOrCreate(
-            ['vaga_id' => $vagaAtiva->id, 'cpf' => '31753961033'],
-            array_merge($base, [
-                'nome'                   => 'Elisa Martins Rocha',
-                'email'                  => 'elisa.entrevista@teste.com',
-                'telefone'               => '48999110004',
+            ['vaga_id' => $vagaAtiva->id, 'candidato_id' => $elisa->id],
+            [
                 'status'                 => 'entrevista',
                 'entrevista_data'        => now()->addDays(3)->setTime(14, 30),
                 'entrevista_local'       => 'Sala de reuniões FAPEU, Campus UFSC, Trindade',
                 'entrevista_observacoes' => 'Trazer documento com foto. Duração prevista: 45 minutos.',
-            ])
+            ]
         );
 
         // Aprovado
         Candidatura::updateOrCreate(
-            ['vaga_id' => $vagaAtiva->id, 'cpf' => '81074815010'],
-            array_merge($base, [
-                'nome'   => 'Felipe Andrade Santos',
-                'email'  => 'felipe.aprovado@teste.com',
-                'status' => 'aprovado',
+            ['vaga_id' => $vagaAtiva->id, 'candidato_id' => $felipe->id],
+            [
+                'status'               => 'aprovado',
                 'observacoes_internas' => 'Excelente entrevista. Encaminhado para contratação.',
-            ])
+            ]
         );
 
-        // Reprovado + PcD (vinculada à candidata PcD)
+        // Reprovado + conflito de interesse declarado (vinculada à candidata PcD)
         Candidatura::updateOrCreate(
-            ['vaga_id' => $vagaAtiva->id, 'cpf' => $candidatos['pcd']->cpf],
-            array_merge($base, [
-                'candidato_id' => $candidatos['pcd']->id,
-                'nome'         => $candidatos['pcd']->nome,
-                'email'        => $candidatos['pcd']->email,
-                'curso'        => $candidatos['pcd']->curso,
-                'pcd'          => true,
-                'pcd_tipo'     => 'Deficiência auditiva',
-                'status'       => 'reprovado',
-                'observacoes_internas' => 'Perfil sênior demais para a vaga de estágio.',
-            ])
+            ['vaga_id' => $vagaAtiva->id, 'candidato_id' => $candidatos['pcd']->id],
+            [
+                'conflito_interesse'         => true,
+                'conflito_interesse_detalhe' => 'Prima trabalha no setor financeiro da FAPEU.',
+                'codigo_conduta_aceito_em'   => now(),
+                'status'                     => 'reprovado',
+                'observacoes_internas'       => 'Perfil sênior demais para a vaga de estágio.',
+            ]
         );
     }
 

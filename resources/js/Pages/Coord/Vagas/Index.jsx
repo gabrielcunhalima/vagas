@@ -134,7 +134,7 @@ export default function Index({ vagas, areas, filtros = {} }) {
                         aplicar({ tipo: valor });
                     }}
                 >
-                    <SelectTrigger className="w-36">
+                    <SelectTrigger className="w-40">
                         <SelectValue placeholder="Tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -199,7 +199,7 @@ export default function Index({ vagas, areas, filtros = {} }) {
                             <TableBody>
                                 {vagas.data.map((v) => (
                                     <TableRow key={v.id}>
-                                        <TableCell className="max-w-64">
+                                        <TableCell className="max-w-72">
                                             <div className="flex items-center gap-2">
                                                 <TipoBadge tipo={v.tipo} />
                                                 {podeEditar(v) ? (

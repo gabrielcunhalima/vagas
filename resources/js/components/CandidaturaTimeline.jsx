@@ -42,7 +42,7 @@ export default function CandidaturaTimeline({ status, className }) {
                         <span className="flex w-14 flex-col items-center gap-1.5 sm:w-20">
                             <span
                                 className={cn(
-                                    'flex size-6 items-center justify-center rounded-full text-[0.65rem] font-bold transition-colors',
+                                    'flex size-6 items-center justify-center rounded-full text-[0.775rem] font-bold transition-colors',
                                     finalNegativo
                                         ? 'bg-destructive/15 text-destructive'
                                         : concluida
@@ -62,7 +62,7 @@ export default function CandidaturaTimeline({ status, className }) {
                             </span>
                             <span
                                 className={cn(
-                                    'text-center text-[0.65rem] leading-tight sm:text-xs',
+                                    'text-center text-[0.775rem] leading-tight sm:text-xs',
                                     finalNegativo
                                         ? 'font-semibold text-destructive'
                                         : corrente || concluida

@@ -13,7 +13,13 @@ class EnsureCandidatoEmailIsVerified
         $candidato = Auth::guard('candidato')->user();
 
         if (!$candidato || !$candidato->hasVerifiedEmail()) {
-            return redirect()->route('candidato.verification.notice');
+            // Guarda o destino para que verificar não custe reencontrar a vaga.
+            if ($request->isMethod('GET')) {
+                $request->session()->put('url.intended', $request->fullUrl());
+            }
+
+            return redirect()->route('candidato.verification.notice')
+                ->with('info', 'Confirme seu e-mail para continuar.');
         }
 
         return $next($request);

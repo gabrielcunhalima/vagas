@@ -21,17 +21,16 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
+        default: "h-9 gap-1.5 px-2.5",
+        xs: "h-7 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-8 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.925rem] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "h-10 gap-1.5 px-2.5",
+        icon: "size-9",
         "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+          "size-7 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+          "size-8 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+        "icon-lg": "size-10",
       },
     },
     defaultVariants: {
@@ -46,9 +45,33 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  children,
   ...props
 }) {
   const Comp = asChild ? Slot.Root : "button"
+
+  const childArray = React.Children.toArray(children)
+  const iconChildren = childArray.filter(
+    (child) =>
+      React.isValidElement(child) &&
+      (child.props?.["data-icon"] === "inline-start" || child.props?.["data-icon"] === "inline-end")
+  )
+
+  let content = children
+  if (iconChildren.length === 1 && childArray.length > 1) {
+    const iconChild = iconChildren[0]
+    const spacer = React.cloneElement(iconChild, {
+      key: "icon-spacer",
+      "data-icon": undefined,
+      "aria-hidden": "true",
+      className: cn(iconChild.props.className, "invisible pointer-events-none"),
+    })
+
+    content =
+      iconChild.props["data-icon"] === "inline-start"
+        ? [...childArray, spacer]
+        : [spacer, ...childArray]
+  }
 
   return (
     <Comp
@@ -56,7 +79,9 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props} />
+      {...props}>
+      {content}
+    </Comp>
   );
 }
 

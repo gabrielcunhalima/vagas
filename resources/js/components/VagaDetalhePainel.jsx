@@ -32,10 +32,11 @@ function Secao({ titulo, children }) {
  * Componente único para as duas apresentações: coluna fixa a partir de xl e
  * conteúdo do Sheet abaixo disso — para não existirem duas versões do detalhe.
  *
- * O cabeçalho é sticky dentro da própria rolagem do painel, então o botão
- * "Candidatar-se" continua alcançável em vagas de texto longo. `onVoltar`, quando
- * passado, adiciona o retorno à lista nesse mesmo cabeçalho — o botão de fechar
- * padrão do Sheet ficaria coberto pelo cabeçalho assim que o painel rolasse.
+ * O cabeçalho é sticky em relação à rolagem da página (na coluna fixa) ou do
+ * Sheet (em telas estreitas), então o botão "Candidatar-se" continua alcançável
+ * enquanto o painel está em vista, mesmo em vagas de texto longo. `onVoltar`,
+ * quando passado, adiciona o retorno à lista nesse mesmo cabeçalho — o botão de
+ * fechar padrão do Sheet ficaria coberto pelo cabeçalho assim que o painel rolasse.
  */
 export default function VagaDetalhePainel({ vaga, className, onVoltar }) {
     if (!vaga) return null;

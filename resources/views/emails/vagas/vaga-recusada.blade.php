@@ -12,8 +12,8 @@
 
 @if($vaga->motivo_recusa)
 <div style="background:#FFF3CD;border-left:4px solid #FFC107;border-radius:6px;padding:14px 16px;margin:16px 0;">
-    <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#856404;margin-bottom:6px;">Motivo informado pelo gestor</div>
-    <p style="margin:0;font-size:0.875rem;color:#3E3E3F;">{{ $vaga->motivo_recusa }}</p>
+    <div style="font-size:0.905rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#856404;margin-bottom:6px;">Motivo informado pelo gestor</div>
+    <p style="margin:0;font-size:1rem;color:#3E3E3F;">{{ $vaga->motivo_recusa }}</p>
 </div>
 @endif
 

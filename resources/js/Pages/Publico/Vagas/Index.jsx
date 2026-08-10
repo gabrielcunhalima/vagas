@@ -14,12 +14,9 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import { asset } from '@/lib/asset';
 import { modalidadesLabel, tiposLabel, ufs } from '@/lib/enums';
+import { CONTAINER_LARGO as CONTAINER } from '@/lib/layout';
 
 const TODOS = '__todos__';
-
-/* 10-80-10: 10% de margem de cada lado com 80% de conteúdo, a partir de lg.
-   Abaixo disso o percentual daria margens inúteis — vale largura cheia com padding. */
-const CONTAINER = 'mx-auto w-full px-4 lg:w-4/5 lg:px-0';
 
 function limparParams(params) {
     return Object.fromEntries(
@@ -115,39 +112,43 @@ export default function Index({ vagas, areas, cursos, total, filtros = {} }) {
                 <div className="absolute inset-0 -z-10 bg-black/50" />
                 <div className="absolute inset-0 -z-10 bg-gradient-to-r from-brand-deep/80 to-transparent" />
 
-                <div className={`${CONTAINER} py-16 lg:py-24`}>
-                    <div className="max-w-2xl">
-                        <h1 className="text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
-                            Encontre sua próxima oportunidade
-                        </h1>
-                        <p className="mt-3 text-sm text-white/80 sm:text-base">
-                            {total} {total === 1 ? 'vaga aberta' : 'vagas abertas'} em projetos.
-                        </p>
+                <div className={`${CONTAINER} py-10 lg:py-14`}>
+                    {/* A partir de lg a hero abre em duas colunas: busca à esquerda, alerta à direita. */}
+                    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center lg:gap-12">
+                        <div className="max-w-2xl">
+                            {/* text-5xl só a partir de xl: em lg a coluna esquerda é estreita e o título quebraria em 3 linhas */}
+                            <h1 className="text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl xl:text-5xl">
+                                Encontre sua próxima oportunidade
+                            </h1>
+                            <p className="mt-3 text-sm text-white/80 sm:text-base">
+                                {total} {total === 1 ? 'vaga aberta' : 'vagas abertas'} em projetos.
+                            </p>
 
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                aplicar();
-                            }}
-                            className="mt-7 flex max-w-xl gap-2"
-                        >
-                            <div className="relative flex-1">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    value={f.busca}
-                                    onChange={(e) => set('busca', e.target.value)}
-                                    placeholder="Cargo, área ou palavra-chave"
-                                    className="h-11 border-transparent bg-card pl-9 shadow-lg dark:bg-card"
-                                />
-                            </div>
-                            <Button type="submit" className="h-11 px-6">
-                                Buscar
-                            </Button>
-                        </form>
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    aplicar();
+                                }}
+                                className="mt-7 flex max-w-xl gap-2"
+                            >
+                                <div className="relative flex-1">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        value={f.busca}
+                                        onChange={(e) => set('busca', e.target.value)}
+                                        placeholder="Cargo, área ou palavra-chave"
+                                        className="h-11 border-transparent bg-card pl-9 shadow-lg dark:bg-card"
+                                    />
+                                </div>
+                                <Button type="submit" className="h-11 px-6">
+                                    Buscar
+                                </Button>
+                            </form>
+                        </div>
 
                         {/* CTA de alertas: superfície própria para não sumir sobre a foto */}
-                        <div className="mt-6 flex max-w-xl flex-col gap-4 rounded-xl bg-white/10 p-4 ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/15 sm:flex-row sm:items-center sm:gap-5">
-                            <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className="flex flex-col gap-4 rounded-xl bg-white/10 p-4 ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/15 sm:flex-row sm:items-center sm:gap-5 lg:flex-col lg:items-start lg:gap-4">
+                            <div className="flex min-w-0 flex-1 items-start gap-3 lg:w-full lg:flex-none">
                                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30">
                                     <Bell className="size-5 text-white" />
                                 </span>
@@ -159,7 +160,7 @@ export default function Index({ vagas, areas, cursos, total, filtros = {} }) {
                                     </p>
                                 </div>
                             </div>
-                            <Button asChild className="h-11 w-full px-6 sm:w-auto">
+                            <Button asChild className="h-11 w-full px-6 sm:w-auto lg:w-full">
                                 <Link href={route('alertas.create')}>Criar alerta de vagas</Link>
                             </Button>
                         </div>
@@ -334,7 +335,7 @@ export default function Index({ vagas, areas, cursos, total, filtros = {} }) {
                         {selecionada && (
                             <VagaDetalhePainel
                                 vaga={selecionada}
-                                className="hidden max-h-[calc(100dvh-6rem)] min-w-0 overflow-y-auto rounded-xl ring-1 ring-foreground/10 xl:sticky xl:top-20 xl:block"
+                                className="hidden min-w-0 rounded-xl ring-1 ring-foreground/10 xl:sticky xl:top-20 xl:block"
                             />
                         )}
                     </div>

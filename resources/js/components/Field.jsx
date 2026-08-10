@@ -1,7 +1,7 @@
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-export default function Field({ label, htmlFor, error, hint, required, className, children }) {
+export default function Field({ label, htmlFor, error, success, hint, required, className, children }) {
     return (
         <div className={cn('flex flex-col gap-1.5', className)}>
             {label && (
@@ -13,6 +13,8 @@ export default function Field({ label, htmlFor, error, hint, required, className
             {children}
             {error ? (
                 <p className="text-xs font-medium text-destructive">{error}</p>
+            ) : success ? (
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">{success}</p>
             ) : hint ? (
                 <p className="text-xs text-muted-foreground">{hint}</p>
             ) : null}
