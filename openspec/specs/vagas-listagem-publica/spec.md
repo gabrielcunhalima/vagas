@@ -5,7 +5,7 @@ Define como o candidato encontra, compara e escolhe uma vaga na listagem públic
 ## Requirements
 ### Requirement: Largura de conteúdo 10-80-10 na listagem
 
-A listagem pública de vagas SHALL ocupar 80% da largura da janela, com 10% de margem livre de cada lado, em telas largas. Essa largura SHALL valer apenas para a listagem — as demais páginas públicas e os elementos comuns de navegação (cabeçalho e rodapé) mantêm a largura máxima já em uso no portal.
+A listagem pública de vagas SHALL ocupar 80% da largura da janela, com 10% de margem livre de cada lado, em telas largas. Essa largura SHALL valer para a listagem e para a página de alertas de vagas — as demais páginas públicas e os elementos comuns de navegação (cabeçalho e rodapé) mantêm a largura máxima já em uso no portal.
 
 #### Scenario: Tela larga
 
@@ -19,7 +19,7 @@ A listagem pública de vagas SHALL ocupar 80% da largura da janela, com 10% de m
 
 #### Scenario: Outras páginas públicas inalteradas
 
-- **WHEN** o candidato navega para qualquer outra página pública do portal
+- **WHEN** o candidato navega para qualquer outra página pública do portal que não seja a listagem ou a página de alertas de vagas
 - **THEN** a largura de conteúdo dessa página permanece exatamente como antes desta mudança
 
 ### Requirement: Listagem em três colunas
@@ -96,7 +96,7 @@ Clicar em um item da lista SHALL selecionar aquela vaga e apresentar seu detalhe
 
 ### Requirement: Painel de detalhe da vaga selecionada
 
-A área de detalhe SHALL apresentar as informações da vaga selecionada que não cabem no item de lista. Ela SHALL conter, no mínimo: um resumo rápido da vaga, a descrição completa, a remuneração e os requisitos. Informações complementares disponíveis na vaga (carga horária, modalidade, tipo, benefícios, requisitos desejáveis, cursos desejados, local de trabalho, prazo de inscrição) SHALL ser apresentadas quando existirem e omitidas por completo quando ausentes, sem deixar rótulos órfãos ou blocos vazios.
+A área de detalhe SHALL apresentar as informações da vaga selecionada que não cabem no item de lista. Ela SHALL conter, no mínimo: um resumo rápido da vaga, a descrição completa, a remuneração e os requisitos. Informações complementares disponíveis na vaga (carga horária, modalidade, tipo, benefícios, requisitos desejáveis, cursos desejados, local de trabalho, prazo de inscrição) SHALL ser apresentadas quando existirem e omitidas por completo quando ausentes, sem deixar rótulos órfãos ou blocos vazios. Em tela larga, a área de detalhe SHALL sempre exibir seu conteúdo por completo, sem barra de rolagem própria que esconda parte da vaga.
 
 #### Scenario: Informações mínimas presentes
 
@@ -115,17 +115,17 @@ A área de detalhe SHALL apresentar as informações da vaga selecionada que nã
 
 #### Scenario: Detalhe acompanha a rolagem da lista
 
-- **WHEN** o candidato rola a lista de vagas em tela larga
-- **THEN** o detalhe da vaga selecionada permanece visível
+- **WHEN** o candidato rola a lista de vagas em tela larga e o detalhe da vaga selecionada cabe inteiro na área visível
+- **THEN** o detalhe permanece visível, acompanhando a rolagem
 
 #### Scenario: Detalhe mais longo que a tela
 
-- **WHEN** o detalhe da vaga selecionada é mais alto que a área disponível
-- **THEN** o detalhe pode ser rolado por conta própria, sem que a lista de vagas seja arrastada junto
+- **WHEN** o detalhe da vaga selecionada é mais alto que a área visível
+- **THEN** todo o conteúdo do detalhe é exibido sem barra de rolagem própria, e o candidato rola a página para ver o restante do conteúdo
 
 ### Requirement: Candidatura a partir do painel de detalhe
 
-A área de detalhe SHALL oferecer um botão "Candidatar-se" que leva o candidato ao cadastro de currículo da vaga selecionada. Esse botão SHALL estar sempre alcançável enquanto uma vaga estiver selecionada, mesmo que o detalhe seja longo.
+A área de detalhe SHALL oferecer um botão "Candidatar-se" que leva o candidato ao cadastro de currículo da vaga selecionada. Enquanto o painel de detalhe estiver visível na tela, esse botão SHALL permanecer alcançável sem exigir rolagem até o fim do texto, acompanhando o cabeçalho fixo do painel.
 
 #### Scenario: Botão leva ao cadastro
 
@@ -134,8 +134,8 @@ A área de detalhe SHALL oferecer um botão "Candidatar-se" que leva o candidato
 
 #### Scenario: Botão alcançável em detalhe longo
 
-- **WHEN** a vaga selecionada tem um detalhe mais longo que a área visível
-- **THEN** o botão "Candidatar-se" continua alcançável sem que o candidato precise rolar até o fim do texto
+- **WHEN** a vaga selecionada tem um detalhe mais longo que a área visível e o painel de detalhe ainda está em vista na tela
+- **THEN** o botão "Candidatar-se" permanece visível no cabeçalho do painel, sem exigir rolagem até o fim do texto
 
 #### Scenario: Item de lista não candidata direto
 
@@ -198,4 +198,72 @@ A página de detalhe de vaga em endereço próprio SHALL continuar respondendo a
 
 - **WHEN** alguém acessa diretamente a URL de detalhe de uma vaga que não está mais aberta
 - **THEN** o comportamento é o mesmo de antes desta mudança
+
+### Requirement: CTA de alerta na área direita da hero
+
+Em telas largas, a hero da listagem pública SHALL apresentar duas áreas lado a lado: à esquerda o título, a contagem de vagas e a busca; à direita o convite para criar alerta de vagas. O convite SHALL ocupar a área direita da hero e SHALL não empurrar a busca para cima, para baixo ou para fora da largura de conteúdo.
+
+A largura de conteúdo da hero SHALL ser a mesma da listagem (10-80-10).
+
+#### Scenario: Hero em tela larga
+
+- **WHEN** o candidato abre a listagem pública em uma janela larga
+- **THEN** o título, a contagem de vagas e a busca aparecem na área esquerda da hero e o convite de alerta aparece na área direita, na mesma faixa vertical, sem sobreposição entre eles
+
+#### Scenario: Largura da hero igual à da listagem
+
+- **WHEN** o candidato abre a listagem pública em uma janela larga
+- **THEN** a hero ocupa a mesma largura de conteúdo da listagem abaixo dela
+
+#### Scenario: Busca preservada
+
+- **WHEN** o candidato usa o campo de busca da hero em tela larga
+- **THEN** o campo e o botão de buscar mantêm seu alcance de clique, sem que o convite de alerta os cubra ou reduza
+
+#### Scenario: Título sem quebra excessiva
+
+- **WHEN** a hero é exibida em duas colunas na menor largura em que elas cabem
+- **THEN** o título da hero ocupa no máximo duas linhas
+
+### Requirement: Hero compacta
+
+A hero SHALL ser baixa o bastante para que o início da lista de vagas fique visível sem rolagem em uma janela de 1024x768, em qualquer largura de tela. A altura reduzida SHALL não cortar, truncar nem sobrepor nenhum conteúdo da hero.
+
+#### Scenario: Lista visível sem rolagem
+
+- **WHEN** o candidato abre a listagem pública em uma janela de 1024x768
+- **THEN** o início da lista de vagas está visível sem rolar a página
+
+#### Scenario: Nada é cortado
+
+- **WHEN** a hero é exibida em qualquer largura de tela
+- **THEN** título, contagem de vagas, busca e convite de alerta permanecem inteiramente legíveis, sem texto cortado, truncado ou sobreposto
+
+### Requirement: CTA de alerta empilhado em telas estreitas
+
+Em telas onde as duas áreas da hero não cabem lado a lado, o convite de alerta SHALL aparecer empilhado abaixo da busca e SHALL permanecer inteiramente visível sem rolagem horizontal.
+
+#### Scenario: Hero em tela estreita
+
+- **WHEN** o candidato abre a listagem pública em uma tela estreita
+- **THEN** o convite de alerta aparece abaixo da busca, ocupando a largura disponível, sem rolagem horizontal
+
+#### Scenario: Transição entre larguras
+
+- **WHEN** a janela é redimensionada entre uma largura larga e uma estreita
+- **THEN** o convite de alerta alterna entre a área direita e a posição empilhada sem perder conteúdo, sem sobrepor a busca e sem deixar espaço vazio no lugar dele
+
+### Requirement: Conteúdo e destino do convite de alerta
+
+O convite de alerta SHALL apresentar, em qualquer posição ou largura de tela, o mesmo conteúdo: o título "Não perca nenhuma vaga", a explicação de que as vagas compatíveis com o perfil chegam por e-mail assim que publicadas, e uma ação única que leva à criação de alerta de vagas.
+
+#### Scenario: Ação leva à criação de alerta
+
+- **WHEN** o candidato aciona o botão do convite de alerta, em qualquer largura de tela
+- **THEN** ele é levado à página de criação de alerta de vagas
+
+#### Scenario: Texto idêntico nas duas posições
+
+- **WHEN** o convite de alerta é exibido na área direita da hero
+- **THEN** o título e a explicação exibidos são os mesmos que aparecem quando o convite fica empilhado abaixo da busca
 
