@@ -80,8 +80,8 @@ class CandidaturaTriagemTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas");
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Index');
-        $this->assertVeInertia($response, 'Candidato de Teste');
+        $response->assertViewIs('coord.candidaturas.index');
+        $response->assertSee('Candidato de Teste');
     }
 
     public function test_coordenador_nao_acessa_candidaturas_de_vaga_alheia(): void
@@ -112,8 +112,8 @@ class CandidaturaTriagemTest extends TestCase
 
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas?status=recebida");
         $response->assertStatus(200);
-        $this->assertVeInertia($response, 'Candidato de Teste');
-        $this->assertNaoVeInertia($response, 'Candidato Em Análise');
+        $response->assertSee('Candidato de Teste');
+        $response->assertDontSee('Candidato Em Análise');
     }
 
     public function test_busca_candidaturas_por_nome(): void
@@ -121,7 +121,7 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)
             ->get("/coord/vagas/{$this->vaga->id}/candidaturas?busca=Candidato+de+Teste");
         $response->assertStatus(200);
-        $this->assertVeInertia($response, 'Candidato de Teste');
+        $response->assertSee('Candidato de Teste');
     }
 
     // ── Listagem todas candidaturas ───────────────────────────────────────────
@@ -130,13 +130,13 @@ class CandidaturaTriagemTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get('/coord/candidaturas');
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Todas');
+        $response->assertViewIs('coord.candidaturas.todas');
     }
 
     public function test_listagem_geral_exibe_contadores(): void
     {
         $response = $this->actingAs($this->coord)->get('/coord/candidaturas');
-        $this->assertPropInertia($response, 'contadores');
+        $response->assertViewHas('contadores');
     }
 
     // ── Show candidatura ──────────────────────────────────────────────────────
@@ -147,8 +147,8 @@ class CandidaturaTriagemTest extends TestCase
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
         );
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Show');
-        $this->assertVeInertia($response, 'Candidato de Teste');
+        $response->assertViewIs('coord.candidaturas.show');
+        $response->assertSee('Candidato de Teste');
     }
 
     public function test_candidatura_de_outra_vaga_retorna_404(): void
@@ -393,8 +393,8 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $res->assertOk();
-        $this->assertFalse($this->propsInertia($res)['acessoExpirado']);
-        $this->assertVeInertia($res, 'Candidato de Teste');
+        $this->assertFalse($res->original->getData()['acessoExpirado']);
+        $res->assertSee('Candidato de Teste');
     }
 
     public function test_reprovada_apos_a_carencia_esconde_os_dados_pessoais(): void
@@ -406,9 +406,9 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $res->assertOk();
-        $this->assertTrue($this->propsInertia($res)['acessoExpirado']);
-        $this->assertNaoVeInertia($res, 'Candidato de Teste');
-        $this->assertNaoVeInertia($res, 'candidato@teste.com');
+        $this->assertTrue($res->original->getData()['acessoExpirado']);
+        $res->assertDontSee('Candidato de Teste');
+        $res->assertDontSee('candidato@teste.com');
     }
 
     public function test_aprovada_nao_perde_acesso_com_o_tempo(): void
@@ -420,8 +420,8 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $res->assertOk();
-        $this->assertFalse($this->propsInertia($res)['acessoExpirado']);
-        $this->assertVeInertia($res, 'Candidato de Teste');
+        $this->assertFalse($res->original->getData()['acessoExpirado']);
+        $res->assertSee('Candidato de Teste');
     }
 
     public function test_candidatura_parada_em_vaga_encerrada_perde_acesso(): void
@@ -436,7 +436,7 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $res->assertOk();
-        $this->assertTrue($this->propsInertia($res)['acessoExpirado']);
+        $this->assertTrue($res->original->getData()['acessoExpirado']);
     }
 
     public function test_registro_do_processo_permanece_apos_o_decaimento(): void
@@ -448,8 +448,8 @@ class CandidaturaTriagemTest extends TestCase
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
         );
 
-        $this->assertVeInertia($res, 'Anotação da equipe.');
-        $this->assertNotEmpty($this->propsInertia($res)['motivoExpiracao']);
+        $res->assertSee('Anotação da equipe.');
+        $this->assertNotEmpty($res->original->getData()['motivoExpiracao']);
     }
 
     public function test_download_de_curriculo_recusado_apos_o_decaimento(): void
@@ -469,8 +469,8 @@ class CandidaturaTriagemTest extends TestCase
 
         $res = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas");
 
-        $this->assertNaoVeInertia($res, 'Candidato de Teste');
-        $this->assertNaoVeInertia($res, 'candidato@teste.com');
+        $res->assertDontSee('Candidato de Teste');
+        $res->assertDontSee('candidato@teste.com');
     }
 
     public function test_conta_excluida_encerra_o_acesso_na_hora(): void
@@ -482,8 +482,8 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $res->assertOk();
-        $this->assertTrue($this->propsInertia($res)['acessoExpirado']);
-        $this->assertNaoVeInertia($res, 'candidato@teste.com');
+        $this->assertTrue($res->original->getData()['acessoExpirado']);
+        $res->assertDontSee('candidato@teste.com');
     }
 
     // ─── Histórico do processo ───────────────────────────────────────────────
@@ -513,7 +513,7 @@ class CandidaturaTriagemTest extends TestCase
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
         );
 
-        $this->assertNotEmpty($this->propsInertia($res)['candidatura']['eventos']);
+        $this->assertNotEmpty($res->original->getData()['candidatura']['eventos']);
     }
 
     public function test_coordenador_nao_acessa_candidatura_de_vaga_alheia_status(): void

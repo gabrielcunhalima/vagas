@@ -7,7 +7,6 @@ use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
-use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
@@ -45,12 +44,9 @@ class DashboardController extends Controller
             fn($q) => $q->where('coordenador_id', $user->id)
         )->with('vaga')->latest()->take(5)->get();
 
-        return Inertia::render('Coord/Dashboard', [
+        return view('coord.dashboard', [
             'stats' => $stats,
-            'vagasRecentes' => $vagasRecentes->map(fn(Vaga $v) => array_merge(
-                $v->only(['id', 'titulo', 'tipo', 'status', 'data_encerramento', 'created_at']),
-                ['candidaturas_count' => $v->candidaturas_count],
-            )),
+            'vagasRecentes' => $vagasRecentes,
             'candidaturasRecentes' => $candidaturasRecentes->map(fn(Candidatura $c) => [
                 'id'         => $c->id,
                 'nome'       => $c->nome,
@@ -77,7 +73,7 @@ class DashboardController extends Controller
             ->take(8)
             ->get();
 
-        return Inertia::render('Gestor/Dashboard', [
+        return view('gestor.dashboard', [
             'stats' => $stats,
             'vagasPendentes' => $vagasPendentes->map(fn(Vaga $v) => array_merge(
                 $v->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'data_encerramento', 'created_at']),

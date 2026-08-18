@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
 
 class CandidaturaController extends Controller
 {
@@ -82,7 +81,7 @@ class CandidaturaController extends Controller
             'reprovado'  => $base()->porStatus('reprovado')->count(),
         ];
 
-        return Inertia::render('Coord/Candidaturas/Todas', [
+        return view('coord.candidaturas.todas', [
             'candidaturas' => $candidaturas,
             'vagas'        => $vagas,
             'contadores'   => $contadores,
@@ -116,8 +115,8 @@ class CandidaturaController extends Controller
             'reprovado'  => $vaga->candidaturas()->porStatus('reprovado')->count(),
         ];
 
-        return Inertia::render('Coord/Candidaturas/Index', [
-            'vaga'         => $vaga->only(['id', 'titulo', 'status', 'data_encerramento']),
+        return view('coord.candidaturas.index', [
+            'vaga'         => $vaga,
             'candidaturas' => $candidaturas,
             'contadores'   => $contadores,
             'filtros'      => $request->only(['status', 'busca']),
@@ -148,7 +147,7 @@ class CandidaturaController extends Controller
 
         $podeVerPessoais = Auth::user()->can('verDadosPessoais', $candidatura);
 
-        return Inertia::render('Coord/Candidaturas/Show', [
+        return view('coord.candidaturas.show', [
             'vaga' => $vaga->only(['id', 'titulo', 'status']),
             'candidatura' => $podeVerPessoais
                 ? array_merge($registroProcesso, $candidatura->only([

@@ -15,6 +15,7 @@ import { initCamposCondicionais } from './campo-condicional';
 import { initFormacoes } from './formacoes';
 import { initCepAutofill } from './cep-autofill';
 import { initTelefoneMask } from './telefone-mask';
+import { initMultiSelect } from './multi-select';
 
 /*
  * Sem SPA, cada página é um documento novo — DOMContentLoaded cobre o caso
@@ -39,6 +40,7 @@ function initWidgets(root = document) {
     initFormacoes(root);
     initCepAutofill(root);
     initTelefoneMask(root);
+    initMultiSelect(root);
 }
 
 window.initWidgets = initWidgets;

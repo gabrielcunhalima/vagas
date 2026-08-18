@@ -122,9 +122,9 @@ class ExclusaoContaTest extends TestCase
         $res = $this->actingAs($coord)->get("/coord/vagas/{$vaga->id}/candidaturas/{$candidatura->id}");
 
         $res->assertOk();
-        $this->assertTrue($this->propsInertia($res)['acessoExpirado']);
-        $this->assertNaoVeInertia($res, 'maria@teste.com');
-        $this->assertNaoVeInertia($res, 'Deficiência Visual');
+        $this->assertTrue($res->original->getData()['acessoExpirado']);
+        $res->assertDontSee('maria@teste.com');
+        $res->assertDontSee('Deficiência Visual');
     }
 
     public function test_alerta_e_removido_junto_com_a_conta(): void

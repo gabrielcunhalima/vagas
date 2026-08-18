@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use Inertia\Inertia;
 
 class VagaController extends Controller
 {
@@ -59,13 +58,9 @@ class VagaController extends Controller
             $query->busca($request->busca);
         }
 
-        $vagas = $query->paginate(15)->withQueryString()
-            ->through(fn(Vaga $v) => array_merge(
-                $v->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'status', 'data_encerramento', 'notificar_email', 'created_at']),
-                ['candidaturas_count' => $v->candidaturas_count],
-            ));
+        $vagas = $query->paginate(15)->withQueryString();
 
-        return Inertia::render('Coord/Vagas/Index', [
+        return view('coord.vagas.index', [
             'vagas'   => $vagas,
             'areas'   => Vaga::$areas,
             'filtros' => $request->only(['status', 'area', 'tipo', 'encerramento_de', 'encerramento_ate', 'busca']),
@@ -74,7 +69,7 @@ class VagaController extends Controller
 
     public function create()
     {
-        return Inertia::render('Coord/Vagas/Form', [
+        return view('coord.vagas.form', [
             'vaga'   => null,
             'areas'  => Vaga::$areas,
             'cursos' => Vaga::$cursos,
@@ -112,8 +107,8 @@ class VagaController extends Controller
             'Vagas ativas ou encerradas não podem ser editadas.'
         );
 
-        return Inertia::render('Coord/Vagas/Form', [
-            'vaga'   => $vaga->only(self::CAMPOS_FORM),
+        return view('coord.vagas.form', [
+            'vaga'   => $vaga,
             'areas'  => Vaga::$areas,
             'cursos' => Vaga::$cursos,
         ]);
@@ -214,7 +209,7 @@ class VagaController extends Controller
                 ['coordenador' => $v->coordenador?->only(['name'])],
             ));
 
-        return Inertia::render('Gestor/Vagas/Index', [
+        return view('gestor.vagas.index', [
             'vagas'  => $vagas,
             'status' => $status,
             'busca'  => $request->input('busca', ''),
@@ -225,7 +220,7 @@ class VagaController extends Controller
     {
         $vaga->load('coordenador');
 
-        return Inertia::render('Gestor/Vagas/Show', [
+        return view('gestor.vagas.show', [
             'vaga' => array_merge($vaga->only(array_merge(self::CAMPOS_FORM, ['motivo_recusa', 'created_at'])), [
                 'endereco_completo' => $vaga->endereco_completo,
                 'coordenador'       => $vaga->coordenador?->only(['name', 'email']),

@@ -1,8 +1,11 @@
+{{-- As chaves em português (sucesso/aviso/erro) vêm dos controllers do painel
+     interno (herança do antigo HandleInertiaRequests::share(), que fazia o
+     mesmo de-para); success/info/error são as usadas pelo restante do app. --}}
 @php
     $mensagens = [
-        'success' => session('success'),
-        'info' => session('info'),
-        'error' => session('error'),
+        'success' => session('sucesso') ?? session('success'),
+        'info' => session('aviso') ?? session('info'),
+        'error' => session('erro') ?? session('error'),
     ];
 @endphp
 @if (collect($mensagens)->filter()->isNotEmpty())
