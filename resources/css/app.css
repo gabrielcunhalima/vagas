@@ -191,3 +191,29 @@
         margin: 0;
     }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Sheet (off-canvas) — resources/js/ui/sheet.js
+   ───────────────────────────────────────────────────────────── */
+[data-sheet] [data-sheet-panel] {
+    transition: transform 0.2s ease;
+}
+[data-sheet][data-side='right'] [data-sheet-panel] {
+    transform: translateX(100%);
+}
+[data-sheet][data-side='left'] [data-sheet-panel] {
+    transform: translateX(-100%);
+}
+[data-sheet][data-side='bottom'] [data-sheet-panel] {
+    transform: translateY(100%);
+}
+[data-sheet].sheet-aberto [data-sheet-panel] {
+    transform: translate(0);
+}
+[data-sheet] [data-sheet-backdrop] {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+[data-sheet].sheet-aberto [data-sheet-backdrop] {
+    opacity: 1;
+}
