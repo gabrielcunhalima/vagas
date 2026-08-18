@@ -29,6 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 return $response;
             }
 
+            // Migração Inertia -> Blade em andamento: só reescreve para o componente
+            // Inertia quando a requisição é de fato uma visita Inertia (páginas ainda
+            // não migradas). Fora disso, cai no padrão do Laravel — que já resolve
+            // para resources/views/errors/{status}.blade.php, o substituto direto.
+            if (! $request->header('X-Inertia')) {
+                return $response;
+            }
+
             // Em modo debug, mantém a página detalhada para erros de servidor
             if ($status === 500 && config('app.debug') && ! $request->header('X-Inertia')) {
                 return $response;

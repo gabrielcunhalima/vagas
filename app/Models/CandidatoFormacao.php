@@ -10,6 +10,16 @@ class CandidatoFormacao extends Model
 {
     protected $table = 'candidato_formacoes';
 
+    /** Rótulo de cada nível de escolaridade aceito no cadastro. */
+    public static array $niveisLabel = [
+        'medio' => 'Ensino médio',
+        'tecnico' => 'Técnico',
+        'graduacao' => 'Graduação',
+        'pos' => 'Pós-graduação',
+        'mestrado' => 'Mestrado',
+        'doutorado' => 'Doutorado',
+    ];
+
     protected $fillable = [
         'candidato_id',
         'nivel_escolaridade',

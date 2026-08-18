@@ -23,13 +23,13 @@
 - [x] 2.4 Implementar a versão mobile do painel de detalhe como off-canvas em JS puro (`resources/js/ui/sheet.js`, genérico, reaproveitado pelo menu mobile dos layouts): ao clicar um item da lista abaixo de xl, `resources/js/vagas-selecao.js` clona o painel de detalhe (já no DOM, oculto) para dentro do off-canvas e abre. Sem fetch adicional — mesma garantia do original.
 - [x] 2.5 Ajustar `VagaPublicaController` (`index`/`listagemIndisponivel`) para responder com `publico.vagas.index` completo ou só `publico.vagas._resultado` quando `$request->ajax()` (header `X-Requested-With`).
 - [x] 2.6 Migrar `Publico/Vagas/Show.jsx` para `resources/views/publico/vagas/show.blade.php`, incluindo copiar link (`resources/js/copiar-link.js`) e compartilhar no WhatsApp.
-- [ ] 2.7 Migrar `Publico/Candidatura.jsx` (formulário de inscrição, com `CurriculoDropzone`) e `Publico/Confirmacao.jsx`.
-- [ ] 2.8 Migrar `Publico/Alertas.jsx`, `Publico/AlertaCancelado.jsx`, `Publico/ConsultaCandidatura.jsx`.
-- [ ] 2.9 Migrar `Publico/PoliticaPrivacidade.jsx` e `Publico/FazendaRessacada.jsx`; trocar `Route::inertia(...)` por `Route::view(...)` em `routes/web.php`.
-- [ ] 2.10 Migrar `Pages/Error.jsx` para a página de erro Blade padrão do Laravel (`resources/views/errors/*.blade.php`) ou manter uma view custom equivalente.
-- [ ] 2.11 Atualizar `VagaPublicaController`, `InscricaoController`, `AlertaVagaController` trocando `Inertia::render` por `view()`.
+- [x] 2.7 Migrar `Publico/Candidatura.jsx` → `resources/views/publico/candidatura.blade.php` (dados de conferência, `select`/checkbox nativos no lugar de Radix, honeypot, toggle do campo de detalhe do conflito de interesse em `resources/js/candidatura.js`) e `Publico/Confirmacao.jsx` → `resources/views/publico/confirmacao.blade.php`. Rótulos de nível de escolaridade que só existiam em `lib/enums.js` viraram `CandidatoFormacao::$niveisLabel`.
+- [x] 2.8 Migrar `Publico/Alertas.jsx` → `resources/views/publico/alertas.blade.php` (checkboxes nativos `name="areas[]"` etc., sem JS necessário) e `Publico/AlertaCancelado.jsx` → `resources/views/publico/alerta-cancelado.blade.php`. **`Publico/ConsultaCandidatura.jsx` não foi migrada**: não há rota `candidatura.consulta.busca` nem controller que a renderize — `routes/web.php` só tem `candidatura.consulta` como redirect legado para `/minha-conta/candidaturas` (comentário no próprio arquivo confirma). É código morto, apagado na 5.1 junto com o resto do `resources/js/Pages`.
+- [x] 2.9 Migrar `Publico/PoliticaPrivacidade.jsx` (usa `x-politica-privacidade-conteudo`, já criado na 1.8) e `Publico/FazendaRessacada.jsx` (página estática, sem props); trocado `Route::inertia(...)` por `Route::view(...)` em `routes/web.php`.
+- [x] 2.10 Migrado `Pages/Error.jsx` para `resources/views/errors/{403,404,419,500,503}.blade.php` (convenção nativa do Laravel) com um componente `x-erro-pagina` compartilhado. `bootstrap/app.php` tinha um `$exceptions->respond(...)` que reescrevia essas respostas para `Inertia::render('Error', ...)`; ajustado para só interceptar quando a requisição é de fato uma visita Inertia (`X-Inertia` presente — páginas ainda não migradas), senão cai no padrão do Laravel.
+- [x] 2.11 Atualizado `VagaPublicaController`, `InscricaoController`, `AlertaVagaController` trocando `Inertia::render` por `view()`.
 - [ ] 2.12 Ajuste de sequenciamento (mesmo motivo do item 1 sobre `package.json`): os helpers Inertia de `tests/TestCase.php` continuam usados por testes de páginas ainda não migradas (fases 3-4) — removê-los agora quebraria esses testes. Cada teste passa a usar `assertViewIs`/`assertSee`/`assertDontSee`/`assertViewHas` nativos do Laravel conforme sua página é migrada; a remoção efetiva dos helpers de `TestCase.php` (quando nenhum teste mais os chamar) vira parte da 5.1.
-- [ ] 2.13 Atualizar `tests/Feature/VagaPublicaTest.php`, `tests/Feature/InscricaoTest.php`, `tests/Feature/AlertaVagaTest.php`, `tests/Feature/Drhflow/AcompanhamentoInscricaoTest.php` para as novas asserções Blade; rodar e confirmar verde antes de seguir.
+- [x] 2.13 Atualizado `tests/Feature/VagaPublicaTest.php`, `tests/Feature/InscricaoTest.php`, `tests/Feature/AlertaVagaTest.php` para as novas asserções Blade. **`tests/Feature/Drhflow/AcompanhamentoInscricaoTest.php` NÃO é desta fase** (engano no plano original): ele exercita `/minha-conta/candidaturas*`, isto é, `MinhaCandidaturaController`/`Candidato/Candidaturas/*.jsx` — movido para a fase 3 (item 3.5, abaixo).
 
 ## 3. Candidato: conta, perfil, minhas candidaturas
 
@@ -37,7 +37,7 @@
 - [ ] 3.2 Migrar `Candidato/Perfil/Edit.jsx` (dados, senha, currículo, exportar dados, excluir conta) reaproveitando os widgets de senha (1.10) e dropzone (1.11).
 - [ ] 3.3 Migrar `Candidato/Candidaturas/Index.jsx` e `Show.jsx` (com `AndamentoInscricao.jsx`/`CandidaturaTimeline.jsx` → partials Blade).
 - [ ] 3.4 Atualizar `CandidatoLoginController`, `CandidatoRegistroController`, `CandidatoRecuperarSenhaController`, `CandidatoVerificacaoController`, `PerfilController`, `MinhaCandidaturaController` trocando `Inertia::render` por `view()`.
-- [ ] 3.5 Atualizar `tests/Feature/CandidaturaTriagemTest.php`, `tests/Feature/ExclusaoContaTest.php`, `tests/Feature/AuthTest.php` para as novas asserções Blade; rodar e confirmar verde.
+- [ ] 3.5 Atualizar `tests/Feature/CandidaturaTriagemTest.php`, `tests/Feature/ExclusaoContaTest.php`, `tests/Feature/AuthTest.php` e `tests/Feature/Drhflow/AcompanhamentoInscricaoTest.php` (movido da fase 2 — exercita `/minha-conta/candidaturas*`) para as novas asserções Blade; rodar e confirmar verde.
 
 ## 4. Coordenador e Gestor: painéis internos
 

@@ -20,7 +20,7 @@ use App\Http\Controllers\Vagas\AlertaVagaController;
 Route::get('/auth/sso', [SsoController::class, 'entrar'])->name('auth.sso');
 
 Route::get('/', [VagaPublicaController::class, 'index'])->name('home');
-Route::inertia('/politica-privacidade', 'Publico/PoliticaPrivacidade')->name('politica.privacidade');
+Route::view('/politica-privacidade', 'publico.politica-privacidade')->name('politica.privacidade');
 
 Route::get('/vagas', [VagaPublicaController::class, 'index'])->name('vagas.publicas.index');
 
@@ -33,7 +33,7 @@ Route::get('/vagas/{vaga}', [VagaPublicaController::class, 'show'])
     ->whereNumber('vaga')
     ->name('vagas.publicas.show');
 
-Route::inertia('/fazenda-ressacada', 'Publico/FazendaRessacada')->name('fazenda.ressacada');
+Route::view('/fazenda-ressacada', 'publico.fazenda-ressacada')->name('fazenda.ressacada');
 
 // Candidatar-se e gerenciar alertas exigem conta com e-mail verificado.
 Route::middleware(['candidato.auth', 'candidato.verified'])->group(function () {

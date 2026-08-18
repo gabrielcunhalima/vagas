@@ -7,6 +7,7 @@ import { initFlash } from './flash';
 import { initVagasSelecao } from './vagas-selecao';
 import { initVagasFiltro } from './vagas-filtro';
 import { initCopiarLink } from './copiar-link';
+import { initCandidatura } from './candidatura';
 
 /*
  * Sem SPA, cada página é um documento novo — DOMContentLoaded cobre o caso
@@ -23,6 +24,7 @@ function initWidgets(root = document) {
     initVagasSelecao(root);
     initVagasFiltro(root);
     initCopiarLink(root);
+    initCandidatura(root);
 }
 
 window.initWidgets = initWidgets;

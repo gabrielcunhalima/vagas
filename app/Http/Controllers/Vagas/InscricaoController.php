@@ -15,7 +15,6 @@ use App\Support\Drhflow\VagaDrhflowRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Inertia\Inertia;
 
 /**
  * O envio da inscrição.
@@ -75,8 +74,8 @@ class InscricaoController extends Controller
                 ->with('error', 'Não foi possível verificar sua inscrição agora. Tente novamente em alguns minutos.');
         }
 
-        return Inertia::render('Publico/Candidatura', [
-            'vaga' => $vagaDrhflow->toArray(),
+        return view('publico.candidatura', [
+            'vaga' => $vagaDrhflow,
             // Os dados vão para conferência, não para preenchimento: o que estiver
             // aqui é o que o RH verá, e editar grava na conta.
             'perfil' => $this->perfilParaConferencia($candidato),
@@ -132,8 +131,8 @@ class InscricaoController extends Controller
 
     public function confirmacao(int $vaga)
     {
-        return Inertia::render('Publico/Confirmacao', [
-            'vaga' => $this->vagaAberta($vaga)->toArray(),
+        return view('publico.confirmacao', [
+            'vaga' => $this->vagaAberta($vaga),
             'nome' => $this->candidatoLogado()->nome,
         ]);
     }

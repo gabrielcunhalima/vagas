@@ -83,10 +83,10 @@ class InscricaoTest extends TestCase
             ->get(route('inscricao.create', $codigo));
 
         $res->assertOk();
-        $this->assertComponenteInertia($res, 'Publico/Candidatura');
-        $this->assertPropInertia($res, 'perfil');
-        $this->assertPropInertia($res, 'completude');
-        $this->assertPropInertia($res, 'vaga');
+        $res->assertViewIs('publico.candidatura');
+        $res->assertViewHas('perfil');
+        $res->assertViewHas('completude');
+        $res->assertViewHas('vaga');
     }
 
     public function test_formulario_candidatura_vaga_encerrada_retorna_404(): void
@@ -119,8 +119,9 @@ class InscricaoTest extends TestCase
         $res = $this->actingAs($candidato, 'candidato')->get(route('inscricao.create', $codigo));
 
         $res->assertOk();
-        $this->assertFalse($this->propsInertia($res)['completude']['completo']);
-        $this->assertNotEmpty($this->propsInertia($res)['completude']['pendencias']);
+        $completude = $res->original->getData()['completude'];
+        $this->assertFalse($completude['completo']);
+        $this->assertNotEmpty($completude['pendencias']);
     }
 
     public function test_envio_com_perfil_incompleto_e_recusado(): void

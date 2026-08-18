@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Vagas\AlertaVaga;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 
 /**
  * O alerta deixa de ser um e-mail solto numa tabela e passa a pertencer a uma conta.
@@ -23,7 +22,7 @@ class AlertaVagaController extends Controller
         $candidato = Auth::guard('candidato')->user();
         $alerta    = $candidato->alerta;
 
-        return Inertia::render('Publico/Alertas', [
+        return view('publico.alertas', [
             'areas'       => \App\Models\Vagas\Vaga::$areas,
             'modalidades' => \App\Models\Vagas\Vaga::$modalidadesLabel,
             'tipos'       => \App\Models\Vagas\Vaga::$tiposLabel,
@@ -80,6 +79,6 @@ class AlertaVagaController extends Controller
         $alerta = AlertaVaga::where('token', $token)->firstOrFail();
         $alerta->update(['ativo' => false]);
 
-        return Inertia::render('Publico/AlertaCancelado');
+        return view('publico.alerta-cancelado');
     }
 }

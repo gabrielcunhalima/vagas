@@ -34,16 +34,16 @@ class AlertaVagaTest extends TestCase
         $response = $this->actingAs(Candidato::factory()->create(), 'candidato')->get('/alertas');
 
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Publico/Alertas');
+        $response->assertViewIs('publico.alertas');
     }
 
     public function test_pagina_alertas_exibe_areas_e_tipos(): void
     {
         $response = $this->actingAs(Candidato::factory()->create(), 'candidato')->get('/alertas');
 
-        $this->assertPropInertia($response, 'areas');
-        $this->assertPropInertia($response, 'tipos');
-        $this->assertPropInertia($response, 'modalidades');
+        $response->assertViewHas('areas');
+        $response->assertViewHas('tipos');
+        $response->assertViewHas('modalidades');
     }
 
     public function test_perfil_incompleto_nao_impede_o_alerta(): void
@@ -166,7 +166,7 @@ class AlertaVagaTest extends TestCase
         $response = $this->get("/alertas/cancelar/{$token}");
 
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Publico/AlertaCancelado');
+        $response->assertViewIs('publico.alerta-cancelado');
         $this->assertDatabaseHas('vaga_alertas', ['token' => $token, 'ativo' => false]);
     }
 
