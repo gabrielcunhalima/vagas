@@ -111,6 +111,41 @@ class VagaDrhflow
         return 'R$ '.number_format($this->remuneracao, 2, ',', '.');
     }
 
+    public function dataEncerramentoFormatada(): ?string
+    {
+        return $this->dataEncerramento?->format('d/m/Y');
+    }
+
+    /** Publicada há até 3 dias. */
+    public function isNova(): bool
+    {
+        if (! $this->cadastradaEm) {
+            return false;
+        }
+
+        return $this->cadastradaEm->diffInDays(Carbon::now()) <= 3;
+    }
+
+    /** Rótulo de prazo da listagem pública — último dia vira "Encerra hoje". */
+    public function prazoInscricaoLabel(): ?string
+    {
+        $dias = $this->diasRestantes();
+
+        if ($dias === null) {
+            return null;
+        }
+
+        if ($dias === 0) {
+            return 'Encerra hoje';
+        }
+
+        if ($dias <= 5) {
+            return "Encerra em {$dias} ".($dias === 1 ? 'dia' : 'dias');
+        }
+
+        return 'Inscrições até '.$this->dataEncerramentoFormatada();
+    }
+
     /**
      * Forma consumida pelo React.
      *

@@ -17,18 +17,18 @@
 
 ## 2. Público: home, listagem/detalhe de vagas, inscrição, alertas
 
-- [ ] 2.1 Migrar `Publico/Vagas/Index.jsx` para `resources/views/publico/vagas/index.blade.php`: hero + busca, filtros (tipo, escolaridade, projeto, cidade/UF, faixa salarial, ordenação), lista + painel de detalhe master-detail, paginação, estados vazio/indisponível.
-- [ ] 2.2 Implementar o comportamento "filtro auto-aplica" em JS puro (fetch progressivo para a mesma rota GET, troca do HTML da lista+detalhe preservando scroll; fallback para submit de formulário GET sem JS) — ver Decisão 3 do design.md.
-- [ ] 2.3 Implementar o painel de detalhe da vaga (`VagaDetalhePainel.jsx` → partial Blade) e o item de lista (`VagaListaItem.jsx` → partial Blade), reaproveitados tanto na renderização cheia quanto no fragmento por fetch.
-- [ ] 2.4 Implementar a versão mobile do painel de detalhe (hoje `Sheet` do Radix) como off-canvas em JS puro (abrir/fechar por classe, travar scroll do body) — sem framework de portal.
-- [ ] 2.5 Ajustar `VagaPublicaController` para responder com a view completa ou só o fragmento de lista+detalhe, conforme o header/parametro que o fetch do passo 2.2 envia.
-- [ ] 2.6 Migrar `Publico/Vagas/Show.jsx` para `resources/views/publico/vagas/show.blade.php`.
+- [x] 2.1 Migrar `Publico/Vagas/Index.jsx` para `resources/views/publico/vagas/index.blade.php`: hero + busca, filtros (tipo, escolaridade, projeto, cidade/UF, faixa salarial, ordenação), lista + painel de detalhe master-detail, paginação, estados vazio/indisponível. Verificado visualmente (Playwright) em desktop (1600px) e mobile (390px).
+- [x] 2.2 Implementar o comportamento "filtro auto-aplica" em JS puro (`resources/js/vagas-filtro.js`): campos vivem fora do `<form id="filtro-vagas">` no DOM (associados via atributo `form=""`, já que estão espalhados entre o hero e a barra lateral) — `change` num select dispara fetch para a mesma rota GET com `X-Requested-With`, troca só `[data-vagas-resultado]` e atualiza a URL via `history.pushState`; sem JS, os campos ainda submetem o formulário GET normalmente. Verificado: troca de `tipo` filtra de 3 para 2 vagas sem reload, URL vira `?tipo=U&ordenar=recentes`.
+- [x] 2.3 Implementar `x-vaga-detalhe` (era `VagaDetalhePainel.jsx`) e `x-vaga-item` (era `VagaListaItem.jsx`) como componentes Blade, reaproveitados na renderização cheia e no fragmento `_resultado.blade.php` usado tanto pela página completa quanto pela resposta AJAX.
+- [x] 2.4 Implementar a versão mobile do painel de detalhe como off-canvas em JS puro (`resources/js/ui/sheet.js`, genérico, reaproveitado pelo menu mobile dos layouts): ao clicar um item da lista abaixo de xl, `resources/js/vagas-selecao.js` clona o painel de detalhe (já no DOM, oculto) para dentro do off-canvas e abre. Sem fetch adicional — mesma garantia do original.
+- [x] 2.5 Ajustar `VagaPublicaController` (`index`/`listagemIndisponivel`) para responder com `publico.vagas.index` completo ou só `publico.vagas._resultado` quando `$request->ajax()` (header `X-Requested-With`).
+- [x] 2.6 Migrar `Publico/Vagas/Show.jsx` para `resources/views/publico/vagas/show.blade.php`, incluindo copiar link (`resources/js/copiar-link.js`) e compartilhar no WhatsApp.
 - [ ] 2.7 Migrar `Publico/Candidatura.jsx` (formulário de inscrição, com `CurriculoDropzone`) e `Publico/Confirmacao.jsx`.
 - [ ] 2.8 Migrar `Publico/Alertas.jsx`, `Publico/AlertaCancelado.jsx`, `Publico/ConsultaCandidatura.jsx`.
 - [ ] 2.9 Migrar `Publico/PoliticaPrivacidade.jsx` e `Publico/FazendaRessacada.jsx`; trocar `Route::inertia(...)` por `Route::view(...)` em `routes/web.php`.
 - [ ] 2.10 Migrar `Pages/Error.jsx` para a página de erro Blade padrão do Laravel (`resources/views/errors/*.blade.php`) ou manter uma view custom equivalente.
 - [ ] 2.11 Atualizar `VagaPublicaController`, `InscricaoController`, `AlertaVagaController` trocando `Inertia::render` por `view()`.
-- [ ] 2.12 Reescrever `tests/TestCase.php`: remover `propsInertia`/`assertComponenteInertia`/`assertVeInertia`/`assertNaoVeInertia`/`propsInertiaJson`; usar `assertViewIs`/`assertSee`/`assertDontSee`/`assertViewHas` nativos do Laravel.
+- [ ] 2.12 Ajuste de sequenciamento (mesmo motivo do item 1 sobre `package.json`): os helpers Inertia de `tests/TestCase.php` continuam usados por testes de páginas ainda não migradas (fases 3-4) — removê-los agora quebraria esses testes. Cada teste passa a usar `assertViewIs`/`assertSee`/`assertDontSee`/`assertViewHas` nativos do Laravel conforme sua página é migrada; a remoção efetiva dos helpers de `TestCase.php` (quando nenhum teste mais os chamar) vira parte da 5.1.
 - [ ] 2.13 Atualizar `tests/Feature/VagaPublicaTest.php`, `tests/Feature/InscricaoTest.php`, `tests/Feature/AlertaVagaTest.php`, `tests/Feature/Drhflow/AcompanhamentoInscricaoTest.php` para as novas asserções Blade; rodar e confirmar verde antes de seguir.
 
 ## 3. Candidato: conta, perfil, minhas candidaturas

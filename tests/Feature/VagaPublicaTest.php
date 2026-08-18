@@ -35,28 +35,28 @@ class VagaPublicaTest extends TestCase
         $response = $this->get('/vagas');
 
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Publico/Vagas/Index');
+        $response->assertViewIs('publico.vagas.index');
     }
 
     public function test_listagem_exibe_vagas_abertas_do_drhflow(): void
     {
         $this->vagaDrhflow(['CD_FUNCAO' => '0373']);
 
-        $this->assertVeInertia($this->get('/vagas'), 'PROGRAMADOR');
+        $this->get('/vagas')->assertSee('PROGRAMADOR');
     }
 
     public function test_listagem_nao_exibe_vaga_finalizada(): void
     {
         $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_SITUACAO' => 2]);
 
-        $this->assertNaoVeInertia($this->get('/vagas'), 'PROGRAMADOR');
+        $this->get('/vagas')->assertDontSee('PROGRAMADOR');
     }
 
     public function test_listagem_nao_exibe_vaga_cancelada(): void
     {
         $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_SITUACAO' => 3]);
 
-        $this->assertNaoVeInertia($this->get('/vagas'), 'PROGRAMADOR');
+        $this->get('/vagas')->assertDontSee('PROGRAMADOR');
     }
 
     public function test_listagem_nao_exibe_vaga_com_prazo_vencido(): void
@@ -66,7 +66,7 @@ class VagaPublicaTest extends TestCase
             'DT_LIMITE_PARA_INSCRICAO' => now()->subDays(3)->startOfDay(),
         ]);
 
-        $this->assertNaoVeInertia($this->get('/vagas'), 'PROGRAMADOR');
+        $this->get('/vagas')->assertDontSee('PROGRAMADOR');
     }
 
     public function test_listagem_exibe_vaga_no_ultimo_dia_do_prazo(): void
@@ -76,7 +76,7 @@ class VagaPublicaTest extends TestCase
             'DT_LIMITE_PARA_INSCRICAO' => now()->startOfDay(),
         ]);
 
-        $this->assertVeInertia($this->get('/vagas'), 'PROGRAMADOR');
+        $this->get('/vagas')->assertSee('PROGRAMADOR');
     }
 
     // ── Filtros ───────────────────────────────────────────────────────────────
@@ -88,8 +88,8 @@ class VagaPublicaTest extends TestCase
 
         $response = $this->get('/vagas?tipo=N');
 
-        $this->assertVeInertia($response, 'PROGRAMADOR');
-        $this->assertNaoVeInertia($response, 'BOLSISTA');
+        $response->assertSee('PROGRAMADOR');
+        $response->assertDontSee('BOLSISTA');
     }
 
     public function test_filtro_por_busca_cobre_cargo_e_atividades(): void
@@ -98,12 +98,12 @@ class VagaPublicaTest extends TestCase
         $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'DE_ATIVIDADES' => 'Levantamento topográfico.']);
 
         $porCargo = $this->get('/vagas?busca=PROGRAMADOR');
-        $this->assertVeInertia($porCargo, 'PROGRAMADOR');
-        $this->assertNaoVeInertia($porCargo, 'BOLSISTA');
+        $porCargo->assertSee('PROGRAMADOR');
+        $porCargo->assertDontSee('BOLSISTA');
 
         $porAtividade = $this->get('/vagas?busca=topogr');
-        $this->assertVeInertia($porAtividade, 'BOLSISTA');
-        $this->assertNaoVeInertia($porAtividade, 'PROGRAMADOR');
+        $porAtividade->assertSee('BOLSISTA');
+        $porAtividade->assertDontSee('PROGRAMADOR');
     }
 
     public function test_filtro_por_cidade(): void
@@ -113,8 +113,8 @@ class VagaPublicaTest extends TestCase
 
         $response = $this->get('/vagas?cidade=Florian%C3%B3polis');
 
-        $this->assertVeInertia($response, 'PROGRAMADOR');
-        $this->assertNaoVeInertia($response, 'BOLSISTA');
+        $response->assertSee('PROGRAMADOR');
+        $response->assertDontSee('BOLSISTA');
     }
 
     public function test_filtro_por_escolaridade(): void
@@ -124,8 +124,8 @@ class VagaPublicaTest extends TestCase
 
         $response = $this->get('/vagas?escolaridade=9');
 
-        $this->assertVeInertia($response, 'PROGRAMADOR');
-        $this->assertNaoVeInertia($response, 'BOLSISTA');
+        $response->assertSee('PROGRAMADOR');
+        $response->assertDontSee('BOLSISTA');
     }
 
     public function test_filtro_por_projeto(): void
@@ -135,8 +135,8 @@ class VagaPublicaTest extends TestCase
 
         $response = $this->get('/vagas?projeto=2024.011');
 
-        $this->assertVeInertia($response, 'PROGRAMADOR');
-        $this->assertNaoVeInertia($response, 'BOLSISTA');
+        $response->assertSee('PROGRAMADOR');
+        $response->assertDontSee('BOLSISTA');
     }
 
     public function test_filtro_por_faixa_salarial(): void
@@ -145,33 +145,33 @@ class VagaPublicaTest extends TestCase
         $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'VL_SALARIO' => 900]);
 
         $minimo = $this->get('/vagas?salario_min=3000');
-        $this->assertVeInertia($minimo, 'PROGRAMADOR');
-        $this->assertNaoVeInertia($minimo, 'BOLSISTA');
+        $minimo->assertSee('PROGRAMADOR');
+        $minimo->assertDontSee('BOLSISTA');
 
         $maximo = $this->get('/vagas?salario_max=2000');
-        $this->assertVeInertia($maximo, 'BOLSISTA');
-        $this->assertNaoVeInertia($maximo, 'PROGRAMADOR');
+        $maximo->assertSee('BOLSISTA');
+        $maximo->assertDontSee('PROGRAMADOR');
     }
 
     public function test_nao_ha_filtro_por_area_modalidade_nem_curso(): void
     {
-        $props = $this->propsInertia($this->get('/vagas'));
+        $dados = $this->get('/vagas')->original->getData();
 
-        $this->assertArrayNotHasKey('areas', $props);
-        $this->assertArrayNotHasKey('cursos', $props);
-        $this->assertArrayNotHasKey('modalidades', $props);
+        $this->assertArrayNotHasKey('areas', $dados);
+        $this->assertArrayNotHasKey('cursos', $dados);
+        $this->assertArrayNotHasKey('modalidades', $dados);
     }
 
     public function test_opcoes_de_filtro_vem_dos_dominios_do_drhflow(): void
     {
         $this->vagaDrhflow();
 
-        $props = $this->propsInertia($this->get('/vagas'));
+        $dados = $this->get('/vagas')->original->getData();
 
-        $this->assertSame('Bolsista', $props['tipos']['U']);
-        $this->assertSame('Educação superior completo', $props['escolaridades']['9']);
-        $this->assertContains('Florianópolis', $props['municipios']);
-        $this->assertArrayHasKey('SC', $props['ufs']);
+        $this->assertSame('Bolsista', $dados['tipos']['U']);
+        $this->assertSame('Educação superior completo', $dados['escolaridades']['9']);
+        $this->assertContains('Florianópolis', $dados['municipios']);
+        $this->assertArrayHasKey('SC', $dados['ufs']);
     }
 
     // ── Detalhe ───────────────────────────────────────────────────────────────
@@ -183,8 +183,8 @@ class VagaPublicaTest extends TestCase
         $response = $this->get("/vagas/{$codigo}");
 
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Publico/Vagas/Show');
-        $this->assertVeInertia($response, 'PROGRAMADOR');
+        $response->assertViewIs('publico.vagas.show');
+        $response->assertSee('PROGRAMADOR');
     }
 
     public function test_detalhe_de_codigo_inexistente_responde_404(): void
@@ -209,11 +209,11 @@ class VagaPublicaTest extends TestCase
             'CD_TIPO_EXPERIENCIA' => 4,
         ]);
 
-        $vaga = $this->propsInertia($this->get("/vagas/{$codigo}"))['vaga'];
+        $vaga = $this->get("/vagas/{$codigo}")->original->getData()['vaga'];
 
-        $this->assertSame('Celetista', $vaga['tipo']);
-        $this->assertSame('Educação superior completo', $vaga['escolaridade']);
-        $this->assertSame('2 Anos', $vaga['experiencia']);
+        $this->assertSame('Celetista', $vaga->tipo);
+        $this->assertSame('Educação superior completo', $vaga->escolaridade);
+        $this->assertSame('2 Anos', $vaga->experiencia);
     }
 
     // ── Indisponibilidade da origem ───────────────────────────────────────────
@@ -230,7 +230,7 @@ class VagaPublicaTest extends TestCase
         $response = $this->get('/vagas');
 
         $response->assertStatus(200);
-        $this->assertTrue($this->propsInertia($response)['indisponivel']);
+        $this->assertTrue($response->original->getData()['indisponivel']);
     }
 
     // ── Páginas estáticas e API ───────────────────────────────────────────────

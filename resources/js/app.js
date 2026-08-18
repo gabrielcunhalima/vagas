@@ -4,6 +4,9 @@ import { initSenhaForca } from './senha-forca';
 import { initCurriculoDropzone } from './curriculo-dropzone';
 import { initSheets } from './ui/sheet';
 import { initFlash } from './flash';
+import { initVagasSelecao } from './vagas-selecao';
+import { initVagasFiltro } from './vagas-filtro';
+import { initCopiarLink } from './copiar-link';
 
 /*
  * Sem SPA, cada página é um documento novo — DOMContentLoaded cobre o caso
@@ -17,6 +20,9 @@ function initWidgets(root = document) {
     initCurriculoDropzone(root);
     initSheets(root);
     initFlash(root);
+    initVagasSelecao(root);
+    initVagasFiltro(root);
+    initCopiarLink(root);
 }
 
 window.initWidgets = initWidgets;

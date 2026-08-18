@@ -42,3 +42,8 @@ export function fecharSheet(id) {
     const sheet = document.querySelector(`[data-sheet="${id}"]`);
     if (sheet) fechar(sheet);
 }
+
+export function abrirSheet(id) {
+    const sheet = document.querySelector(`[data-sheet="${id}"]`);
+    if (sheet) abrir(sheet);
+}

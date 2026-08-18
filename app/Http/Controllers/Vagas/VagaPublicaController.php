@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Vagas;
 use App\Http\Controllers\Controller;
 use App\Support\Drhflow\DominioDrhflowRepository;
 use App\Support\Drhflow\DrhflowIndisponivelException;
-use App\Support\Drhflow\VagaDrhflow;
 use App\Support\Drhflow\VagaDrhflowRepository;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * A listagem e o detalhe públicos, agora lendo do DRHFlow.
@@ -47,16 +46,20 @@ class VagaPublicaController extends Controller
             return $this->listagemIndisponivel($filtros);
         }
 
-        $pagina->setCollection(
-            $pagina->getCollection()->map(fn (VagaDrhflow $v) => $v->toArray())
-        );
-
-        return Inertia::render('Publico/Vagas/Index', array_merge([
+        $dados = array_merge([
             'vagas' => $pagina->withQueryString(),
             'total' => $total,
             'filtros' => $request->only([...self::FILTROS, 'ordenar']),
             'indisponivel' => false,
-        ], $this->opcoesDeFiltro()));
+        ], $this->opcoesDeFiltro());
+
+        // Troca de filtro/ordenação/página via fetch (resources/js/vagas-filtro.js):
+        // devolve só o fragmento lista+detalhe, não a página inteira.
+        if ($request->ajax()) {
+            return view('publico.vagas._resultado', $dados);
+        }
+
+        return view('publico.vagas.index', $dados);
     }
 
     public function show(int $vaga)
@@ -72,9 +75,7 @@ class VagaPublicaController extends Controller
         // existência de vagas que o candidato não pode ver.
         abort_if($encontrada === null, 404);
 
-        return Inertia::render('Publico/Vagas/Show', [
-            'vaga' => $encontrada->toArray(),
-        ]);
+        return view('publico.vagas.show', ['vaga' => $encontrada]);
     }
 
     /**
@@ -87,10 +88,8 @@ class VagaPublicaController extends Controller
      */
     private function listagemIndisponivel(array $filtros)
     {
-        return Inertia::render('Publico/Vagas/Index', [
-            'vagas' => [
-                'data' => [], 'total' => 0, 'current_page' => 1, 'last_page' => 1, 'links' => [],
-            ],
+        $dados = [
+            'vagas' => new LengthAwarePaginator([], 0, 12, 1),
             'total' => 0,
             'filtros' => $filtros,
             'indisponivel' => true,
@@ -99,7 +98,13 @@ class VagaPublicaController extends Controller
             'projetos' => [],
             'municipios' => [],
             'ufs' => [],
-        ]);
+        ];
+
+        if (request()->ajax()) {
+            return view('publico.vagas._resultado', $dados);
+        }
+
+        return view('publico.vagas.index', $dados);
     }
 
     /**
