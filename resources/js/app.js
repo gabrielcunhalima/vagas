@@ -8,6 +8,13 @@ import { initVagasSelecao } from './vagas-selecao';
 import { initVagasFiltro } from './vagas-filtro';
 import { initCopiarLink } from './copiar-link';
 import { initCandidatura } from './candidatura';
+import { initSenhaVisivel } from './senha-visivel';
+import { initCadastroCpf } from './cadastro-cpf';
+import { initDialogs } from './ui/dialog';
+import { initCamposCondicionais } from './campo-condicional';
+import { initFormacoes } from './formacoes';
+import { initCepAutofill } from './cep-autofill';
+import { initTelefoneMask } from './telefone-mask';
 
 /*
  * Sem SPA, cada página é um documento novo — DOMContentLoaded cobre o caso
@@ -25,6 +32,13 @@ function initWidgets(root = document) {
     initVagasFiltro(root);
     initCopiarLink(root);
     initCandidatura(root);
+    initSenhaVisivel(root);
+    initCadastroCpf(root);
+    initDialogs(root);
+    initCamposCondicionais(root);
+    initFormacoes(root);
+    initCepAutofill(root);
+    initTelefoneMask(root);
 }
 
 window.initWidgets = initWidgets;

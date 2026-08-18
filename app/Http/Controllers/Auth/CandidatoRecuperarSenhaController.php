@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
-use Inertia\Inertia;
 
 class CandidatoRecuperarSenhaController extends Controller
 {
@@ -25,7 +24,7 @@ class CandidatoRecuperarSenhaController extends Controller
             return redirect()->route('candidato.vagas');
         }
 
-        return Inertia::render('Candidato/Auth/EsqueciSenha');
+        return view('candidato.auth.esqueci-senha');
     }
 
     public function sendResetLinkEmail(Request $request)
@@ -70,7 +69,7 @@ class CandidatoRecuperarSenhaController extends Controller
             return redirect()->route('candidato.vagas');
         }
 
-        return Inertia::render('Candidato/Auth/RedefinirSenha', [
+        return view('candidato.auth.redefinir-senha', [
             'token' => $token,
             'email' => $request->query('email', ''),
         ]);

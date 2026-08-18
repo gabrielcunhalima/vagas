@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Inertia;
 
 class CandidatoRegistroController extends Controller
 {
@@ -22,7 +21,7 @@ class CandidatoRegistroController extends Controller
             return redirect()->route('candidato.vagas');
         }
 
-        return Inertia::render('Candidato/Auth/Registro', [
+        return view('candidato.auth.registro', [
             'redirect' => $request->query('redirect'),
         ]);
     }

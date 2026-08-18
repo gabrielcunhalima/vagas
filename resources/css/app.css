@@ -193,6 +193,20 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Dialog nativo — resources/js/ui/dialog.js
+   ───────────────────────────────────────────────────────────── */
+dialog[data-dialog] {
+    margin: auto;
+    border: none;
+    padding: 0;
+    background: transparent;
+    max-height: 85dvh;
+}
+dialog[data-dialog]::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* ─────────────────────────────────────────────────────────────
    Sheet (off-canvas) — resources/js/ui/sheet.js
    ───────────────────────────────────────────────────────────── */
 [data-sheet] [data-sheet-panel] {

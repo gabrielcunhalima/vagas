@@ -12,7 +12,6 @@ use App\Support\Drhflow\MapeadorInscricao;
 use App\Support\Drhflow\VagaDrhflowRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
 
 /**
  * "Minhas candidaturas" — o acompanhamento do candidato.
@@ -40,16 +39,14 @@ class MinhaCandidaturaController extends Controller
         try {
             $inscricoes = $this->inscricoes->doCpf(MapeadorInscricao::cpf($candidato));
         } catch (DrhflowIndisponivelException) {
-            return Inertia::render('Candidato/Candidaturas/Index', [
-                'candidaturas' => [],
+            return view('candidato.candidaturas.index', [
+                'candidaturas' => collect(),
                 'indisponivel' => true,
             ]);
         }
 
-        return Inertia::render('Candidato/Candidaturas/Index', [
-            'candidaturas' => $inscricoes
-                ->map(fn (InscricaoDrhflow $i) => $this->comVaga($i)->toArray())
-                ->values(),
+        return view('candidato.candidaturas.index', [
+            'candidaturas' => $inscricoes->map(fn (InscricaoDrhflow $i) => $this->comVaga($i))->values(),
             'indisponivel' => false,
         ]);
     }
@@ -73,16 +70,15 @@ class MinhaCandidaturaController extends Controller
             ->where('cd_vaga_emprego', $candidatura)
             ->first();
 
-        return Inertia::render('Candidato/Candidaturas/Show', [
-            'candidatura' => array_merge($this->comVaga($inscricao)->toArray(), [
-                // Dados próprios do portal — o DRHFlow não tem campo para eles.
-                'carta_apresentacao' => $complemento?->carta_apresentacao,
-                'conflito_interesse' => $complemento?->conflito_interesse,
-                'conflito_interesse_detalhe' => $complemento?->conflito_interesse_detalhe,
-                'curriculo_nome' => $complemento?->curriculoVigente?->nome_original
-                    ?? $candidato->curriculoAtual?->nome_original,
-                'tem_curriculo' => $complemento?->curriculo_id_vigente !== null || $candidato->temCurriculo(),
-            ]),
+        return view('candidato.candidaturas.show', [
+            'candidatura' => $this->comVaga($inscricao),
+            // Dados próprios do portal — o DRHFlow não tem campo para eles.
+            'cartaApresentacao' => $complemento?->carta_apresentacao,
+            'conflitoInteresse' => $complemento?->conflito_interesse,
+            'conflitoInteresseDetalhe' => $complemento?->conflito_interesse_detalhe,
+            'curriculoNome' => $complemento?->curriculoVigente?->nome_original
+                ?? $candidato->curriculoAtual?->nome_original,
+            'temCurriculo' => $complemento?->curriculo_id_vigente !== null || $candidato->temCurriculo(),
         ]);
     }
 

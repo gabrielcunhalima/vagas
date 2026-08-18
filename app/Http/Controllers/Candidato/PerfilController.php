@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Inertia\Inertia;
 
 class PerfilController extends Controller
 {
@@ -40,7 +39,7 @@ class PerfilController extends Controller
         $candidato = $this->candidato();
         $candidato->load('formacoes');
 
-        return Inertia::render('Candidato/Perfil/Edit', [
+        return view('candidato.perfil.edit', [
             'candidato' => array_merge($candidato->only([
                 'nome', 'nome_social', 'nacionalidade', 'email', 'cpf', 'telefone', 'linkedin',
                 'outras_formacoes_mec', 'outros_cursos',

@@ -70,13 +70,12 @@ class AcompanhamentoInscricaoTest extends TestCase
         $candidato = $this->candidato();
         $this->inscricaoDrhflow(self::CPF, $codigo);
 
-        $props = $this->propsInertia(
-            $this->actingAs($candidato, 'candidato')->get('/minha-conta/candidaturas')
-        );
+        $dados = $this->actingAs($candidato, 'candidato')->get('/minha-conta/candidaturas')->original->getData();
+        $candidaturas = $dados['candidaturas'];
 
-        $this->assertCount(1, $props['candidaturas']);
-        $this->assertSame('recebida', $props['candidaturas'][0]['andamento']);
-        $this->assertSame('Inscrição recebida', $props['candidaturas'][0]['andamento_rotulo']);
+        $this->assertCount(1, $candidaturas);
+        $this->assertSame('recebida', $candidaturas[0]->andamento());
+        $this->assertSame('Inscrição recebida', $candidaturas[0]->andamentoRotulo());
     }
 
     public function test_entrevista_preenchida_pelo_rh_aparece_para_o_candidato(): void
@@ -91,16 +90,14 @@ class AcompanhamentoInscricaoTest extends TestCase
             'DE_LOCAL_ENTREVISTA' => 'Sede da FAPEU, sala 3',
         ]);
 
-        $props = $this->propsInertia(
-            $this->actingAs($candidato, 'candidato')->get("/minha-conta/candidaturas/{$codigo}")
-        );
+        $candidatura = $this->actingAs($candidato, 'candidato')
+            ->get("/minha-conta/candidaturas/{$codigo}")
+            ->original->getData()['candidatura'];
 
-        $candidatura = $props['candidatura'];
-
-        $this->assertSame('entrevista_marcada', $candidatura['andamento']);
-        $this->assertSame('14:30', $candidatura['entrevista_hora']);
-        $this->assertSame('Sede da FAPEU, sala 3', $candidatura['entrevista_local']);
-        $this->assertNotNull($candidatura['entrevista_data']);
+        $this->assertSame('entrevista_marcada', $candidatura->andamento());
+        $this->assertSame('14:30', $candidatura->entrevistaHora);
+        $this->assertSame('Sede da FAPEU, sala 3', $candidatura->entrevistaLocal);
+        $this->assertNotNull($candidatura->entrevistaData);
     }
 
     public function test_avaliacao_concluida_nao_afirma_aprovacao_nem_reprovacao(): void
@@ -114,11 +111,11 @@ class AcompanhamentoInscricaoTest extends TestCase
 
         $resposta = $this->actingAs($candidato, 'candidato')->get("/minha-conta/candidaturas/{$codigo}");
 
-        $this->assertSame('avaliacao_concluida', $this->propsInertia($resposta)['candidatura']['andamento']);
-        $this->assertNaoVeInertia($resposta, 'aprovado');
-        $this->assertNaoVeInertia($resposta, 'reprovado');
-        $this->assertNaoVeInertia($resposta, 'Aprovado');
-        $this->assertNaoVeInertia($resposta, 'Reprovado');
+        $this->assertSame('avaliacao_concluida', $resposta->original->getData()['candidatura']->andamento());
+        $resposta->assertDontSee('aprovado');
+        $resposta->assertDontSee('reprovado');
+        $resposta->assertDontSee('Aprovado');
+        $resposta->assertDontSee('Reprovado');
     }
 
     public function test_a_nota_do_rh_nunca_chega_ao_candidato(): void
@@ -132,8 +129,8 @@ class AcompanhamentoInscricaoTest extends TestCase
 
         $resposta = $this->actingAs($candidato, 'candidato')->get("/minha-conta/candidaturas/{$codigo}");
 
-        $this->assertNaoVeInertia($resposta, '8.5');
-        $this->assertNaoVeInertia($resposta, '9.75');
+        $resposta->assertDontSee('8.5');
+        $resposta->assertDontSee('9.75');
     }
 
     // ── Reunião das duas origens ──────────────────────────────────────────────
@@ -154,16 +151,16 @@ class AcompanhamentoInscricaoTest extends TestCase
             'enviada_em' => now(),
         ]);
 
-        $candidatura = $this->propsInertia(
-            $this->actingAs($candidato, 'candidato')->get("/minha-conta/candidaturas/{$codigo}")
-        )['candidatura'];
+        $dados = $this->actingAs($candidato, 'candidato')
+            ->get("/minha-conta/candidaturas/{$codigo}")
+            ->original->getData();
 
         // Do DRHFlow
-        $this->assertSame('recebida', $candidatura['andamento']);
-        $this->assertSame('PROGRAMADOR', $candidatura['vaga']['titulo']);
+        $this->assertSame('recebida', $dados['candidatura']->andamento());
+        $this->assertSame('PROGRAMADOR', $dados['candidatura']->vaga->titulo);
         // Do portal
-        $this->assertSame('Trabalho com testes há três anos.', $candidatura['carta_apresentacao']);
-        $this->assertSame('cv.pdf', $candidatura['curriculo_nome']);
+        $this->assertSame('Trabalho com testes há três anos.', $dados['cartaApresentacao']);
+        $this->assertSame('cv.pdf', $dados['curriculoNome']);
     }
 
     public function test_inscricao_de_vaga_ja_encerrada_continua_listada(): void
@@ -172,13 +169,13 @@ class AcompanhamentoInscricaoTest extends TestCase
         $candidato = $this->candidato();
         $this->inscricaoDrhflow(self::CPF, $codigo);
 
-        $props = $this->propsInertia(
-            $this->actingAs($candidato, 'candidato')->get('/minha-conta/candidaturas')
-        );
+        $candidaturas = $this->actingAs($candidato, 'candidato')
+            ->get('/minha-conta/candidaturas')
+            ->original->getData()['candidaturas'];
 
-        $this->assertCount(1, $props['candidaturas']);
+        $this->assertCount(1, $candidaturas);
         // A vaga saiu do critério de disponibilidade, mas a inscrição existe.
-        $this->assertNull($props['candidaturas'][0]['vaga']);
+        $this->assertNull($candidaturas[0]->vaga);
     }
 
     // ── Isolamento entre candidatos ───────────────────────────────────────────
@@ -193,11 +190,11 @@ class AcompanhamentoInscricaoTest extends TestCase
             ->get("/minha-conta/candidaturas/{$codigo}")
             ->assertStatus(404);
 
-        $props = $this->propsInertia(
-            $this->actingAs($candidato, 'candidato')->get('/minha-conta/candidaturas')
-        );
+        $candidaturas = $this->actingAs($candidato, 'candidato')
+            ->get('/minha-conta/candidaturas')
+            ->original->getData()['candidaturas'];
 
-        $this->assertCount(0, $props['candidaturas']);
+        $this->assertCount(0, $candidaturas);
     }
 
     public function test_download_do_curriculo_so_responde_ao_dono(): void
@@ -248,10 +245,8 @@ class AcompanhamentoInscricaoTest extends TestCase
             'prefix' => '',
         ]]);
 
-        $props = $this->propsInertia(
-            $this->actingAs($candidato, 'candidato')->get('/minha-conta/candidaturas')
-        );
+        $dados = $this->actingAs($candidato, 'candidato')->get('/minha-conta/candidaturas')->original->getData();
 
-        $this->assertTrue($props['indisponivel']);
+        $this->assertTrue($dados['indisponivel']);
     }
 }
