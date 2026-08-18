@@ -1,3 +1,55 @@
+# Portal de Vagas FAPEU
+
+## Integração com o DRHFlow
+
+As vagas apresentadas ao candidato e as inscrições que ele envia vivem no
+**DRHFlow** (SQL Server), não no MySQL do portal. A conexão `drhflow` é
+configurada pelas variáveis `DRHFLOW_*` do `.env` (ver `.env.example`).
+
+Exige as extensões PHP `sqlsrv` e `pdo_sqlsrv`.
+
+### Permissão de banco exigida do ambiente
+
+O usuário da conexão `drhflow` precisa de:
+
+| Permissão | Escopo |
+| --- | --- |
+| `SELECT` | todo o banco `DB_DRHFLOW_TESTE` |
+| `INSERT`, `UPDATE` | **apenas** `EN_CANDIDATO_VAGA_EMPREGO` |
+| `DELETE` | **nenhum**, em tabela nenhuma |
+| DDL (`CREATE`/`ALTER`/`DROP`) | **nenhum** |
+
+O acesso ao banco `CorporeRM` **não é necessário**: `VW_GRAU_INSTRUCAO_RM` e
+`VW_MUNICIPIO_RM`, dentro do próprio `DB_DRHFLOW_TESTE`, entregam os dados do RM.
+
+> **Pendência de infraestrutura.** O ambiente atual usa a credencial `sa`, que é
+> `sysadmin` e não tem nenhuma dessas restrições. Enquanto o DBA não fornecer o
+> usuário restrito, a única barreira contra escrita indevida no banco do RH é o
+> código — verificada por `tests/Feature/Drhflow/PreservacaoDoDrhflowTest.php`,
+> que observa o SQL efetivamente emitido na conexão.
+
+### E-mails em teste e homologação
+
+`MAIL_ALWAYS_TO` desvia **todo** e-mail da aplicação para um único endereço,
+ignorando o destinatário original. É obrigatório em teste e homologação, onde o
+banco carrega e-mails de candidatos reais, e deve ficar **vazio em produção**.
+
+### Currículos
+
+`CURRICULOS_ROOT` define a raiz dos PDFs, organizados em uma pasta por CPF
+(`{cpf}/{uuid}.pdf`) — o layout que o DRHFlow espera. Precisa apontar para um
+diretório **fora** de qualquer caminho servido pela web; em produção,
+`/home/Curriculos`. O download passa sempre pelo portal, que confere quem pede.
+
+### Testes
+
+Nenhum teste alcança o DRHFlow real: `phpunit.xml` aponta as variáveis
+`DRHFLOW_*` para um host inalcançável, e quem precisa da origem usa o trait
+`Tests\Concerns\UsaDrhflowFalso`, que troca a conexão por um SQLite em memória
+com o esquema real.
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

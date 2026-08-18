@@ -363,8 +363,8 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_download_curriculo_disponivel(): void
     {
-        Storage::fake('local');
-        Storage::disk('local')->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
+        Storage::fake(\App\Models\Candidato::DISCO_CURRICULOS);
+        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
 
         $response = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo"
@@ -454,8 +454,8 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_download_de_curriculo_recusado_apos_o_decaimento(): void
     {
-        Storage::fake('local');
-        Storage::disk('local')->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
+        Storage::fake(\App\Models\Candidato::DISCO_CURRICULOS);
+        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
         $this->decidirEm('reprovado', now()->subDays(120));
 
         $this->actingAs($this->coord)

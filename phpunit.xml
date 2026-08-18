@@ -27,6 +27,17 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!-- O DRHFlow é um SQL Server compartilhado com o RH e a credencial tem
+             escrita. Nenhum teste pode alcançá-lo: quem precisa dele usa o
+             trait Tests\Concerns\UsaDrhflowFalso, que troca a conexão por
+             SQLite. Estes valores garantem que um teste que esqueça o trait
+             falhe por conexão recusada em vez de escrever no banco do RH. -->
+        <env name="DRHFLOW_HOST" value="0.0.0.0"/>
+        <env name="DRHFLOW_PORT" value="1"/>
+        <env name="DRHFLOW_DATABASE" value="drhflow_inalcancavel"/>
+        <env name="DRHFLOW_USERNAME" value=""/>
+        <env name="DRHFLOW_PASSWORD" value=""/>
+        <env name="DRHFLOW_TIMEOUT" value="1"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

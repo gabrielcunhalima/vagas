@@ -40,6 +40,28 @@ const buttonVariants = cva(
   }
 )
 
+function withIconSpacer(nodes) {
+  const iconChildren = nodes.filter(
+    (child) =>
+      React.isValidElement(child) &&
+      (child.props?.["data-icon"] === "inline-start" || child.props?.["data-icon"] === "inline-end")
+  )
+
+  if (iconChildren.length !== 1 || nodes.length <= 1) return null
+
+  const iconChild = iconChildren[0]
+  const spacer = React.cloneElement(iconChild, {
+    key: "icon-spacer",
+    "data-icon": undefined,
+    "aria-hidden": "true",
+    className: cn(iconChild.props.className, "invisible pointer-events-none"),
+  })
+
+  return iconChild.props["data-icon"] === "inline-start"
+    ? [...nodes, spacer]
+    : [spacer, ...nodes]
+}
+
 function Button({
   className,
   variant = "default",
@@ -51,26 +73,19 @@ function Button({
   const Comp = asChild ? Slot.Root : "button"
 
   const childArray = React.Children.toArray(children)
-  const iconChildren = childArray.filter(
-    (child) =>
-      React.isValidElement(child) &&
-      (child.props?.["data-icon"] === "inline-start" || child.props?.["data-icon"] === "inline-end")
-  )
 
   let content = children
-  if (iconChildren.length === 1 && childArray.length > 1) {
-    const iconChild = iconChildren[0]
-    const spacer = React.cloneElement(iconChild, {
-      key: "icon-spacer",
-      "data-icon": undefined,
-      "aria-hidden": "true",
-      className: cn(iconChild.props.className, "invisible pointer-events-none"),
-    })
-
-    content =
-      iconChild.props["data-icon"] === "inline-start"
-        ? [...childArray, spacer]
-        : [spacer, ...childArray]
+  if (asChild && childArray.length === 1 && React.isValidElement(childArray[0])) {
+    // asChild (Slot) renders icon+text as children of the single wrapped element
+    // (e.g. <a>/<Link>), not as direct children of Button — look one level deeper.
+    const onlyChild = childArray[0]
+    const innerContent = withIconSpacer(React.Children.toArray(onlyChild.props.children))
+    if (innerContent) {
+      content = React.cloneElement(onlyChild, {}, innerContent)
+    }
+  } else {
+    const topContent = withIconSpacer(childArray)
+    if (topContent) content = topContent
   }
 
   return (

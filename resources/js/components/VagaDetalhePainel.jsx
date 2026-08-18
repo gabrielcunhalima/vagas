@@ -1,17 +1,27 @@
 import { Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, CalendarDays, Clock, MapPin, Wallet } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Briefcase,
+    CalendarDays,
+    Clock,
+    GraduationCap,
+    MapPin,
+    Wallet,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ModalidadeBadge, NovaBadge, TipoBadge } from '@/components/badges';
-import { modalidadesLabel } from '@/lib/enums';
+import { NovaBadge, TipoAdmissaoBadge } from '@/components/badges';
 import { diasRestantes, faixaSalarial, formatDate, isNova, localVaga } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 function Fato({ icon: Icon, label, children }) {
     return (
-        <div className="flex flex-col gap-0.5">
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Icon className="size-3.5 shrink-0" /> {label}
+        <div className="flex min-w-0 flex-col gap-0.5">
+            {/* flex, não inline-flex: o rótulo precisa poder quebrar em duas
+                linhas sem que o ícone saia de cima da primeira. */}
+            <span className="flex items-start gap-1.5 text-xs leading-tight text-muted-foreground">
+                <Icon className="mt-px size-3.5 shrink-0" />
+                <span className="min-w-0">{label}</span>
             </span>
             <span className="text-sm font-semibold">{children}</span>
         </div>
@@ -32,6 +42,10 @@ function Secao({ titulo, children }) {
  * Componente único para as duas apresentações: coluna fixa a partir de xl e
  * conteúdo do Sheet abaixo disso — para não existirem duas versões do detalhe.
  *
+ * Os campos vêm do DRHFlow. Tudo que a origem não preencheu é omitido por
+ * completo — sem rótulo órfão nem bloco vazio, como a spec exige. É por isso que
+ * cada seção testa o próprio valor em vez de renderizar um traço.
+ *
  * O cabeçalho é sticky em relação à rolagem da página (na coluna fixa) ou do
  * Sheet (em telas estreitas), então o botão "Candidatar-se" continua alcançável
  * enquanto o painel está em vista, mesmo em vagas de texto longo. `onVoltar`,
@@ -43,8 +57,7 @@ export default function VagaDetalhePainel({ vaga, className, onVoltar }) {
 
     const dias = diasRestantes(vaga.data_encerramento);
     const urgente = dias <= 5;
-    const cursos = vaga.curso_desejado ?? [];
-    const mostrarEndereco = vaga.modalidade !== 'remoto' && Boolean(vaga.endereco_completo);
+    const local = localVaga(vaga);
 
     return (
         <article className={cn('bg-card', className)}>
@@ -60,17 +73,14 @@ export default function VagaDetalhePainel({ vaga, className, onVoltar }) {
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <TipoBadge tipo={vaga.tipo} />
-                    <ModalidadeBadge modalidade={vaga.modalidade} />
+                    <TipoAdmissaoBadge tipo={vaga.tipo} codigo={vaga.tipo_codigo} />
                     {isNova(vaga) && <NovaBadge />}
                 </div>
 
                 <h2 className="mt-3 text-xl font-bold leading-tight tracking-tight">{vaga.titulo}</h2>
 
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span>{vaga.area}</span>
-                    <span aria-hidden>·</span>
-                    <span>{localVaga(vaga)}</span>
+                    <span>{local}</span>
                     {vaga.projeto_nome && (
                         <>
                             <span aria-hidden>·</span>
@@ -94,19 +104,34 @@ export default function VagaDetalhePainel({ vaga, className, onVoltar }) {
             </div>
 
             <div className="max-w-4xl px-5 pb-6 pt-5">
-                {/* Resumo rápido — as respostas de triagem antes do texto longo */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-xl bg-muted/50 p-4 sm:grid-cols-4">
+                {/* Resumo rápido — as respostas de triagem antes do texto longo.
+                    Duas colunas fixas: o painel vive numa coluna estreita (ou no
+                    Sheet), e `sm:grid-cols-4` responde à largura da janela, não à
+                    do container — com seis fatos os rótulos se atropelavam. */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-xl bg-muted/50 p-4">
                     <Fato icon={Wallet} label="Remuneração">
                         {faixaSalarial(vaga)}
                     </Fato>
                     {vaga.carga_horaria && (
                         <Fato icon={Clock} label="Carga horária">
-                            {vaga.carga_horaria}h/semana
+                            {vaga.carga_horaria}
                         </Fato>
                     )}
-                    <Fato icon={MapPin} label="Modalidade">
-                        {modalidadesLabel[vaga.modalidade] ?? vaga.modalidade}
-                    </Fato>
+                    {vaga.escolaridade && (
+                        <Fato icon={GraduationCap} label="Escolaridade">
+                            {vaga.escolaridade}
+                        </Fato>
+                    )}
+                    {local && (
+                        <Fato icon={MapPin} label="Localização">
+                            {local}
+                        </Fato>
+                    )}
+                    {vaga.experiencia && (
+                        <Fato icon={Briefcase} label="Experiência">
+                            {vaga.experiencia}
+                        </Fato>
+                    )}
                     <Fato icon={CalendarDays} label="Inscrições até">
                         <span className={cn(urgente && 'text-primary')}>
                             {formatDate(vaga.data_encerramento)}
@@ -117,27 +142,12 @@ export default function VagaDetalhePainel({ vaga, className, onVoltar }) {
                 <div className="mt-6 flex flex-col gap-6">
                     {vaga.descricao && <Secao titulo="Sobre a vaga">{vaga.descricao}</Secao>}
                     {vaga.requisitos && <Secao titulo="Requisitos">{vaga.requisitos}</Secao>}
-                    {vaga.requisitos_desejaveis && (
-                        <Secao titulo="Diferenciais">{vaga.requisitos_desejaveis}</Secao>
-                    )}
                     {vaga.beneficios && <Secao titulo="Benefícios">{vaga.beneficios}</Secao>}
-
-                    {cursos.length > 0 && (
-                        <section>
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                                Cursos desejados
-                            </h3>
-                            <div className="mt-2.5 flex flex-wrap gap-1.5">
-                                {cursos.map((curso) => (
-                                    <Badge key={curso} variant="secondary">
-                                        {curso}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </section>
+                    {vaga.documentacao && (
+                        <Secao titulo="Documentação necessária">{vaga.documentacao}</Secao>
                     )}
-
-                    {mostrarEndereco && <Secao titulo="Local de trabalho">{vaga.endereco_completo}</Secao>}
+                    {vaga.horario && <Secao titulo="Horário">{vaga.horario}</Secao>}
+                    {vaga.projeto_nome && <Secao titulo="Projeto">{vaga.projeto_nome}</Secao>}
                 </div>
             </div>
         </article>

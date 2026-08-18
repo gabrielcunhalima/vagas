@@ -2,14 +2,14 @@ import { Link, useForm } from '@inertiajs/react';
 import { CalendarDays, FileText, Loader2, MapPin, PencilLine, Send, TriangleAlert } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import Field from '@/components/Field';
-import { ModalidadeBadge, TipoBadge } from '@/components/badges';
+import { TipoAdmissaoBadge } from '@/components/badges';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { niveisEscolaridade } from '@/lib/enums';
-import { diasRestantes, faixaSalarial, formatDate, prazoInscricao } from '@/lib/format';
+import { diasRestantes, faixaSalarial, formatDate, localVaga, prazoInscricao } from '@/lib/format';
 
 function Secao({ titulo, descricao, children }) {
     return (
@@ -72,7 +72,7 @@ function Formacoes({ formacoes }) {
 }
 
 /*
- * Perfil incompleto não tem ficha para o coordenador avaliar, então a inscrição
+ * Perfil incompleto não tem ficha para o RH avaliar, então a inscrição
  * não segue. A vaga fica identificada aqui para que completar o perfil não custe
  * reencontrá-la depois.
  */
@@ -132,7 +132,7 @@ export default function Candidatura({ vaga, perfil, completude }) {
             <div className="mx-auto w-full max-w-6xl px-4 pt-8">
                 <h1 className="text-2xl font-bold tracking-tight">Candidatar-se</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Confira os dados que o coordenador vai receber e responda às perguntas desta vaga.
+                    Confira os dados que o RH vai receber e responda às perguntas desta vaga.
                 </p>
 
                 <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_320px]">
@@ -152,7 +152,7 @@ export default function Candidatura({ vaga, perfil, completude }) {
 
                             <Secao
                                 titulo="Seus dados"
-                                descricao="É isto que o coordenador desta vaga vai ver. Alterar aqui altera os dados da sua conta e vale para todas as suas candidaturas."
+                                descricao="É isto que o RH desta vaga vai ver. Alterar aqui altera os dados da sua conta e vale para todas as suas candidaturas."
                             >
                                 <dl className="grid gap-4 sm:grid-cols-2">
                                     <Dado rotulo="Nome completo" valor={perfil.nome} />
@@ -281,19 +281,19 @@ export default function Candidatura({ vaga, perfil, completude }) {
                     <aside className="order-first lg:order-none lg:sticky lg:top-20">
                         <div className="rounded-xl bg-card p-5 ring-1 ring-foreground/10">
                             <div className="flex flex-wrap gap-2">
-                                <TipoBadge tipo={vaga.tipo} />
-                                <ModalidadeBadge modalidade={vaga.modalidade} />
+                                <TipoAdmissaoBadge tipo={vaga.tipo} codigo={vaga.tipo_codigo} />
                             </div>
                             <h2 className="mt-3 font-semibold leading-snug">{vaga.titulo}</h2>
                             <div className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
-                                <span className="inline-flex items-center gap-2">
-                                    <MapPin className="size-4" />
-                                    {vaga.modalidade === 'remoto'
-                                        ? 'Remoto'
-                                        : vaga.cidade
-                                          ? `${vaga.cidade}/${vaga.estado}`
-                                          : 'A definir'}
-                                </span>
+                                {localVaga(vaga) && (
+                                    <span className="inline-flex items-center gap-2">
+                                        <MapPin className="size-4" />
+                                        {localVaga(vaga)}
+                                    </span>
+                                )}
+                                {vaga.projeto_nome && (
+                                    <span className="line-clamp-2 text-xs">Projeto — {vaga.projeto_nome}</span>
+                                )}
                                 <span className="inline-flex items-center gap-2">
                                     <CalendarDays className="size-4" />
                                     {dias <= 5 ? <span className="font-semibold text-primary">{prazo}</span> : prazo}

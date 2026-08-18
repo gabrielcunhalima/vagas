@@ -15,7 +15,7 @@ export default function Confirmacao({ vaga, nome }) {
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     {nome ? `${nome.split(' ')[0]}, sua` : 'Sua'} candidatura para{' '}
                     <span className="font-semibold text-foreground">{vaga.titulo}</span> foi recebida. Enviamos um
-                    e-mail de confirmação. O coordenador da vaga entrará em contato pelos dados informados.
+                    e-mail de confirmação. O RH entrará em contato pelos dados informados.
                 </p>
 
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

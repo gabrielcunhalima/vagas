@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
-import { Bell, Search, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Bell, Search, SlidersHorizontal } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import EmptyState from '@/components/EmptyState';
 import Pagination from '@/components/Pagination';
@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import { asset } from '@/lib/asset';
-import { modalidadesLabel, tiposLabel, ufs } from '@/lib/enums';
 import { CONTAINER_LARGO as CONTAINER } from '@/lib/layout';
 
 const TODOS = '__todos__';
@@ -45,13 +44,30 @@ function FiltroSelect({ label, value, onChange, options, placeholder = 'Todas' }
     );
 }
 
-export default function Index({ vagas, areas, cursos, total, filtros = {} }) {
+/*
+ * Os filtros são os que o DRHFlow sustenta. Área, modalidade e curso desejado
+ * saíram: `EN_VAGA_EMPREGO` não tem coluna equivalente, e um filtro sem lastro
+ * na origem devolveria resultado arbitrário.
+ *
+ * As opções de tipo, escolaridade, projeto, município e UF vêm do servidor —
+ * são os domínios do próprio DRHFlow, não listas fixas no cliente.
+ */
+export default function Index({
+    vagas,
+    total,
+    filtros = {},
+    indisponivel = false,
+    tipos = {},
+    escolaridades = {},
+    projetos = {},
+    municipios = [],
+    ufs = {},
+}) {
     const [f, setF] = useState({
         busca: filtros.busca ?? '',
-        area: filtros.area ?? '',
         tipo: filtros.tipo ?? '',
-        modalidade: filtros.modalidade ?? '',
-        curso: filtros.curso ?? '',
+        escolaridade: filtros.escolaridade ?? '',
+        projeto: filtros.projeto ?? '',
         cidade: filtros.cidade ?? '',
         estado: filtros.estado ?? '',
         salario_min: filtros.salario_min ?? '',
@@ -191,29 +207,23 @@ export default function Index({ vagas, areas, cursos, total, filtros = {} }) {
 
                             <div className="flex flex-col gap-4">
                                 <FiltroSelect
-                                    label="Área"
-                                    value={f.area}
-                                    onChange={(v) => selecionar('area', v)}
-                                    options={areas.map((a) => [a, a])}
-                                />
-                                <FiltroSelect
-                                    label="Tipo"
+                                    label="Tipo de contratação"
                                     value={f.tipo}
                                     onChange={(v) => selecionar('tipo', v)}
-                                    options={Object.entries(tiposLabel)}
+                                    options={Object.entries(tipos)}
                                     placeholder="Todos"
                                 />
                                 <FiltroSelect
-                                    label="Modalidade"
-                                    value={f.modalidade}
-                                    onChange={(v) => selecionar('modalidade', v)}
-                                    options={Object.entries(modalidadesLabel)}
+                                    label="Escolaridade"
+                                    value={f.escolaridade}
+                                    onChange={(v) => selecionar('escolaridade', v)}
+                                    options={Object.entries(escolaridades)}
                                 />
                                 <FiltroSelect
-                                    label="Curso"
-                                    value={f.curso}
-                                    onChange={(v) => selecionar('curso', v)}
-                                    options={cursos.map((c) => [c, c])}
+                                    label="Projeto"
+                                    value={f.projeto}
+                                    onChange={(v) => selecionar('projeto', v)}
+                                    options={Object.entries(projetos)}
                                     placeholder="Todos"
                                 />
 
@@ -222,18 +232,29 @@ export default function Index({ vagas, areas, cursos, total, filtros = {} }) {
                                         Localização
                                     </Label>
                                     <div className="grid grid-cols-[1fr_76px] gap-2">
-                                        <Input
-                                            value={f.cidade}
-                                            onChange={(e) => set('cidade', e.target.value)}
-                                            placeholder="Cidade"
-                                        />
+                                        <Select
+                                            value={f.cidade || TODOS}
+                                            onValueChange={(v) => selecionar('cidade', v)}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Cidade" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={TODOS}>Cidade</SelectItem>
+                                                {municipios.map((cidade) => (
+                                                    <SelectItem key={cidade} value={cidade}>
+                                                        {cidade}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <Select value={f.estado || TODOS} onValueChange={(v) => selecionar('estado', v)}>
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="UF" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value={TODOS}>UF</SelectItem>
-                                                {ufs.map((uf) => (
+                                                {Object.keys(ufs).map((uf) => (
                                                     <SelectItem key={uf} value={uf}>
                                                         {uf}
                                                     </SelectItem>
@@ -295,7 +316,26 @@ export default function Index({ vagas, areas, cursos, total, filtros = {} }) {
                                 </Select>
                             </div>
 
-                            {vagas.data.length === 0 ? (
+                            {indisponivel ? (
+                                /* Lista vazia aqui seria lida como "não há vagas abertas".
+                                   Quando a origem não responde, a tela precisa dizer isso. */
+                                <div className="rounded-xl bg-card ring-1 ring-foreground/10">
+                                    <EmptyState
+                                        icon={AlertTriangle}
+                                        title="Vagas temporariamente indisponíveis"
+                                        description="Não conseguimos consultar as vagas agora. Isso não significa que não há vagas abertas — tente novamente em alguns minutos."
+                                    >
+                                        <Button variant="outline" onClick={() => router.reload()}>
+                                            Tentar novamente
+                                        </Button>
+                                        <Button asChild variant="ghost">
+                                            <Link href={route('alertas.create')}>
+                                                <Bell data-icon="inline-start" /> Criar alerta
+                                            </Link>
+                                        </Button>
+                                    </EmptyState>
+                                </div>
+                            ) : vagas.data.length === 0 ? (
                                 <div className="rounded-xl bg-card ring-1 ring-foreground/10">
                                     <EmptyState
                                         title="Nenhuma vaga encontrada"

@@ -3,19 +3,19 @@ import {
     ArrowLeft,
     ArrowRight,
     Bell,
+    Briefcase,
     CalendarDays,
     Clock,
     Copy,
+    GraduationCap,
     MapPin,
-    Tag,
     Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PublicLayout from '@/Layouts/PublicLayout';
-import VagaCard from '@/components/VagaCard';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import { Button } from '@/components/ui/button';
-import { ModalidadeBadge, NovaBadge, TipoBadge } from '@/components/badges';
+import { NovaBadge, TipoAdmissaoBadge } from '@/components/badges';
 import { diasRestantes, faixaSalarial, formatDate, isNova, localVaga } from '@/lib/format';
 
 const tituloSecaoClasses =
@@ -41,9 +41,18 @@ function MetaLinha({ icon: Icon, label, children }) {
     );
 }
 
-export default function Show({ vaga, relacionadas }) {
+/*
+ * Detalhe da vaga em página própria. Os campos vêm do DRHFlow e cada bloco testa
+ * o próprio valor: informação ausente na origem é omitida por completo, sem
+ * rótulo órfão nem seção vazia.
+ *
+ * Não há mais "vagas relacionadas": elas eram calculadas por área, que
+ * `EN_VAGA_EMPREGO` não tem.
+ */
+export default function Show({ vaga }) {
     const dias = diasRestantes(vaga.data_encerramento);
     const urlInscricao = route('inscricao.create', vaga.id);
+    const local = localVaga(vaga);
 
     function copiarLink() {
         navigator.clipboard
@@ -68,19 +77,17 @@ export default function Show({ vaga, relacionadas }) {
                 <header className="mt-5">
                     <div className="flex flex-wrap items-center gap-2">
                         {isNova(vaga) && <NovaBadge />}
-                        <TipoBadge tipo={vaga.tipo} />
-                        <ModalidadeBadge modalidade={vaga.modalidade} />
+                        <TipoAdmissaoBadge tipo={vaga.tipo} codigo={vaga.tipo_codigo} />
                     </div>
                     <h1 className="mt-3 max-w-3xl text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
                         {vaga.titulo}
                     </h1>
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5">
-                            <Tag className="size-4" /> {vaga.area}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="size-4" /> {localVaga(vaga)}
-                        </span>
+                        {local && (
+                            <span className="inline-flex items-center gap-1.5">
+                                <MapPin className="size-4" /> {local}
+                            </span>
+                        )}
                         {vaga.projeto_nome && <span>Projeto — {vaga.projeto_nome}</span>}
                     </div>
                 </header>
@@ -88,25 +95,14 @@ export default function Show({ vaga, relacionadas }) {
                 <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_330px]">
                     {/* Conteúdo */}
                     <article className="flex min-w-0 flex-col divide-y [&>*:not(:first-child)]:pt-8 [&>*:not(:last-child)]:pb-8">
-                        <Secao titulo="Sobre a vaga">{vaga.descricao}</Secao>
-                        <Secao titulo="Requisitos">{vaga.requisitos}</Secao>
-                        {vaga.requisitos_desejaveis && <Secao titulo="Diferenciais">{vaga.requisitos_desejaveis}</Secao>}
+                        {vaga.descricao && <Secao titulo="Sobre a vaga">{vaga.descricao}</Secao>}
+                        {vaga.requisitos && <Secao titulo="Requisitos">{vaga.requisitos}</Secao>}
                         {vaga.beneficios && <Secao titulo="Benefícios">{vaga.beneficios}</Secao>}
-
-                        {vaga.curso_desejado?.length > 0 && (
-                            <section>
-                                <h2 className={tituloSecaoClasses}>Cursos desejados</h2>
-                                <ul className="mt-2.5 list-disc space-y-1 pl-5 text-sm leading-relaxed marker:text-muted-foreground">
-                                    {vaga.curso_desejado.map((curso) => (
-                                        <li key={curso}>{curso}</li>
-                                    ))}
-                                </ul>
-                            </section>
+                        {vaga.documentacao && (
+                            <Secao titulo="Documentação necessária">{vaga.documentacao}</Secao>
                         )}
-
-                        {vaga.endereco_completo && (
-                            <Secao titulo="Local de trabalho">{vaga.endereco_completo}</Secao>
-                        )}
+                        {vaga.horario && <Secao titulo="Horário">{vaga.horario}</Secao>}
+                        {vaga.projeto_nome && <Secao titulo="Projeto">{vaga.projeto_nome}</Secao>}
                     </article>
 
                     {/* Painel de candidatura */}
@@ -135,12 +131,24 @@ export default function Show({ vaga, relacionadas }) {
                                 </MetaLinha>
                                 {vaga.carga_horaria && (
                                     <MetaLinha icon={Clock} label="Carga horária">
-                                        {vaga.carga_horaria}h/semana
+                                        {vaga.carga_horaria}
                                     </MetaLinha>
                                 )}
-                                <MetaLinha icon={MapPin} label="Local">
-                                    {localVaga(vaga)}
-                                </MetaLinha>
+                                {vaga.escolaridade && (
+                                    <MetaLinha icon={GraduationCap} label="Escolaridade">
+                                        {vaga.escolaridade}
+                                    </MetaLinha>
+                                )}
+                                {vaga.experiencia && (
+                                    <MetaLinha icon={Briefcase} label="Experiência">
+                                        {vaga.experiencia}
+                                    </MetaLinha>
+                                )}
+                                {local && (
+                                    <MetaLinha icon={MapPin} label="Local">
+                                        {local}
+                                    </MetaLinha>
+                                )}
                             </div>
 
                             <Button asChild size="lg" className="mt-5 h-11 w-full text-base font-semibold">
@@ -169,18 +177,6 @@ export default function Show({ vaga, relacionadas }) {
                         </Link>
                     </aside>
                 </div>
-
-                {/* Relacionadas */}
-                {relacionadas.length > 0 && (
-                    <section className="mt-14">
-                        <h2 className="text-lg font-bold tracking-tight">Vagas relacionadas</h2>
-                        <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                            {relacionadas.map((v) => (
-                                <VagaCard key={v.id} vaga={v} />
-                            ))}
-                        </div>
-                    </section>
-                )}
             </div>
         </PublicLayout>
     );

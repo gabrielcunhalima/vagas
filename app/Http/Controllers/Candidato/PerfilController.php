@@ -182,7 +182,9 @@ class PerfilController extends Controller
 
         $versao = $candidato->curriculoAtual;
 
-        return Storage::disk('local')->download(
+        // O arquivo não é alcançável pela web: a raiz do disco fica fora do
+        // diretório servido, e este é o único caminho de leitura.
+        return Storage::disk(Candidato::DISCO_CURRICULOS)->download(
             $versao->path,
             $versao->nome_original ?? 'curriculo.pdf'
         );

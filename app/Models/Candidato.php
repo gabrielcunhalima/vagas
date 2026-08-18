@@ -118,6 +118,12 @@ class Candidato extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(CandidatoCurriculo::class, 'curriculo_atual_id');
     }
 
+    /** A parte local das inscrições — o que o DRHFlow não tem campo para receber. */
+    public function inscricaoComplementos()
+    {
+        return $this->hasMany(InscricaoComplemento::class, 'candidato_id');
+    }
+
     public function alerta()
     {
         return $this->hasOne(\App\Models\Vagas\AlertaVaga::class, 'candidato_id');
@@ -219,15 +225,42 @@ class Candidato extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /** Disco e pasta onde os PDFs deste candidato vivem — uma por CPF. */
+    public const DISCO_CURRICULOS = 'curriculos';
+
+    /**
+     * Pasta do candidato no disco de currículos: o CPF só com dígitos.
+     *
+     * É o layout que o DRHFlow espera (`/home/Curriculos/{cpf}/`). Sem CPF não
+     * há pasta — e o CPF é obrigatório desde o cadastro mínimo.
+     */
+    public function pastaCurriculos(): string
+    {
+        return preg_replace('/\D/', '', (string) $this->cpf) ?: (string) $this->id;
+    }
+
     /**
      * Registra uma nova versão de currículo e move o ponteiro do perfil para ela.
      * Versões anteriores nunca são sobrescritas nem apagadas: um evento de decisão
      * precisa poder identificar qual PDF o processo julgou.
+     *
+     * O nome do arquivo é um UUID, não o nome enviado: o nome original é dado do
+     * candidato (costuma conter o próprio nome) e não deve virar parte de um
+     * caminho adivinhável. Ele fica guardado em `nome_original`, que é o que o
+     * download devolve.
      */
     public function adicionarCurriculo(\Illuminate\Http\UploadedFile $arquivo): CandidatoCurriculo
     {
+        $caminho = $this->pastaCurriculos() . '/' . \Illuminate\Support\Str::uuid() . '.pdf';
+
+        // putFileAs cria a pasta do CPF quando ainda não existe. O disco tem
+        // throw => true, então uma falha aqui interrompe em vez de gravar um
+        // registro apontando para arquivo inexistente.
+        \Illuminate\Support\Facades\Storage::disk(self::DISCO_CURRICULOS)
+            ->putFileAs($this->pastaCurriculos(), $arquivo, basename($caminho));
+
         $versao = $this->curriculos()->create([
-            'path'          => $arquivo->store('candidatos/curriculos', 'local'),
+            'path'          => $caminho,
             'nome_original' => $arquivo->getClientOriginalName(),
             'enviado_em'    => now(),
         ]);
@@ -248,9 +281,19 @@ class Candidato extends Authenticatable implements MustVerifyEmail
         $this->unsetRelation('curriculoAtual');
     }
 
-    public function jaSeInscreveuNa(int $vagaId): bool
+    /**
+     * Já existe inscrição deste CPF nesta vaga do DRHFlow.
+     *
+     * A verificação é contra a origem, não contra o histórico da conta: uma
+     * inscrição feita fora do portal para o mesmo CPF e a mesma vaga já ocupa
+     * esse par, e criar uma segunda violaria a chave primária de lá.
+     *
+     * @throws \App\Support\Drhflow\DrhflowIndisponivelException
+     */
+    public function jaSeInscreveuNa(int $cdVagaEmprego): bool
     {
-        return $this->candidaturas()->where('vaga_id', $vagaId)->exists();
+        return app(\App\Support\Drhflow\InscricaoDrhflowRepository::class)
+            ->existe(\App\Support\Drhflow\MapeadorInscricao::cpf($this), $cdVagaEmprego);
     }
 
     /**
@@ -291,12 +334,41 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     /**
      * Guarda contra anonimizar quem ainda está concorrendo: enquanto houver
      * candidatura sem desfecho, a conta serve a um processo em andamento.
+     *
+     * Olha os dois lados. As candidaturas do MySQL ainda existem no caminho do
+     * coordenador; as inscrições novas vivem no DRHFlow, e lá "sem desfecho" é
+     * não ter média de avaliação preenchida.
      */
     public function temProcessoEmAberto(): bool
     {
-        return $this->candidaturas()
+        $noPortal = $this->candidaturas()
             ->whereIn('status', ['recebida', 'em_analise', 'entrevista'])
             ->exists();
+
+        return $noPortal || $this->temInscricaoEmAndamentoNoDrhflow();
+    }
+
+    /**
+     * Inscrição no DRHFlow ainda sem avaliação concluída.
+     *
+     * Com o DRHFlow fora do ar a resposta é "sim". A rotina de inatividade roda
+     * sozinha e anonimiza contas em lote: na dúvida ela precisa não agir, porque
+     * anonimizar quem está concorrendo é irreversível e adiar não custa nada.
+     */
+    private function temInscricaoEmAndamentoNoDrhflow(): bool
+    {
+        try {
+            return app(\App\Support\Drhflow\InscricaoDrhflowRepository::class)
+                ->doCpf(\App\Support\Drhflow\MapeadorInscricao::cpf($this))
+                ->contains(fn ($inscricao) => ! $inscricao->avaliacaoConcluida);
+        } catch (\App\Support\Drhflow\DrhflowIndisponivelException $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'DRHFlow indisponível ao verificar processo em aberto; conta tratada como em andamento.',
+                ['candidato_id' => $this->id, 'erro' => $e->getMessage()]
+            );
+
+            return true;
+        }
     }
 
 }

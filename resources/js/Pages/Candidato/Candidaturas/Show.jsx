@@ -1,11 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { ArrowLeft, CalendarClock, Download, ExternalLink, MapPin } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Clock, Download, ExternalLink, MapPin } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
-import CandidaturaTimeline from '@/components/CandidaturaTimeline';
-import { ModalidadeBadge, StatusCandidaturaBadge, TipoBadge } from '@/components/badges';
+import AndamentoInscricao, { AndamentoBadge } from '@/components/AndamentoInscricao';
+import { TipoAdmissaoBadge } from '@/components/badges';
 import { Button } from '@/components/ui/button';
-import { niveisEscolaridade } from '@/lib/enums';
-import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
+import { formatDate, localVaga } from '@/lib/format';
 
 function Info({ label, children }) {
     if (children === null || children === undefined || children === '' || children === 'N/A') return null;
@@ -17,49 +16,19 @@ function Info({ label, children }) {
     );
 }
 
-function TextoLivre({ label, valor }) {
-    if (!valor) return null;
-    return (
-        <div className="flex flex-col gap-0.5 sm:col-span-2">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
-            <dd className="whitespace-pre-line text-sm">{valor}</dd>
-        </div>
-    );
-}
-
-function Formacoes({ formacoes }) {
-    if (!formacoes?.length) return null;
-    return (
-        <div className="flex flex-col gap-0.5 sm:col-span-2">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formação</dt>
-            <dd className="mt-1 flex flex-col gap-2">
-                {formacoes.map((formacao, i) => (
-                    <div key={i} className="text-sm">
-                        <span className="font-medium">{formacao.curso}</span>
-                        {formacao.instituicao && <span className="text-muted-foreground"> — {formacao.instituicao}</span>}
-                        <div className="text-xs text-muted-foreground">
-                            {[
-                                niveisEscolaridade[formacao.nivel_escolaridade] || formacao.nivel_escolaridade,
-                                formacao.situacao_curso === 'cursando'
-                                    ? `Cursando${formacao.semestre ? ` — ${formacao.semestre}` : ''}`
-                                    : formacao.situacao_curso === 'concluido'
-                                      ? 'Concluído'
-                                      : null,
-                                formacao.previsao_conclusao ? formatDate(formacao.previsao_conclusao) : null,
-                            ]
-                                .filter(Boolean)
-                                .join(' · ')}
-                        </div>
-                    </div>
-                ))}
-            </dd>
-        </div>
-    );
-}
-
+/*
+ * Uma inscrição, reunindo as duas origens em uma tela só: o andamento vem do
+ * DRHFlow, os dados próprios (carta, conflito de interesse, currículo enviado)
+ * vêm do portal.
+ *
+ * Os dados pessoais não são repetidos aqui: eles vivem no perfil, que é fonte
+ * única e viva. Reapresentá-los seria mostrar uma cópia que pode ter divergido.
+ */
 export default function Show({ candidatura: c }) {
+    const vaga = c.vaga;
+
     return (
-        <PublicLayout title={`Candidatura: ${c.vaga?.titulo ?? ''}`}>
+        <PublicLayout title={`Candidatura: ${vaga?.titulo ?? ''}`}>
             <div className="mx-auto w-full max-w-3xl px-4 pt-10">
                 <Link
                     href={route('candidato.candidaturas.index')}
@@ -70,20 +39,19 @@ export default function Show({ candidatura: c }) {
 
                 <header className="mt-5">
                     <div className="flex flex-wrap items-center gap-2">
-                        {c.vaga && <TipoBadge tipo={c.vaga.tipo} />}
-                        {c.vaga && <ModalidadeBadge modalidade={c.vaga.modalidade} />}
-                        <StatusCandidaturaBadge status={c.status} />
+                        {vaga && <TipoAdmissaoBadge tipo={vaga.tipo} codigo={vaga.tipo_codigo} />}
+                        <AndamentoBadge andamento={c.andamento} rotulo={c.andamento_rotulo} />
                     </div>
                     <h1 className="mt-3 text-2xl font-bold leading-tight tracking-tight">
-                        {c.vaga?.titulo ?? 'Vaga removida'}
+                        {vaga?.titulo ?? 'Vaga encerrada'}
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Candidatura enviada em {formatDate(c.created_at)}
-                        {c.vaga?.status === 'ativa' && (
+                        {c.enviada_em && <>Candidatura enviada em {formatDate(c.enviada_em)}</>}
+                        {vaga && (
                             <>
-                                {' · '}
+                                {c.enviada_em && ' · '}
                                 <Link
-                                    href={route('vagas.publicas.show', c.vaga.id)}
+                                    href={route('vagas.publicas.show', vaga.id)}
                                     className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                                 >
                                     Ver vaga <ExternalLink className="size-3" />
@@ -95,25 +63,36 @@ export default function Show({ candidatura: c }) {
 
                 <div className="mt-7 rounded-xl bg-card p-6 ring-1 ring-foreground/10">
                     <h2 className="text-sm font-bold">Andamento do processo</h2>
-                    <CandidaturaTimeline status={c.status} className="mt-5" />
+                    <AndamentoInscricao andamento={c.andamento} className="mt-5" />
+                    {c.andamento === 'avaliacao_concluida' && (
+                        <p className="mt-5 text-sm text-muted-foreground">
+                            Sua avaliação foi concluída. O RH entrará em contato com o resultado do processo
+                            seletivo.
+                        </p>
+                    )}
                 </div>
 
-                {c.status === 'entrevista' && c.entrevista_data && (
+                {/* Aparece assim que o RH preenche a entrevista no DRHFlow, sem
+                    nenhuma ação do portal. */}
+                {c.entrevista_data && (
                     <div className="mt-4 rounded-xl bg-accent/60 p-5 ring-1 ring-primary/20">
                         <h2 className="text-sm font-bold text-accent-foreground">Entrevista agendada</h2>
                         <div className="mt-3 flex flex-col gap-2 text-sm">
                             <span className="inline-flex items-center gap-2">
                                 <CalendarClock className="size-4 text-primary" />
-                                {formatDateTime(c.entrevista_data)}
+                                {formatDate(c.entrevista_data)}
                             </span>
+                            {c.entrevista_hora && (
+                                <span className="inline-flex items-center gap-2">
+                                    <Clock className="size-4 text-primary" />
+                                    {c.entrevista_hora}
+                                </span>
+                            )}
                             {c.entrevista_local && (
                                 <span className="inline-flex items-center gap-2">
                                     <MapPin className="size-4 text-primary" />
                                     {c.entrevista_local}
                                 </span>
-                            )}
-                            {c.entrevista_observacoes && (
-                                <p className="text-muted-foreground">{c.entrevista_observacoes}</p>
                             )}
                         </div>
                     </div>
@@ -121,10 +100,10 @@ export default function Show({ candidatura: c }) {
 
                 <div className="mt-4 rounded-xl bg-card p-6 ring-1 ring-foreground/10">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h2 className="text-sm font-bold">Dados enviados</h2>
+                        <h2 className="text-sm font-bold">Envio</h2>
                         {c.tem_curriculo && (
                             <Button asChild variant="outline" size="sm">
-                                <a href={route('candidato.candidaturas.curriculo', c.id)}>
+                                <a href={route('candidato.candidaturas.curriculo', c.cd_vaga_emprego)}>
                                     <Download data-icon="inline-start" /> Currículo enviado
                                 </a>
                             </Button>
@@ -132,18 +111,16 @@ export default function Show({ candidatura: c }) {
                     </div>
 
                     <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-                        <Info label="Nome">{c.nome}</Info>
-                        <Info label="E-mail">{c.email}</Info>
-                        <Info label="CPF">{c.cpf_formatado}</Info>
-                        <Info label="Telefone">{c.telefone}</Info>
-                        <Info label="LinkedIn">{c.linkedin}</Info>
-                        <Info label="Pretensão salarial">{formatMoney(c.pretensao_salarial)}</Info>
-                        <Info label="Disponibilidade">{c.disponibilidade}</Info>
-                        <Info label="PcD">{c.pcd ? (c.pcd_tipo ? `Sim, ${c.pcd_tipo}` : 'Sim') : null}</Info>
-                        <Info label="Endereço">{c.endereco_completo || null}</Info>
-                        <Formacoes formacoes={c.formacoes} />
-                        <TextoLivre label="Outras formações reconhecidas pelo MEC" valor={c.outras_formacoes_mec} />
-                        <TextoLivre label="Outros cursos, palestras, etc." valor={c.outros_cursos} />
+                        {vaga && <Info label="Local">{localVaga(vaga)}</Info>}
+                        {vaga?.projeto_nome && <Info label="Projeto">{vaga.projeto_nome}</Info>}
+                        <Info label="Currículo enviado">{c.curriculo_nome}</Info>
+                        <Info label="Conflito de interesse">
+                            {c.conflito_interesse === true
+                                ? c.conflito_interesse_detalhe || 'Declarado'
+                                : c.conflito_interesse === false
+                                  ? 'Não declarado'
+                                  : null}
+                        </Info>
                     </dl>
 
                     {c.carta_apresentacao && (
@@ -155,6 +132,14 @@ export default function Show({ candidatura: c }) {
                         </div>
                     )}
                 </div>
+
+                <p className="mt-4 text-center text-xs text-muted-foreground">
+                    Seus dados pessoais ficam no seu{' '}
+                    <Link href={route('candidato.perfil.edit')} className="font-medium text-primary hover:underline">
+                        perfil
+                    </Link>
+                    . O que você atualizar lá vale para os processos em andamento.
+                </p>
             </div>
         </PublicLayout>
     );

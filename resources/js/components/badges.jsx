@@ -13,6 +13,15 @@ const tipoClasses = {
     bolsa: 'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
 };
 
+/* Códigos de CD_TIPO_ADMISSAO no DRHFlow. Bolsista é `U` na vaga (é `O` na
+   chave de EN_TIPO_ADMISSAO — a ponte entre os dois é a coluna CD_RM). */
+const tipoAdmissaoClasses = {
+    T: 'bg-violet-500/12 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300',
+    N: 'bg-blue-500/12 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300',
+    U: 'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
+    A: 'bg-amber-500/15 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
+};
+
 const statusVagaClasses = {
     rascunho: 'bg-muted text-muted-foreground',
     aguardando_autorizacao: 'bg-amber-500/15 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
@@ -32,6 +41,19 @@ const statusCandidaturaClasses = {
 
 export function TipoBadge({ tipo }) {
     return <Badge className={tipoClasses[tipo]}>{tiposLabel[tipo] ?? tipo}</Badge>;
+}
+
+/*
+ * Tipo de contratação das vagas do DRHFlow.
+ *
+ * O rótulo já chega traduzido do servidor — a spec proíbe código bruto na tela,
+ * e a tradução mora junto do domínio que a define. `codigo` serve só à cor:
+ * A autônomo, N celetista, U bolsista, T estagiário.
+ */
+export function TipoAdmissaoBadge({ tipo, codigo }) {
+    if (!tipo) return null;
+
+    return <Badge className={tipoAdmissaoClasses[codigo]}>{tipo}</Badge>;
 }
 
 export function ModalidadeBadge({ modalidade }) {

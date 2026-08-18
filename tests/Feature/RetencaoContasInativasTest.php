@@ -10,6 +10,7 @@ use App\Notifications\Candidato\AvisoInatividadeCandidato;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Tests\Concerns\UsaDrhflowFalso;
 
 /**
  * A anonimização por inatividade é irreversível, então o que estes testes guardam
@@ -18,7 +19,18 @@ use Illuminate\Support\Facades\Notification;
  */
 class RetencaoContasInativasTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, UsaDrhflowFalso;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // A rotina consulta o DRHFlow para saber se a conta ainda concorre a
+        // alguma vaga. Sem a origem alcançável ela trata todas como em
+        // andamento e não anonimiza nada — o que é o comportamento correto em
+        // produção, mas deixaria estes testes sem objeto.
+        $this->configurarDrhflowFalso();
+    }
 
     /** Conta parada há N anos — sem login, sem edição de perfil, sem candidatura. */
     private function contaInativaHa(int $anos, array $over = []): Candidato
@@ -136,6 +148,59 @@ class RetencaoContasInativasTest extends TestCase
         Notification::fake();
         $candidato = $this->contaInativaHa(3);
         $this->candidaturaPara($candidato, 'entrevista', now()->subYears(3));
+
+        $this->rodar();
+
+        Notification::assertNothingSentTo($candidato);
+        $this->assertNull($candidato->fresh()->aviso_inatividade_em);
+    }
+
+    public function test_inscricao_sem_avaliacao_no_drhflow_protege_a_conta(): void
+    {
+        Notification::fake();
+        $candidato = $this->contaInativaHa(3);
+        $codigo = $this->vagaDrhflow();
+        $this->inscricaoDrhflow(
+            \App\Support\Drhflow\MapeadorInscricao::cpf($candidato),
+            $codigo,
+            ['DT_CADASTRO' => now()->subYears(3)]
+        );
+
+        $this->rodar();
+
+        Notification::assertNothingSentTo($candidato);
+        $this->assertNull($candidato->fresh()->aviso_inatividade_em);
+    }
+
+    public function test_avaliacao_concluida_no_drhflow_nao_protege_a_conta(): void
+    {
+        Notification::fake();
+        $candidato = $this->contaInativaHa(3);
+        $codigo = $this->vagaDrhflow();
+        $this->inscricaoDrhflow(
+            \App\Support\Drhflow\MapeadorInscricao::cpf($candidato),
+            $codigo,
+            ['DT_CADASTRO' => now()->subYears(3), 'VL_MEDIA_AVALIACAO' => 7.5]
+        );
+
+        $this->rodar();
+
+        Notification::assertSentTo($candidato, AvisoInatividadeCandidato::class);
+    }
+
+    public function test_drhflow_fora_do_ar_impede_a_anonimizacao(): void
+    {
+        // Anonimizar é irreversível. Sem conseguir confirmar que ninguém está
+        // concorrendo, a rotina precisa não agir — adiar não custa nada.
+        Notification::fake();
+        $candidato = $this->contaInativaHa(3);
+
+        \Illuminate\Support\Facades\DB::purge('drhflow');
+        config(['database.connections.drhflow' => [
+            'driver' => 'sqlite',
+            'database' => '/caminho/inexistente/drhflow.sqlite',
+            'prefix' => '',
+        ]]);
 
         $this->rodar();
 

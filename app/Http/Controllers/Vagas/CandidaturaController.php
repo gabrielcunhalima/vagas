@@ -269,7 +269,7 @@ class CandidaturaController extends Controller
         // porta aberta de um processo cujos dados já deixaram de estar acessíveis.
         abort_unless(Auth::user()->can('baixarCurriculo', $candidatura), 403, 'Acesso aos dados deste candidato expirou.');
 
-        return Storage::disk('local')->download(
+        return Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->download(
             $candidatura->curriculo_path,
             $candidatura->curriculo_nome_original ?? 'curriculo.pdf'
         );

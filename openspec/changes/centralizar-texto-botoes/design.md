@@ -31,6 +31,9 @@ As classes `has-data-[icon=inline-end]:pr-2` / `has-data-[icon=inline-start]:pl-
 **4. Escopo da espelhagem.**
 Só se aplica quando há exatamente um filho com `data-icon` mais outro conteúdo (texto). Botões `size="icon*"` (sem texto) e botões com ícone nos dois lados ficam inalterados.
 
+**5. `asChild` (Slot) exige olhar um nível abaixo.**
+Quando `asChild={true}`, o filho direto de `Button` é o único elemento a ser fundido pelo `Slot.Root` (ex.: `<a>`/`<Link>`), e é *dentro dele* que o ícone e o texto aparecem como filhos (padrão usado em ~15 telas, ex. `Coord/Dashboard.jsx`, `VagaCard.jsx`, `Candidato/Perfil/Edit.jsx` "Exportar/Baixar"). A detecção original (só nos filhos diretos de `Button`) não alcançava esse caso e deixava esses botões sem correção — o próprio bug que esta change resolve. `Button` agora detecta `asChild` com exatamente um filho elemento e aplica a mesma lógica de spacer-espelho um nível abaixo, clonando esse filho com o novo conteúdo. Continua isolado em `button.jsx`.
+
 ## Risks / Trade-offs
 
 - [Risco] Clonar o elemento do ícone para o spacer duplica qualquer efeito colateral que ele tivesse → [Mitigação] ícones passados via `data-icon` são sempre SVGs presentacionais do `lucide-react`, sem handlers (convenção já existente, DESIGN_SYSTEM.md regra "Ícones só de lucide-react"); o clone também recebe `aria-hidden` e `pointer-events-none` por garantia.

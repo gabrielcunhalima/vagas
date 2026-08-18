@@ -23,15 +23,24 @@ Route::get('/', [VagaPublicaController::class, 'index'])->name('home');
 Route::inertia('/politica-privacidade', 'Publico/PoliticaPrivacidade')->name('politica.privacidade');
 
 Route::get('/vagas', [VagaPublicaController::class, 'index'])->name('vagas.publicas.index');
-Route::get('/vagas/{vaga}', [VagaPublicaController::class, 'show'])->name('vagas.publicas.show');
+
+/*
+ * {vaga} é o CD_VAGA_EMPREGO do DRHFlow, não o id da tabela MySQL — sem
+ * route-model binding, portanto. Os dois são numéricos e colidem: um link
+ * antigo resolve para a vaga de mesmo código no DRHFlow ou para 404.
+ */
+Route::get('/vagas/{vaga}', [VagaPublicaController::class, 'show'])
+    ->whereNumber('vaga')
+    ->name('vagas.publicas.show');
 
 Route::inertia('/fazenda-ressacada', 'Publico/FazendaRessacada')->name('fazenda.ressacada');
 
 // Candidatar-se e gerenciar alertas exigem conta com e-mail verificado.
 Route::middleware(['candidato.auth', 'candidato.verified'])->group(function () {
-    Route::get('/candidatura/{vaga}', [InscricaoController::class, 'create'])->name('inscricao.create');
-    Route::post('/candidatura/{vaga}', [InscricaoController::class, 'store'])->name('inscricao.store');
-    Route::get('/candidatura/{vaga}/confirmacao', [InscricaoController::class, 'confirmacao'])->name('inscricao.confirmacao');
+    // Também por CD_VAGA_EMPREGO, pelo mesmo motivo da rota de detalhe.
+    Route::get('/candidatura/{vaga}', [InscricaoController::class, 'create'])->whereNumber('vaga')->name('inscricao.create');
+    Route::post('/candidatura/{vaga}', [InscricaoController::class, 'store'])->whereNumber('vaga')->name('inscricao.store');
+    Route::get('/candidatura/{vaga}/confirmacao', [InscricaoController::class, 'confirmacao'])->whereNumber('vaga')->name('inscricao.confirmacao');
 
     Route::get('/alertas', [AlertaVagaController::class, 'create'])->name('alertas.create');
     Route::post('/alertas', [AlertaVagaController::class, 'store'])->name('alertas.store');
@@ -107,8 +116,16 @@ Route::prefix('minha-conta')->name('candidato.')->group(function () {
          */
         Route::middleware('candidato.verified')->group(function () {
             Route::get('/candidaturas', [MinhaCandidaturaController::class, 'index'])->name('candidaturas.index');
-            Route::get('/candidaturas/{candidatura}', [MinhaCandidaturaController::class, 'show'])->name('candidaturas.show');
-            Route::get('/candidaturas/{candidatura}/curriculo', [MinhaCandidaturaController::class, 'downloadCurriculo'])->name('candidaturas.curriculo');
+
+            /*
+             * {candidatura} é o CD_VAGA_EMPREGO: a inscrição não tem id próprio,
+             * ela é identificada pelo par CPF + vaga. O CPF vem do autenticado,
+             * então a rota carrega só a metade que varia.
+             */
+            Route::get('/candidaturas/{candidatura}', [MinhaCandidaturaController::class, 'show'])
+                ->whereNumber('candidatura')->name('candidaturas.show');
+            Route::get('/candidaturas/{candidatura}/curriculo', [MinhaCandidaturaController::class, 'downloadCurriculo'])
+                ->whereNumber('candidatura')->name('candidaturas.curriculo');
         });
     });
 });

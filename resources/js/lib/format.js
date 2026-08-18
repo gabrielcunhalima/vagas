@@ -71,7 +71,11 @@ export function iniciais(nome) {
     return ((partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? partes[0]?.[1] ?? '')).toUpperCase();
 }
 
+/* As vagas do DRHFlow já chegam com `localizacao` montada no servidor, com o que
+   houver de cidade e UF. As vagas do caminho legado (coordenador/gestor) ainda
+   passam cidade, estado, modalidade e local_trabalho separados. */
 export function localVaga(vaga) {
+    if (vaga.localizacao) return vaga.localizacao;
     if (vaga.modalidade === 'remoto') return 'Remoto';
     if (vaga.cidade && vaga.estado) return `${vaga.cidade}/${vaga.estado}`;
     return vaga.cidade || vaga.local_trabalho || 'A definir';

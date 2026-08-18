@@ -2,233 +2,253 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Vagas\Vaga;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\Concerns\UsaDrhflowFalso;
+use Tests\TestCase;
 
+/**
+ * A listagem e o detalhe públicos, agora servidos pelo DRHFlow.
+ *
+ * As vagas não vêm mais da tabela `vagas` do MySQL — que continua existindo para
+ * o coordenador e o gestor, cobertos por `VagaCoordenadorTest` e `VagaGestorTest`.
+ */
 class VagaPublicaTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private User $coord;
+    use RefreshDatabase, UsaDrhflowFalso;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
-    }
-
-    private function criarVaga(array $attrs = []): Vaga
-    {
-        return Vaga::create(array_merge([
-            'titulo'            => 'Vaga Pública de Teste',
-            'descricao'         => 'Descrição pública da vaga de teste para listagem.',
-            'requisitos'        => 'Requisitos da vaga pública de teste.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
-            'remuneracao'       => 1200.00,
-            'carga_horaria'     => 30,
-            'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $this->coord->id,
-            'notificar_email'   => true,
-        ], $attrs));
+        $this->configurarDrhflowFalso();
     }
 
     // ── Home / Listagem pública ───────────────────────────────────────────────
 
-    public function test_home_redireciona_para_vagas(): void
+    public function test_home_responde(): void
     {
-        $response = $this->get('/');
-        // Home pode ser a própria listagem ou redirect
-        $response->assertStatus(200);
+        $this->get('/')->assertStatus(200);
     }
 
     public function test_listagem_publica_acessivel(): void
     {
         $response = $this->get('/vagas');
+
         $response->assertStatus(200);
         $this->assertComponenteInertia($response, 'Publico/Vagas/Index');
     }
 
-    public function test_listagem_exibe_vagas_ativas(): void
+    public function test_listagem_exibe_vagas_abertas_do_drhflow(): void
     {
-        $this->criarVaga(['titulo' => 'Estágio em PHP']);
-        $response = $this->get('/vagas');
-        $this->assertVeInertia($response, 'Estágio em PHP');
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373']);
+
+        $this->assertVeInertia($this->get('/vagas'), 'PROGRAMADOR');
     }
 
-    public function test_listagem_nao_exibe_vagas_rascunho(): void
+    public function test_listagem_nao_exibe_vaga_finalizada(): void
     {
-        $this->criarVaga(['titulo' => 'Rascunho Escondido', 'status' => 'rascunho']);
-        $response = $this->get('/vagas');
-        $this->assertNaoVeInertia($response, 'Rascunho Escondido');
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_SITUACAO' => 2]);
+
+        $this->assertNaoVeInertia($this->get('/vagas'), 'PROGRAMADOR');
     }
 
-    public function test_listagem_nao_exibe_vagas_aguardando_autorizacao(): void
+    public function test_listagem_nao_exibe_vaga_cancelada(): void
     {
-        $this->criarVaga(['titulo' => 'Aguardando Escondida', 'status' => 'aguardando_autorizacao']);
-        $response = $this->get('/vagas');
-        $this->assertNaoVeInertia($response, 'Aguardando Escondida');
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_SITUACAO' => 3]);
+
+        $this->assertNaoVeInertia($this->get('/vagas'), 'PROGRAMADOR');
     }
 
-    public function test_listagem_nao_exibe_vagas_encerradas(): void
+    public function test_listagem_nao_exibe_vaga_com_prazo_vencido(): void
     {
-        $this->criarVaga([
-            'titulo'            => 'Encerrada Escondida',
-            'status'            => 'encerrada',
-            'data_encerramento' => now()->subDays(5)->toDateString(),
-        ]);
-        $response = $this->get('/vagas');
-        $this->assertNaoVeInertia($response, 'Encerrada Escondida');
-    }
-
-    public function test_listagem_nao_exibe_vagas_ativas_com_data_passada(): void
-    {
-        $this->criarVaga([
-            'titulo'            => 'Ativa Expirada',
-            'status'            => 'ativa',
-            'data_encerramento' => now()->subDays(1)->toDateString(),
-        ]);
-        $response = $this->get('/vagas');
-        $this->assertNaoVeInertia($response, 'Ativa Expirada');
-    }
-
-    // ── Filtros na listagem pública ───────────────────────────────────────────
-
-    public function test_filtro_por_area(): void
-    {
-        $this->criarVaga(['titulo' => 'Vaga TI', 'area' => 'Tecnologia da Informação']);
-        $this->criarVaga(['titulo' => 'Vaga ADM', 'area' => 'Administração']);
-
-        $response = $this->get('/vagas?area=Administra%C3%A7%C3%A3o');
-        $this->assertVeInertia($response, 'Vaga ADM');
-        $this->assertNaoVeInertia($response, 'Vaga TI');
-    }
-
-    public function test_filtro_por_tipo(): void
-    {
-        $this->criarVaga(['titulo' => 'Estágio X', 'tipo' => 'estagio']);
-        $this->criarVaga(['titulo' => 'Emprego X', 'tipo' => 'emprego']);
-
-        $response = $this->get('/vagas?tipo=emprego');
-        $this->assertVeInertia($response, 'Emprego X');
-        $this->assertNaoVeInertia($response, 'Estágio X');
-    }
-
-    public function test_filtro_por_modalidade(): void
-    {
-        $this->criarVaga(['titulo' => 'Vaga Presencial', 'modalidade' => 'presencial']);
-        $this->criarVaga(['titulo' => 'Vaga Remota', 'modalidade' => 'remoto']);
-
-        $response = $this->get('/vagas?modalidade=remoto');
-        $this->assertVeInertia($response, 'Vaga Remota');
-        $this->assertNaoVeInertia($response, 'Vaga Presencial');
-    }
-
-    public function test_filtro_por_busca(): void
-    {
-        $this->criarVaga(['titulo' => 'Desenvolvedor Laravel']);
-        $this->criarVaga(['titulo' => 'Analista Financeiro']);
-
-        $response = $this->get('/vagas?busca=Laravel');
-        $this->assertVeInertia($response, 'Desenvolvedor Laravel');
-        $this->assertNaoVeInertia($response, 'Analista Financeiro');
-    }
-
-    public function test_filtro_por_curso(): void
-    {
-        $this->criarVaga([
-            'titulo'         => 'Vaga para Computação',
-            'curso_desejado' => ['Ciência da Computação'],
-        ]);
-        $this->criarVaga([
-            'titulo'         => 'Vaga para Direito',
-            'curso_desejado' => ['Direito'],
+        $this->vagaDrhflow([
+            'CD_FUNCAO' => '0373',
+            'DT_LIMITE_PARA_INSCRICAO' => now()->subDays(3)->startOfDay(),
         ]);
 
-        $response = $this->get('/vagas?curso=Ci%C3%AAncia+da+Computa%C3%A7%C3%A3o');
-        $this->assertVeInertia($response, 'Vaga para Computação');
-        $this->assertNaoVeInertia($response, 'Vaga para Direito');
+        $this->assertNaoVeInertia($this->get('/vagas'), 'PROGRAMADOR');
+    }
+
+    public function test_listagem_exibe_vaga_no_ultimo_dia_do_prazo(): void
+    {
+        $this->vagaDrhflow([
+            'CD_FUNCAO' => '0373',
+            'DT_LIMITE_PARA_INSCRICAO' => now()->startOfDay(),
+        ]);
+
+        $this->assertVeInertia($this->get('/vagas'), 'PROGRAMADOR');
+    }
+
+    // ── Filtros ───────────────────────────────────────────────────────────────
+
+    public function test_filtro_por_tipo_de_contratacao(): void
+    {
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_TIPO_ADMISSAO' => 'N']);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'CD_TIPO_ADMISSAO' => 'U']);
+
+        $response = $this->get('/vagas?tipo=N');
+
+        $this->assertVeInertia($response, 'PROGRAMADOR');
+        $this->assertNaoVeInertia($response, 'BOLSISTA');
+    }
+
+    public function test_filtro_por_busca_cobre_cargo_e_atividades(): void
+    {
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'DE_ATIVIDADES' => 'Nada a ver.']);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'DE_ATIVIDADES' => 'Levantamento topográfico.']);
+
+        $porCargo = $this->get('/vagas?busca=PROGRAMADOR');
+        $this->assertVeInertia($porCargo, 'PROGRAMADOR');
+        $this->assertNaoVeInertia($porCargo, 'BOLSISTA');
+
+        $porAtividade = $this->get('/vagas?busca=topogr');
+        $this->assertVeInertia($porAtividade, 'BOLSISTA');
+        $this->assertNaoVeInertia($porAtividade, 'PROGRAMADOR');
     }
 
     public function test_filtro_por_cidade(): void
     {
-        $this->criarVaga(['titulo' => 'Vaga Floripa', 'cidade' => 'Florianópolis']);
-        $this->criarVaga(['titulo' => 'Vaga SP', 'cidade' => 'São Paulo']);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_MUNICIPIO' => 1653]);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'CD_MUNICIPIO' => 4204]);
 
         $response = $this->get('/vagas?cidade=Florian%C3%B3polis');
-        $this->assertVeInertia($response, 'Vaga Floripa');
-        $this->assertNaoVeInertia($response, 'Vaga SP');
+
+        $this->assertVeInertia($response, 'PROGRAMADOR');
+        $this->assertNaoVeInertia($response, 'BOLSISTA');
     }
 
-    public function test_filtro_por_faixa_salarial_minima(): void
+    public function test_filtro_por_escolaridade(): void
     {
-        $this->criarVaga(['titulo' => 'Vaga Alta Remun', 'remuneracao' => 5000.00]);
-        $this->criarVaga(['titulo' => 'Vaga Baixa Remun', 'remuneracao' => 900.00]);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_ESCOLARIDADE_EXIGIDA' => '9']);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'CD_ESCOLARIDADE_EXIGIDA' => '8']);
 
-        $response = $this->get('/vagas?salario_min=3000');
-        $this->assertVeInertia($response, 'Vaga Alta Remun');
-        $this->assertNaoVeInertia($response, 'Vaga Baixa Remun');
+        $response = $this->get('/vagas?escolaridade=9');
+
+        $this->assertVeInertia($response, 'PROGRAMADOR');
+        $this->assertNaoVeInertia($response, 'BOLSISTA');
     }
 
-    public function test_filtro_por_faixa_salarial_maxima(): void
+    public function test_filtro_por_projeto(): void
     {
-        $this->criarVaga(['titulo' => 'Vaga Alta Remun', 'remuneracao' => 5000.00]);
-        $this->criarVaga(['titulo' => 'Vaga Baixa Remun', 'remuneracao' => 900.00]);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'CD_PROJETO' => '2024.011']);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'CD_PROJETO' => '2025.114']);
 
-        $response = $this->get('/vagas?salario_max=2000');
-        $this->assertVeInertia($response, 'Vaga Baixa Remun');
-        $this->assertNaoVeInertia($response, 'Vaga Alta Remun');
+        $response = $this->get('/vagas?projeto=2024.011');
+
+        $this->assertVeInertia($response, 'PROGRAMADOR');
+        $this->assertNaoVeInertia($response, 'BOLSISTA');
     }
 
-    // ── Detalhes da vaga ──────────────────────────────────────────────────────
-
-    public function test_pagina_detalhes_vaga_ativa(): void
+    public function test_filtro_por_faixa_salarial(): void
     {
-        $vaga = $this->criarVaga(['titulo' => 'Estágio em Python']);
-        $response = $this->get("/vagas/{$vaga->id}");
+        $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'VL_SALARIO' => 5000]);
+        $this->vagaDrhflow(['CD_FUNCAO' => '0993', 'VL_SALARIO' => 900]);
+
+        $minimo = $this->get('/vagas?salario_min=3000');
+        $this->assertVeInertia($minimo, 'PROGRAMADOR');
+        $this->assertNaoVeInertia($minimo, 'BOLSISTA');
+
+        $maximo = $this->get('/vagas?salario_max=2000');
+        $this->assertVeInertia($maximo, 'BOLSISTA');
+        $this->assertNaoVeInertia($maximo, 'PROGRAMADOR');
+    }
+
+    public function test_nao_ha_filtro_por_area_modalidade_nem_curso(): void
+    {
+        $props = $this->propsInertia($this->get('/vagas'));
+
+        $this->assertArrayNotHasKey('areas', $props);
+        $this->assertArrayNotHasKey('cursos', $props);
+        $this->assertArrayNotHasKey('modalidades', $props);
+    }
+
+    public function test_opcoes_de_filtro_vem_dos_dominios_do_drhflow(): void
+    {
+        $this->vagaDrhflow();
+
+        $props = $this->propsInertia($this->get('/vagas'));
+
+        $this->assertSame('Bolsista', $props['tipos']['U']);
+        $this->assertSame('Educação superior completo', $props['escolaridades']['9']);
+        $this->assertContains('Florianópolis', $props['municipios']);
+        $this->assertArrayHasKey('SC', $props['ufs']);
+    }
+
+    // ── Detalhe ───────────────────────────────────────────────────────────────
+
+    public function test_detalhe_resolve_pelo_codigo_do_drhflow(): void
+    {
+        $codigo = $this->vagaDrhflow(['CD_FUNCAO' => '0373']);
+
+        $response = $this->get("/vagas/{$codigo}");
+
         $response->assertStatus(200);
         $this->assertComponenteInertia($response, 'Publico/Vagas/Show');
-        $this->assertVeInertia($response, 'Estágio em Python');
+        $this->assertVeInertia($response, 'PROGRAMADOR');
     }
 
-    public function test_pagina_detalhes_exibe_vagas_relacionadas(): void
+    public function test_detalhe_de_codigo_inexistente_responde_404(): void
     {
-        $vaga = $this->criarVaga(['area' => 'Tecnologia da Informação']);
-        $this->criarVaga(['titulo' => 'Outra Vaga TI', 'area' => 'Tecnologia da Informação']);
-
-        $response = $this->get("/vagas/{$vaga->id}");
-        $response->assertStatus(200);
-        $this->assertPropInertia($response, 'relacionadas');
+        $this->get('/vagas/999999')->assertStatus(404);
     }
 
-    // ── Fazenda Ressacada (página especial) ───────────────────────────────────
+    public function test_detalhe_de_vaga_fora_do_criterio_responde_404(): void
+    {
+        $finalizada = $this->vagaDrhflow(['CD_SITUACAO' => 2]);
+        $vencida = $this->vagaDrhflow(['DT_LIMITE_PARA_INSCRICAO' => now()->subWeek()]);
+
+        $this->get("/vagas/{$finalizada}")->assertStatus(404);
+        $this->get("/vagas/{$vencida}")->assertStatus(404);
+    }
+
+    public function test_codigos_chegam_traduzidos_ao_detalhe(): void
+    {
+        $codigo = $this->vagaDrhflow([
+            'CD_TIPO_ADMISSAO' => 'N',
+            'CD_ESCOLARIDADE_EXIGIDA' => '9',
+            'CD_TIPO_EXPERIENCIA' => 4,
+        ]);
+
+        $vaga = $this->propsInertia($this->get("/vagas/{$codigo}"))['vaga'];
+
+        $this->assertSame('Celetista', $vaga['tipo']);
+        $this->assertSame('Educação superior completo', $vaga['escolaridade']);
+        $this->assertSame('2 Anos', $vaga['experiencia']);
+    }
+
+    // ── Indisponibilidade da origem ───────────────────────────────────────────
+
+    public function test_drhflow_indisponivel_nao_vira_listagem_vazia(): void
+    {
+        DB::purge('drhflow');
+        config(['database.connections.drhflow' => [
+            'driver' => 'sqlite',
+            'database' => '/caminho/inexistente/drhflow.sqlite',
+            'prefix' => '',
+        ]]);
+
+        $response = $this->get('/vagas');
+
+        $response->assertStatus(200);
+        $this->assertTrue($this->propsInertia($response)['indisponivel']);
+    }
+
+    // ── Páginas estáticas e API ───────────────────────────────────────────────
 
     public function test_pagina_fazenda_ressacada_acessivel(): void
     {
-        $response = $this->get('/fazenda-ressacada');
-        $response->assertStatus(200);
+        $this->get('/fazenda-ressacada')->assertStatus(200);
     }
-
-    // ── API CEP ───────────────────────────────────────────────────────────────
 
     public function test_api_cep_retorna_json(): void
     {
-        $response = $this->get('/api/cep/88040-400');
-        // Pode retornar 200 (dados) ou 422 (CEP não encontrado no ViaCEP externo)
-        // Em testes, verificamos apenas que retorna JSON e não 500
-        $this->assertNotEquals(500, $response->status());
+        // Pode ser 200 (dados) ou 422 (não encontrado no ViaCEP); o que importa
+        // é não estourar.
+        $this->assertNotEquals(500, $this->get('/api/cep/88040-400')->status());
     }
 
     public function test_api_cep_formato_invalido_retorna_404(): void
     {
-        $response = $this->get('/api/cep/abc');
-        $response->assertStatus(404); // Rota não existe para este formato (regex)
+        $this->get('/api/cep/abc')->assertStatus(404);
     }
 }

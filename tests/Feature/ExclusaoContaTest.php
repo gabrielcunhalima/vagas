@@ -83,23 +83,23 @@ class ExclusaoContaTest extends TestCase
 
     public function test_exclusao_remove_todas_as_versoes_de_curriculo(): void
     {
-        Storage::fake('local');
+        Storage::fake(\App\Models\Candidato::DISCO_CURRICULOS);
         [$candidato] = $this->candidatoComCandidatura();
 
-        Storage::disk('local')->put($candidato->curriculoAtual->path, 'v1');
+        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($candidato->curriculoAtual->path, 'v1');
 
         $v2 = $candidato->curriculos()->create([
             'path'          => 'candidatos/curriculos/v2.pdf',
             'nome_original' => 'curriculo-v2.pdf',
             'enviado_em'    => now(),
         ]);
-        Storage::disk('local')->put($v2->path, 'v2');
+        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($v2->path, 'v2');
         $caminhoV1 = $candidato->curriculoAtual->path;
 
         app(AnonimizacaoService::class)->anonimizarCandidato($candidato);
 
-        Storage::disk('local')->assertMissing($caminhoV1);
-        Storage::disk('local')->assertMissing($v2->path);
+        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->assertMissing($caminhoV1);
+        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->assertMissing($v2->path);
         $this->assertSame(0, $candidato->curriculos()->count());
     }
 
