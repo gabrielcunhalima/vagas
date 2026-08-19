@@ -1,0 +1,373 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Cannot call method gt\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Console/Commands/AnonimizarContasInativas.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculoAtual\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Candidato/MinhaCandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nome_original\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Candidato/MinhaCandidaturaController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>curriculoVigente" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Candidato/MinhaCandidaturaController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nome_original" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Candidato/MinhaCandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$candidaturas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Candidato/PerfilController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculoAtual\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Candidato/PerfilController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculos\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Candidato/PerfilController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$formacoes\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Candidato/PerfilController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$alerta\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/AlertaVagaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$eventos\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$nome\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$pcd\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$curriculo_atual_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$outras_formacoes_mec\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$outros_cursos\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:trashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:busca\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:porStatus\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:through\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\Vagas\\Candidatura\)\: array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Vagas/CandidaturaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$nome\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Vaga\:\:\$coordenador\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Vagas\\Candidatura\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Vagas/DashboardController.php
+
+		-
+			message: '#^Relation ''coordenador'' is not found in App\\Models\\Vagas\\Vaga model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Vagas/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculoAtual\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/InscricaoController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$formacoes\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Vagas/InscricaoController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Vaga\:\:\$coordenador\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Vagas/VagaController.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: app/Http/Controllers/Vagas/VagaController.php
+
+		-
+			message: '#^Relation ''coordenador'' is not found in App\\Models\\Vagas\\Vaga model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Vagas/VagaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$titulo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Mail/Vagas/AprovacaoMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$titulo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Mail/Vagas/ConviteEntrevistaMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$titulo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Mail/Vagas/NovaCandidaturaMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$titulo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Mail/Vagas/ReprovacaoMail.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$formacoes\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Candidato.php
+
+		-
+			message: '#^Method App\\Models\\Candidato\:\:ultimaAtividadeEm\(\) should return Illuminate\\Support\\Carbon\|null but returns Carbon\\Carbon\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Candidato.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>email" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Vagas/AlertaVaga.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$bairro\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$cep\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$cidade\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$complemento\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$cpf\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$estado\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$logradouro\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Vagas\\Candidatura\:\:\$numero\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$curriculoAtual\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$formacoes\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:temCurriculo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Match arm comparison between ''reprovado'' and ''reprovado'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>formacoes" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Vagas/Candidatura.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: app/Models/Vagas/Vaga.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Models/Vagas/Vaga.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$coordenador_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/CandidaturaPolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$data_encerramento\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/CandidaturaPolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/CandidaturaPolicy.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:trashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Policies/CandidaturaPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>ocorrido_em" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Policies/CandidaturaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$alerta\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AnonimizacaoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculos\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AnonimizacaoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$formacoes\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Support/Drhflow/MapeadorInscricao.php
+
+		-
+			message: '#^Parameter \#1 \$linhas of method App\\Support\\Drhflow\\VagaDrhflowRepository\:\:montar\(\) expects Illuminate\\Support\\Collection\<int, object\>, Illuminate\\Support\\Collection\<int, stdClass\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Support/Drhflow/VagaDrhflowRepository.php
