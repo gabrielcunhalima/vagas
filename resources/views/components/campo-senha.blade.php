@@ -9,7 +9,6 @@
         name="{{ $name }}"
         type="password"
         class="h-10 pr-10"
-        placeholder="••••••••"
         :autocomplete="$autocomplete"
         :required="$required"
         :autofocus="$autofocus"

@@ -12,7 +12,7 @@
         <input type="hidden" name="redirect" value="{{ $redirect }}">
 
         <x-field label="E-mail" name="email">
-            <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" placeholder="seu@email.com" autocomplete="username" autofocus required />
+            <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" autocomplete="username" autofocus required />
         </x-field>
 
         <x-field label="Senha" name="password">

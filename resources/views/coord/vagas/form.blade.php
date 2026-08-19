@@ -26,19 +26,19 @@
                 <h2 class="text-sm font-bold tracking-tight">Identificação</h2>
                 <div class="mt-4 flex flex-col gap-4">
                     <x-field label="Título da vaga" name="titulo" required>
-                        <x-ui.input id="titulo" name="titulo" value="{{ old('titulo', $vaga?->titulo ?? '') }}" placeholder="Ex.: Estágio em Administração, Projeto X" :autofocus="!$editando" />
+                        <x-ui.input id="titulo" name="titulo" value="{{ old('titulo', $vaga?->titulo ?? '') }}" :autofocus="!$editando" />
                     </x-field>
                     <x-field label="Descrição" name="descricao" required>
-                        <x-ui.textarea id="descricao" name="descricao" rows="5" placeholder="Atividades, contexto do projeto, o que a pessoa vai fazer…">{{ old('descricao', $vaga?->descricao ?? '') }}</x-ui.textarea>
+                        <x-ui.textarea id="descricao" name="descricao" rows="5">{{ old('descricao', $vaga?->descricao ?? '') }}</x-ui.textarea>
                     </x-field>
                     <x-field label="Requisitos" name="requisitos" required>
-                        <x-ui.textarea id="requisitos" name="requisitos" rows="4" placeholder="Um requisito por linha…">{{ old('requisitos', $vaga?->requisitos ?? '') }}</x-ui.textarea>
+                        <x-ui.textarea id="requisitos" name="requisitos" rows="4">{{ old('requisitos', $vaga?->requisitos ?? '') }}</x-ui.textarea>
                     </x-field>
                     <x-field label="Diferenciais (desejáveis)" name="requisitos_desejaveis">
                         <x-ui.textarea id="requisitos_desejaveis" name="requisitos_desejaveis" rows="3">{{ old('requisitos_desejaveis', $vaga?->requisitos_desejaveis ?? '') }}</x-ui.textarea>
                     </x-field>
                     <x-field label="Benefícios" name="beneficios">
-                        <x-ui.textarea id="beneficios" name="beneficios" rows="3" placeholder="Ex.: Vale-transporte, auxílio-alimentação…">{{ old('beneficios', $vaga?->beneficios ?? '') }}</x-ui.textarea>
+                        <x-ui.textarea id="beneficios" name="beneficios" rows="3">{{ old('beneficios', $vaga?->beneficios ?? '') }}</x-ui.textarea>
                     </x-field>
                 </div>
             </section>
@@ -60,7 +60,7 @@
                 <p class="mt-0.5 text-xs text-muted-foreground">Para vagas remotas, o endereço é opcional.</p>
                 <div class="mt-4 grid gap-4 sm:grid-cols-6">
                     <x-field label="CEP" name="cep" class="sm:col-span-2">
-                        <x-ui.input id="cep" name="cep" inputmode="numeric" value="{{ old('cep', $vaga?->cep ?? '') }}" placeholder="00000-000" data-cep-input data-cep-url="{{ url('/api/cep') }}" data-cep-logradouro="logradouro" data-cep-bairro="bairro" data-cep-cidade="cidade" data-cep-estado="estado" />
+                        <x-ui.input id="cep" name="cep" inputmode="numeric" value="{{ old('cep', $vaga?->cep ?? '') }}" data-cep-input data-cep-url="{{ url('/api/cep') }}" data-cep-logradouro="logradouro" data-cep-bairro="bairro" data-cep-cidade="cidade" data-cep-estado="estado" />
                         <p data-cep-hint-for="cep" class="text-xs text-muted-foreground"></p>
                     </x-field>
                     <x-field label="Cidade" name="cidade" class="sm:col-span-3">
@@ -87,7 +87,7 @@
                         <x-ui.input id="complemento" name="complemento" value="{{ old('complemento', $vaga?->complemento ?? '') }}" />
                     </x-field>
                     <x-field label="Referência do local" name="local_trabalho" class="sm:col-span-3">
-                        <x-ui.input id="local_trabalho" name="local_trabalho" value="{{ old('local_trabalho', $vaga?->local_trabalho ?? '') }}" placeholder="Ex.: Campus UFSC, Trindade" />
+                        <x-ui.input id="local_trabalho" name="local_trabalho" value="{{ old('local_trabalho', $vaga?->local_trabalho ?? '') }}" />
                     </x-field>
                 </div>
             </section>
@@ -129,7 +129,7 @@
                     </x-field>
                     <x-field label="Cursos desejados" name="curso_desejado" hint="Vazio = aberto a qualquer curso.">
                         <div data-multi-select data-multi-select-name="curso_desejado" class="flex flex-col gap-2">
-                            <input type="text" list="cursos-datalist" data-multi-select-input placeholder="Adicionar curso…" class="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
+                            <input type="text" list="cursos-datalist" data-multi-select-input aria-label="Adicionar curso" class="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
                             <datalist id="cursos-datalist">
                                 @foreach ($cursos as $c)
                                     <option value="{{ $c }}"></option>
@@ -156,14 +156,14 @@
                 <div class="mt-4 flex flex-col gap-4">
                     <div class="grid grid-cols-2 items-end gap-3">
                         <x-field label="Remuneração (R$)" name="remuneracao">
-                            <x-ui.input id="remuneracao" name="remuneracao" type="number" min="0" step="0.01" value="{{ old('remuneracao', $vaga?->remuneracao ?? '') }}" placeholder="Mín." />
+                            <x-ui.input id="remuneracao" name="remuneracao" type="number" min="0" step="0.01" value="{{ old('remuneracao', $vaga?->remuneracao ?? '') }}" />
                         </x-field>
                         <x-field label="Até (R$)" name="remuneracao_max">
-                            <x-ui.input id="remuneracao_max" name="remuneracao_max" type="number" min="0" step="0.01" value="{{ old('remuneracao_max', $vaga?->remuneracao_max ?? '') }}" placeholder="Máx." />
+                            <x-ui.input id="remuneracao_max" name="remuneracao_max" type="number" min="0" step="0.01" value="{{ old('remuneracao_max', $vaga?->remuneracao_max ?? '') }}" />
                         </x-field>
                     </div>
                     <x-field label="Carga horária semanal" name="carga_horaria">
-                        <x-ui.input id="carga_horaria" name="carga_horaria" type="number" min="1" max="44" value="{{ old('carga_horaria', $vaga?->carga_horaria ?? '') }}" placeholder="Ex.: 20" />
+                        <x-ui.input id="carga_horaria" name="carga_horaria" type="number" min="1" max="44" value="{{ old('carga_horaria', $vaga?->carga_horaria ?? '') }}" />
                     </x-field>
                     <x-field label="Inscrições até" name="data_encerramento" required>
                         <x-ui.input id="data_encerramento" name="data_encerramento" type="date" value="{{ old('data_encerramento', $vaga?->data_encerramento?->format('Y-m-d') ?? '') }}" />

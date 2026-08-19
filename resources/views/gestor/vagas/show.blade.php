@@ -147,7 +147,7 @@
             <p class="mt-2 text-sm text-muted-foreground">O coordenador será notificado por e-mail com o motivo abaixo e poderá ajustar a vaga e reenviá-la.</p>
             <div class="mt-4">
                 <x-field label="Motivo da recusa" name="motivo_recusa" required>
-                    <x-ui.textarea id="motivo_recusa" name="motivo_recusa" rows="4" placeholder="Explique o que precisa ser ajustado (mín. 10 caracteres)…" required minlength="10"></x-ui.textarea>
+                    <x-ui.textarea id="motivo_recusa" name="motivo_recusa" rows="4" required minlength="10"></x-ui.textarea>
                 </x-field>
             </div>
             <div class="mt-5 flex justify-end gap-2">

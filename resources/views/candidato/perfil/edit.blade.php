@@ -71,11 +71,11 @@
                     <x-field label="CPF" name="cpf" required>
                         <x-ui.input id="cpf" name="cpf" inputmode="numeric" value="{{ old('cpf', $candidato['cpf'] ? \App\Support\Cpf::mascara($candidato['cpf']) : '') }}" data-cpf-input required />
                     </x-field>
-                    <x-field label="Telefone" name="telefone">
-                        <x-ui.input id="telefone" name="telefone" inputmode="numeric" value="{{ old('telefone', $candidato['telefone']) }}" placeholder="(48) 99999-9999" data-telefone-input />
+                    <x-field label="Telefone" name="telefone" hint="Formato: (48) 99999-9999">
+                        <x-ui.input id="telefone" name="telefone" inputmode="numeric" value="{{ old('telefone', $candidato['telefone']) }}" data-telefone-input />
                     </x-field>
-                    <x-field label="LinkedIn" name="linkedin">
-                        <x-ui.input id="linkedin" name="linkedin" type="url" value="{{ old('linkedin', $candidato['linkedin']) }}" placeholder="https://linkedin.com/in/voce" />
+                    <x-field label="LinkedIn" name="linkedin" hint="Ex.: https://linkedin.com/in/voce">
+                        <x-ui.input id="linkedin" name="linkedin" type="url" value="{{ old('linkedin', $candidato['linkedin']) }}" />
                     </x-field>
                     <x-field label="Nome social" name="nome_social">
                         <x-ui.input id="nome_social" name="nome_social" value="{{ old('nome_social', $candidato['nome_social']) }}" />
@@ -136,7 +136,7 @@
                 <p class="mt-0.5 text-xs text-muted-foreground">Informe o CEP para preenchimento automático.</p>
                 <div class="mt-4 grid gap-4 sm:grid-cols-6">
                     <x-field label="CEP" name="cep" class="sm:col-span-2">
-                        <x-ui.input id="cep" name="cep" inputmode="numeric" value="{{ old('cep', $candidato['cep']) }}" placeholder="00000-000" data-cep-input data-cep-url="{{ url('/api/cep') }}" data-cep-logradouro="logradouro" data-cep-bairro="bairro" data-cep-cidade="cidade" data-cep-estado="estado" />
+                        <x-ui.input id="cep" name="cep" inputmode="numeric" value="{{ old('cep', $candidato['cep']) }}" data-cep-input data-cep-url="{{ url('/api/cep') }}" data-cep-logradouro="logradouro" data-cep-bairro="bairro" data-cep-cidade="cidade" data-cep-estado="estado" />
                         <p data-cep-hint-for="cep" class="text-xs text-muted-foreground"></p>
                     </x-field>
                     <x-field label="Cidade" name="cidade" class="sm:col-span-3">

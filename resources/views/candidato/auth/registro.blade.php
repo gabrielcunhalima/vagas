@@ -20,7 +20,6 @@
                     inputmode="numeric"
                     class="h-10"
                     value="{{ old('cpf') }}"
-                    placeholder="000.000.000-00"
                     autofocus
                     data-cpf-input
                     data-cpf-check-url="{{ route('candidato.registro.verificar-cpf') }}"
@@ -38,7 +37,7 @@
             </x-field>
 
             <x-field label="E-mail" name="email" required>
-                <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" placeholder="seu@email.com" autocomplete="username" />
+                <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" autocomplete="username" />
             </x-field>
 
             <x-field label="Senha" name="password" required>

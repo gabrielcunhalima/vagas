@@ -9,7 +9,7 @@
     <form method="POST" action="{{ route('login.post') }}" class="mt-8 flex flex-col gap-5">
         @csrf
         <x-field label="E-mail" name="email">
-            <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" placeholder="voce@fapeu.org.br" autocomplete="username" autofocus required />
+            <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" autocomplete="username" autofocus required />
         </x-field>
 
         <x-field label="Senha" name="password">

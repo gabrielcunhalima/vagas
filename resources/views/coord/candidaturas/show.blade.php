@@ -184,7 +184,7 @@
                 <input type="hidden" name="status" value="{{ $c['status'] }}">
                 <h2 class="text-sm font-bold">Observações internas</h2>
                 <p class="mt-0.5 text-xs text-muted-foreground">Visíveis apenas para a equipe. O candidato nunca vê este campo.</p>
-                <x-ui.textarea rows="4" name="observacoes_internas" class="mt-3" placeholder="Anotações sobre o candidato, entrevista, avaliação…">{{ $c['observacoes_internas'] ?? '' }}</x-ui.textarea>
+                <x-ui.textarea rows="4" name="observacoes_internas" class="mt-3">{{ $c['observacoes_internas'] ?? '' }}</x-ui.textarea>
                 <x-ui.button type="submit" variant="outline" size="sm" class="mt-3 gap-1.5">
                     <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></svg>
                     Salvar observações
@@ -273,10 +273,10 @@
                     <x-ui.input id="entrevista_data" name="entrevista_data" type="datetime-local" required />
                 </x-field>
                 <x-field label="Local (ou link da chamada)" name="entrevista_local" required>
-                    <x-ui.input id="entrevista_local" name="entrevista_local" placeholder="Ex.: Sala 12, FAPEU, ou link do Meet" required />
+                    <x-ui.input id="entrevista_local" name="entrevista_local" required />
                 </x-field>
                 <x-field label="Observações" name="entrevista_observacoes">
-                    <x-ui.textarea id="entrevista_observacoes" name="entrevista_observacoes" rows="3" placeholder="Instruções extras para o candidato (opcional)"></x-ui.textarea>
+                    <x-ui.textarea id="entrevista_observacoes" name="entrevista_observacoes" rows="3"></x-ui.textarea>
                 </x-field>
             </div>
             <div class="mt-5 flex justify-end gap-2">

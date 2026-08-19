@@ -18,7 +18,7 @@
         <form method="POST" action="{{ route('candidato.senha.email') }}" class="mt-8 flex flex-col gap-5">
             @csrf
             <x-field label="E-mail" name="email">
-                <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" placeholder="seu@email.com" autocomplete="username" autofocus required />
+                <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email') }}" autocomplete="username" autofocus required />
             </x-field>
 
             <x-ui.button type="submit" class="h-10 w-full">Enviar link de recuperação</x-ui.button>

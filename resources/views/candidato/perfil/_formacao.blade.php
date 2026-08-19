@@ -36,7 +36,7 @@
         </x-field>
         <div data-mostrar-se="situacao_curso_{{ $index }}=cursando" class="{{ ($formacao['situacao_curso'] ?? '') === 'cursando' ? '' : 'hidden' }}">
             <x-field label="Semestre" name="formacoes.{{ $index }}.semestre">
-                <x-ui.input id="semestre_{{ $index }}" name="formacoes[{{ $index }}][semestre]" value="{{ $formacao['semestre'] ?? '' }}" placeholder="Ex.: 5º" />
+                <x-ui.input id="semestre_{{ $index }}" name="formacoes[{{ $index }}][semestre]" value="{{ $formacao['semestre'] ?? '' }}" />
             </x-field>
         </div>
         <x-field label="Previsão de conclusão" name="formacoes.{{ $index }}.previsao_conclusao">

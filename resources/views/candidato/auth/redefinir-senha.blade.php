@@ -12,7 +12,7 @@
         <input type="hidden" name="token" value="{{ $token }}">
 
         <x-field label="E-mail" name="email">
-            <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email', $email) }}" placeholder="seu@email.com" autocomplete="username" :autofocus="!$email" required />
+            <x-ui.input id="email" name="email" type="email" class="h-10" value="{{ old('email', $email) }}" autocomplete="username" :autofocus="!$email" required />
         </x-field>
 
         <x-field label="Nova senha" name="password">
