@@ -39,6 +39,14 @@
         <env name="DRHFLOW_PASSWORD" value=""/>
         <env name="DRHFLOW_TIMEOUT" value="1"/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Trava de segurança: AppServiceProvider::redirecionarEmailsDeTeste()
+             chama Mail::alwaysTo() com este valor, reescrevendo o destinatário
+             de todo e-mail/notificação disparado durante os testes, nunca um
+             endereço de candidato real, mesmo que algum teste esqueça
+             Mail::fake()/Notification::fake(). Vale para php artisan test local
+             e para o job "Testes e build" do CI, que roda por cima deste mesmo
+             phpunit.xml. -->
+        <env name="MAIL_ALWAYS_TO" value="gabriel.lima@fapeu.org.br"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
