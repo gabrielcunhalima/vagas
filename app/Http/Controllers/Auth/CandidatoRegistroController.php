@@ -4,22 +4,24 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\CandidatoRegistroRequest;
+use App\Http\Requests\Concerns\ValidaCpf;
 use App\Models\Candidato;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Inertia;
 
 class CandidatoRegistroController extends Controller
 {
+    use ValidaCpf;
+
     public function showForm(Request $request)
     {
         if (Auth::guard('candidato')->check()) {
             return redirect()->route('candidato.vagas');
         }
 
-        return Inertia::render('Candidato/Auth/Registro', [
+        return view('candidato.auth.registro', [
             'redirect' => $request->query('redirect'),
         ]);
     }
@@ -28,54 +30,28 @@ class CandidatoRegistroController extends Controller
     {
         $cpf = preg_replace('/\D/', '', (string) $request->query('cpf'));
 
-        $existe = strlen($cpf) === 11 && Candidato::where('cpf', $cpf)->exists();
+        // CPF malformado não vai ao banco: mesma regra de dígitos verificadores do envio.
+        if (! $this->validarCpf($cpf)) {
+            return response()->json(['existe' => false, 'valido' => false]);
+        }
 
-        return response()->json(['existe' => $existe]);
+        return response()->json([
+            'existe' => Candidato::where('cpf', $cpf)->exists(),
+            'valido' => true,
+        ]);
     }
 
     public function store(CandidatoRegistroRequest $request)
     {
         $dados = $request->validated();
 
-        $curriculoPath = null;
-        $curriculoNomeOriginal = null;
-        if ($request->hasFile('curriculo')) {
-            $arquivo = $request->file('curriculo');
-            $curriculoPath = $arquivo->store('candidatos/curriculos', 'local');
-            $curriculoNomeOriginal = $arquivo->getClientOriginalName();
-        }
-
         $candidato = Candidato::create([
-            'nome'                       => $dados['nome'],
-            'nome_social'                => $dados['nome_social'] ?? null,
-            'nacionalidade'              => $dados['nacionalidade'],
-            'email'                      => $dados['email'],
-            'cpf'                        => $dados['cpf'],
-            'telefone'                   => $dados['telefone'] ?? null,
-            'password'                   => Hash::make($dados['password']),
-            'cep'                        => $dados['cep'] ?? null,
-            'estado'                     => $dados['estado'] ?? null,
-            'cidade'                     => $dados['cidade'] ?? null,
-            'bairro'                     => $dados['bairro'] ?? null,
-            'logradouro'                 => $dados['logradouro'] ?? null,
-            'numero'                     => $dados['numero'] ?? null,
-            'complemento'                => $dados['complemento'] ?? null,
-            'nivel_escolaridade'         => $dados['nivel_escolaridade'],
-            'situacao_curso'             => $dados['situacao_curso'],
-            'curso'                      => $dados['curso'],
-            'instituicao'                => $dados['instituicao'],
-            'semestre'                   => $dados['semestre'] ?? null,
-            'previsao_conclusao'         => $dados['previsao_conclusao'],
-            'curriculo_path'             => $curriculoPath,
-            'curriculo_nome_original'    => $curriculoNomeOriginal,
-            'possui_acessibilidade'      => $request->boolean('possui_acessibilidade'),
-            'acessibilidade_detalhe'     => $dados['acessibilidade_detalhe'] ?? null,
-            'conflito_interesse'         => $request->boolean('conflito_interesse'),
-            'conflito_interesse_detalhe' => $dados['conflito_interesse_detalhe'] ?? null,
-            'codigo_conduta_aceito_em'   => now(),
-            'lgpd_consentimento'         => true,
-            'lgpd_consentimento_em'      => now(),
-            'ativo'                      => true,
+            'email' => $dados['email'],
+            'cpf' => $dados['cpf'],
+            'password' => Hash::make($dados['password']),
+            'lgpd_consentimento' => true,
+            'lgpd_consentimento_em' => now(),
+            'ativo' => true,
         ]);
 
         Auth::guard('candidato')->login($candidato, false);

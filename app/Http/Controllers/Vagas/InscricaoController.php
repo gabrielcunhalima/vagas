@@ -3,172 +3,205 @@
 namespace App\Http\Controllers\Vagas;
 
 use App\Http\Controllers\Controller;
-use App\Models\Vagas\Vaga;
-use App\Models\Vagas\Candidatura;
 use App\Http\Requests\Vagas\InscricaoRequest;
 use App\Mail\Vagas\CandidaturaRecebidaMail;
-use App\Mail\Vagas\NovaCandidaturaMail;
+use App\Models\Candidato;
+use App\Models\InscricaoComplemento;
+use App\Support\Drhflow\DrhflowIndisponivelException;
+use App\Support\Drhflow\InscricaoDrhflowRepository;
+use App\Support\Drhflow\MapeadorInscricao;
+use App\Support\Drhflow\VagaDrhflow;
+use App\Support\Drhflow\VagaDrhflowRepository;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Mail;
 
+/**
+ * O envio da inscrição.
+ *
+ * A inscrição é gravada em `EN_CANDIDATO_VAGA_EMPREGO`, no DRHFlow — é ela que
+ * entra no processo seletivo do RH. O que o DRHFlow não comporta (carta de
+ * apresentação, detalhe do conflito de interesse, versão de currículo vigente)
+ * fica em `inscricao_complementos`, no banco do portal.
+ *
+ * A ordem das duas escritas é deliberada: primeiro o DRHFlow, depois o
+ * complemento. São bancos diferentes, sem transação distribuída, então uma das
+ * duas pode falhar sozinha — e a que não pode ser perdida é a que o RH lê.
+ */
 class InscricaoController extends Controller
 {
-    private function candidatoLogado()
+    public function __construct(
+        private readonly VagaDrhflowRepository $vagas,
+        private readonly InscricaoDrhflowRepository $inscricoes,
+    ) {}
+
+    private function candidatoLogado(): Candidato
     {
         return Auth::guard('candidato')->user();
     }
 
-    public function create(Vaga $vaga)
+    /**
+     * A vaga, ou 404/503.
+     *
+     * O gate de vaga aberta acontece aqui, antes de qualquer outra coisa: uma
+     * vaga fechada ou fora do prazo não aceita inscrição.
+     */
+    private function vagaAberta(int $codigo): VagaDrhflow
     {
-        abort_unless($vaga->esta_aberta, 404);
-
-        $candidato = $this->candidatoLogado();
-
-        // Se candidato logado já se candidatou, redireciona para suas candidaturas
-        if ($candidato && $candidato->jaSeInscreveuNa($vaga->id)) {
-            return redirect()->route('candidato.candidaturas.index')
-                ->with('info', 'Você já se candidatou a esta vaga.');
+        try {
+            $vaga = $this->vagas->buscarPorCodigo($codigo);
+        } catch (DrhflowIndisponivelException) {
+            abort(503, 'As vagas estão temporariamente indisponíveis. Tente novamente em alguns minutos.');
         }
 
-        // Pré-preenchimento: prioridade old() → perfil do candidato → vazio
-        $prefill = $candidato ? $candidato->dadosParaCandidatura() : [];
+        abort_if($vaga === null, 404);
 
-        return Inertia::render('Publico/Candidatura', [
-            'vaga' => $vaga->only([
-                'id', 'titulo', 'tipo', 'area', 'modalidade', 'carga_horaria',
-                'remuneracao', 'remuneracao_max', 'cidade', 'estado',
-                'local_trabalho', 'data_encerramento',
-            ]),
-            'candidato' => $candidato ? [
-                'nome'           => $candidato->nome,
-                'email'          => $candidato->email,
-                'tem_curriculo'  => $candidato->temCurriculo(),
-                'curriculo_nome' => $candidato->curriculo_nome_original,
-            ] : null,
-            'prefill' => $prefill,
+        return $vaga;
+    }
+
+    public function create(int $vaga)
+    {
+        $vagaDrhflow = $this->vagaAberta($vaga);
+        $candidato = $this->candidatoLogado();
+
+        try {
+            if ($candidato->jaSeInscreveuNa($vagaDrhflow->codigo)) {
+                return redirect()->route('candidato.candidaturas.index')
+                    ->with('info', 'Você já se candidatou a esta vaga.');
+            }
+        } catch (DrhflowIndisponivelException) {
+            return redirect()->route('vagas.publicas.show', $vagaDrhflow->codigo)
+                ->with('error', 'Não foi possível verificar sua inscrição agora. Tente novamente em alguns minutos.');
+        }
+
+        return view('publico.candidatura', [
+            'vaga' => $vagaDrhflow,
+            // Os dados vão para conferência, não para preenchimento: o que estiver
+            // aqui é o que o RH verá, e editar grava na conta.
+            'perfil' => $this->perfilParaConferencia($candidato),
+            'completude' => $candidato->estadoCompletude(),
         ]);
     }
 
-    public function store(InscricaoRequest $request, Vaga $vaga)
+    public function store(InscricaoRequest $request, int $vaga)
     {
-        abort_unless($vaga->esta_aberta, 404);
-
+        $vagaDrhflow = $this->vagaAberta($vaga);
         $candidato = $this->candidatoLogado();
 
-        // Impede dupla candidatura mesmo via POST direto
-        if ($candidato && $candidato->jaSeInscreveuNa($vaga->id)) {
-            return redirect()->route('candidato.candidaturas.index')
-                ->with('info', 'Você já se candidatou a esta vaga.');
+        // O perfil é a fonte dos dados que o RH lê; incompleto, não há ficha para
+        // avaliar. A interface já bloqueia, isto é a garantia final.
+        if (! $candidato->perfilCompleto()) {
+            return redirect()->route('candidato.perfil.edit')
+                ->with('info', 'Complete seu perfil para se candidatar a esta vaga.');
         }
 
         $dados = $request->validated();
 
-        if ($request->hasFile('curriculo')) {
-            $arquivo = $request->file('curriculo');
-            $dados['curriculo_path']          = $arquivo->store('vagas/curriculos', 'local');
-            $dados['curriculo_nome_original'] = $arquivo->getClientOriginalName();
-        } elseif ($candidato && $candidato->temCurriculo()) {
-            // Usa currículo do perfil se não foi enviado novo
-            $dados['curriculo_path']          = $candidato->curriculo_path;
-            $dados['curriculo_nome_original'] = $candidato->curriculo_nome_original;
+        try {
+            $criou = $this->inscricoes->criar($candidato, $vagaDrhflow->codigo, aceitouCodigoConduta: true);
+        } catch (DrhflowIndisponivelException $e) {
+            Log::error('Inscrição não gravada no DRHFlow.', [
+                'cd_vaga_emprego' => $vagaDrhflow->codigo,
+                'erro' => $e->getMessage(),
+            ]);
+
+            // A inscrição não é apresentada como recebida: ela não foi.
+            return back()
+                ->withInput()
+                ->with('error', 'Não conseguimos enviar sua inscrição agora. Nada foi perdido — tente novamente em alguns minutos.');
         }
 
-        unset($dados['curriculo'], $dados['_honeypot'], $dados['usar_curriculo_perfil']);
-
-        $dados['vaga_id']      = $vaga->id;
-        $dados['status']       = 'recebida';
-        $dados['candidato_id'] = $candidato?->id;
-
-        $candidatura = Candidatura::create($dados);
-
-        // Atualiza perfil do candidato com dados mais recentes (optional: pode-se oferecer)
-        if ($candidato) {
-            $candidato->update(array_filter([
-                'telefone'           => $dados['telefone'] ?? $candidato->telefone,
-                'curso'              => $dados['curso'] ?? $candidato->curso,
-                'instituicao'        => $dados['instituicao'] ?? $candidato->instituicao,
-                'semestre'           => $dados['semestre'] ?? $candidato->semestre,
-                'previsao_conclusao' => $dados['previsao_conclusao'] ?? $candidato->previsao_conclusao,
-                'linkedin'           => $dados['linkedin'] ?? $candidato->linkedin,
-                'pretensao_salarial' => $dados['pretensao_salarial'] ?? $candidato->pretensao_salarial,
-                'disponibilidade'    => $dados['disponibilidade'] ?? $candidato->disponibilidade,
-            ], fn($v) => $v !== null));
+        if (! $criou) {
+            return redirect()->route('candidato.candidaturas.index')
+                ->with('info', 'Você já se candidatou a esta vaga.');
         }
+
+        $this->guardarComplemento($candidato, $vagaDrhflow->codigo, $dados, $request->boolean('conflito_interesse'));
 
         try {
-            Mail::to($candidatura->email)->send(new CandidaturaRecebidaMail($candidatura));
+            Mail::to($candidato->email)->send(new CandidaturaRecebidaMail($vagaDrhflow, $candidato));
         } catch (\Exception $e) {
-            Log::error('Erro ao enviar e-mail de candidatura: ' . $e->getMessage());
-        }
-
-        if ($vaga->notificar_email && $vaga->coordenador) {
-            try {
-                Mail::to($vaga->coordenador->email)->send(new NovaCandidaturaMail($candidatura));
-            } catch (\Exception $e) {
-                Log::error('Erro ao notificar coordenador: ' . $e->getMessage());
-            }
-        }
-
-        if ($candidato) {
-            return redirect()
-                ->route('candidato.candidaturas.index')
-                ->with('success', 'Candidatura enviada com sucesso! Acompanhe o status aqui.');
+            Log::error('Erro ao enviar e-mail de candidatura: '.$e->getMessage());
         }
 
         return redirect()
-            ->route('inscricao.confirmacao', $vaga)
-            ->with('candidatura_nome', $candidatura->nome);
+            ->route('candidato.candidaturas.index')
+            ->with('success', 'Candidatura enviada com sucesso! Acompanhe o andamento aqui.');
     }
 
-    public function confirmacao(Vaga $vaga)
+    public function confirmacao(int $vaga)
     {
-        return Inertia::render('Publico/Confirmacao', [
-            'vaga' => $vaga->only(['id', 'titulo']),
-            'nome' => session('candidatura_nome'),
+        return view('publico.confirmacao', [
+            'vaga' => $this->vagaAberta($vaga),
+            'nome' => $this->candidatoLogado()->nome,
         ]);
     }
 
-    public function consultaForm()
+    /**
+     * A parte local da inscrição.
+     *
+     * A inscrição já está gravada no DRHFlow quando isto roda. Se falhar, a
+     * inscrição continua valendo — perder a carta de apresentação é ruim, perder
+     * a inscrição é pior. A falha é registrada com o par CPF + vaga, que é o
+     * suficiente para reconciliar depois.
+     *
+     * @param  array<string, mixed>  $dados
+     */
+    private function guardarComplemento(Candidato $candidato, int $cdVagaEmprego, array $dados, bool $conflito): void
     {
-        if ($this->candidatoLogado()) {
-            return redirect()->route('candidato.candidaturas.index');
+        try {
+            InscricaoComplemento::updateOrCreate(
+                [
+                    'cpf' => MapeadorInscricao::cpf($candidato),
+                    'cd_vaga_emprego' => $cdVagaEmprego,
+                ],
+                [
+                    'candidato_id' => $candidato->id,
+                    'carta_apresentacao' => $dados['carta_apresentacao'] ?? null,
+                    'conflito_interesse' => $conflito,
+                    'conflito_interesse_detalhe' => $dados['conflito_interesse_detalhe'] ?? null,
+                    // Qual PDF o processo recebeu. Trocar o currículo depois não
+                    // muda esta referência.
+                    'curriculo_id_vigente' => $candidato->curriculo_atual_id,
+                    'enviada_em' => now(),
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::error('Inscrição gravada no DRHFlow, mas o complemento local falhou.', [
+                'candidato_id' => $candidato->id,
+                'cd_vaga_emprego' => $cdVagaEmprego,
+                'erro' => $e->getMessage(),
+            ]);
         }
-
-        return Inertia::render('Publico/ConsultaCandidatura');
     }
 
-    public function consulta(\Illuminate\Http\Request $request)
+    /** O que o RH verá — apresentado ao candidato antes do envio. */
+    private function perfilParaConferencia(Candidato $candidato): array
     {
-        $request->validate([
-            'cpf'   => ['required', 'string'],
-            'email' => ['required', 'email'],
-        ]);
-
-        $cpf = preg_replace('/\D/', '', $request->cpf);
-
-        $candidaturas = Candidatura::with('vaga')
-            ->where('cpf', $cpf)
-            ->where('email', $request->email)
-            ->orderByDesc('created_at')
-            ->get();
-
-        // Consulta pública: nunca expor observações internas do coordenador
-        return Inertia::render('Publico/ConsultaCandidatura', [
-            'candidaturas' => $candidaturas->map(fn(Candidatura $c) => [
-                'id'                     => $c->id,
-                'status'                 => $c->status,
-                'created_at'             => $c->created_at,
-                'entrevista_data'        => $c->entrevista_data,
-                'entrevista_local'       => $c->entrevista_local,
-                'entrevista_observacoes' => $c->entrevista_observacoes,
-                'vaga'                   => $c->vaga?->only(['id', 'titulo', 'tipo', 'area', 'modalidade']),
-            ]),
-            'busca' => [
-                'cpf'   => $request->cpf,
-                'email' => $request->email,
-            ],
-        ]);
+        return [
+            'nome' => $candidato->nome,
+            'nome_social' => $candidato->nome_social,
+            'email' => $candidato->email,
+            'cpf_formatado' => $candidato->cpf_formatado,
+            'telefone' => $candidato->telefone,
+            'nacionalidade' => $candidato->nacionalidade,
+            'linkedin' => $candidato->linkedin,
+            'formacoes' => $candidato->formacoes->map(fn ($f) => [
+                'nivel_escolaridade' => $f->nivel_escolaridade,
+                'situacao_curso' => $f->situacao_curso,
+                'curso' => $f->curso,
+                'instituicao' => $f->instituicao,
+                'semestre' => $f->semestre,
+                'previsao_conclusao' => $f->previsao_conclusao?->format('Y-m-d'),
+            ])->values(),
+            'outras_formacoes_mec' => $candidato->outras_formacoes_mec,
+            'outros_cursos' => $candidato->outros_cursos,
+            'cidade' => $candidato->cidade,
+            'estado' => $candidato->estado,
+            'pretensao_salarial' => $candidato->pretensao_salarial,
+            'disponibilidade' => $candidato->disponibilidade,
+            'possui_acessibilidade' => $candidato->possui_acessibilidade,
+            'curriculo_nome' => $candidato->curriculoAtual?->nome_original,
+        ];
     }
 }

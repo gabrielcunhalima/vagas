@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Vagas;
 
 use App\Http\Controllers\Controller;
-use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Vagas\Vaga;
 use Carbon\Carbon;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -16,22 +15,22 @@ class DashboardController extends Controller
         $user = Auth::user();
         $vagasQuery = Vaga::where('coordenador_id', (int) $user->id);
 
-        $candidatosQuery = fn() => Candidatura::whereHas(
+        $candidatosQuery = fn () => Candidatura::whereHas(
             'vaga',
-            fn($q) => $q->where('coordenador_id', $user->id)
+            fn ($q) => $q->where('coordenador_id', $user->id)
         );
 
         $stats = [
-            'total_vagas'      => $vagasQuery->count(),
-            'vagas_ativas'     => (clone $vagasQuery)->where('status', 'ativa')->count(),
-            'vagas_rascunho'   => (clone $vagasQuery)->where('status', 'rascunho')->count(),
-            'aguardando_aut'   => (clone $vagasQuery)->where('status', 'aguardando_autorizacao')->count(),
+            'total_vagas' => $vagasQuery->count(),
+            'vagas_ativas' => (clone $vagasQuery)->where('status', 'ativa')->count(),
+            'vagas_rascunho' => (clone $vagasQuery)->where('status', 'rascunho')->count(),
+            'aguardando_aut' => (clone $vagasQuery)->where('status', 'aguardando_autorizacao')->count(),
             'total_candidatos' => $candidatosQuery()->count(),
             'candidatos_novos' => $candidatosQuery()->where('status', 'recebida')->count(),
             'entrevistas_hoje' => $candidatosQuery()
-                                    ->where('status', 'entrevista')
-                                    ->whereDate('entrevista_data', Carbon::today())
-                                    ->count(),
+                ->where('status', 'entrevista')
+                ->whereDate('entrevista_data', Carbon::today())
+                ->count(),
         ];
 
         $vagasRecentes = Vaga::where('coordenador_id', $user->id)
@@ -42,22 +41,19 @@ class DashboardController extends Controller
 
         $candidaturasRecentes = Candidatura::whereHas(
             'vaga',
-            fn($q) => $q->where('coordenador_id', $user->id)
+            fn ($q) => $q->where('coordenador_id', $user->id)
         )->with('vaga')->latest()->take(5)->get();
 
-        return Inertia::render('Coord/Dashboard', [
+        return view('coord.dashboard', [
             'stats' => $stats,
-            'vagasRecentes' => $vagasRecentes->map(fn(Vaga $v) => array_merge(
-                $v->only(['id', 'titulo', 'tipo', 'status', 'data_encerramento', 'created_at']),
-                ['candidaturas_count' => $v->candidaturas_count],
-            )),
-            'candidaturasRecentes' => $candidaturasRecentes->map(fn(Candidatura $c) => [
-                'id'         => $c->id,
-                'nome'       => $c->nome,
-                'status'     => $c->status,
+            'vagasRecentes' => $vagasRecentes,
+            'candidaturasRecentes' => $candidaturasRecentes->map(fn (Candidatura $c) => [
+                'id' => $c->id,
+                'nome' => $c->nome,
+                'status' => $c->status,
                 'created_at' => $c->created_at,
-                'vaga_id'    => $c->vaga_id,
-                'vaga'       => $c->vaga?->only(['id', 'titulo']),
+                'vaga_id' => $c->vaga_id,
+                'vaga' => $c->vaga?->only(['id', 'titulo']),
             ]),
         ]);
     }
@@ -66,9 +62,9 @@ class DashboardController extends Controller
     {
         $stats = [
             'aguardando_aut' => Vaga::where('status', 'aguardando_autorizacao')->count(),
-            'autorizadas'    => Vaga::where('gestor_id', Auth::id())->where('status', 'ativa')->count(),
-            'recusadas'      => Vaga::where('gestor_id', Auth::id())->where('status', 'recusada')->count(),
-            'total_ativas'   => Vaga::where('status', 'ativa')->count(),
+            'autorizadas' => Vaga::where('gestor_id', Auth::id())->where('status', 'ativa')->count(),
+            'recusadas' => Vaga::where('gestor_id', Auth::id())->where('status', 'recusada')->count(),
+            'total_ativas' => Vaga::where('status', 'ativa')->count(),
         ];
 
         $vagasPendentes = Vaga::where('status', 'aguardando_autorizacao')
@@ -77,9 +73,9 @@ class DashboardController extends Controller
             ->take(8)
             ->get();
 
-        return Inertia::render('Gestor/Dashboard', [
+        return view('gestor.dashboard', [
             'stats' => $stats,
-            'vagasPendentes' => $vagasPendentes->map(fn(Vaga $v) => array_merge(
+            'vagasPendentes' => $vagasPendentes->map(fn (Vaga $v) => array_merge(
                 $v->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'data_encerramento', 'created_at']),
                 ['coordenador' => $v->coordenador?->only(['name'])],
             )),

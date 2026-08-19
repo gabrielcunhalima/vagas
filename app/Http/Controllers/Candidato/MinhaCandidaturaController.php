@@ -3,86 +3,119 @@
 namespace App\Http\Controllers\Candidato;
 
 use App\Http\Controllers\Controller;
-use App\Models\Vagas\Candidatura;
+use App\Models\Candidato;
+use App\Models\InscricaoComplemento;
+use App\Support\Drhflow\DrhflowIndisponivelException;
+use App\Support\Drhflow\InscricaoDrhflow;
+use App\Support\Drhflow\InscricaoDrhflowRepository;
+use App\Support\Drhflow\MapeadorInscricao;
+use App\Support\Drhflow\VagaDrhflowRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
 
+/**
+ * "Minhas candidaturas" — o acompanhamento do candidato.
+ *
+ * A inscrição vive no DRHFlow e o andamento é derivado do que o RH registra lá.
+ * O portal acrescenta o que guardou por conta própria (carta de apresentação,
+ * versão de currículo enviada), correlato pelo par CPF + vaga.
+ */
 class MinhaCandidaturaController extends Controller
 {
-    private function candidato()
+    public function __construct(
+        private readonly InscricaoDrhflowRepository $inscricoes,
+        private readonly VagaDrhflowRepository $vagas,
+    ) {}
+
+    private function candidato(): Candidato
     {
         return Auth::guard('candidato')->user();
     }
 
     public function index()
     {
-        $candidaturas = $this->candidato()
-            ->candidaturas()
-            ->with('vaga')
-            ->orderByDesc('created_at')
-            ->get();
+        $candidato = $this->candidato();
 
-        return Inertia::render('Candidato/Candidaturas/Index', [
-            'candidaturas' => $candidaturas->map(fn(Candidatura $c) => [
-                'id'         => $c->id,
-                'status'     => $c->status,
-                'created_at' => $c->created_at,
-                'vaga'       => $c->vaga?->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'cidade', 'estado']),
-            ]),
+        try {
+            $inscricoes = $this->inscricoes->doCpf(MapeadorInscricao::cpf($candidato));
+        } catch (DrhflowIndisponivelException) {
+            return view('candidato.candidaturas.index', [
+                'candidaturas' => collect(),
+                'indisponivel' => true,
+            ]);
+        }
+
+        return view('candidato.candidaturas.index', [
+            'candidaturas' => $inscricoes->map(fn (InscricaoDrhflow $i) => $this->comVaga($i))->values(),
+            'indisponivel' => false,
         ]);
     }
 
-    public function show(Candidatura $candidatura)
+    public function show(int $candidatura)
     {
-        abort_unless(
-            $candidatura->candidato_id === $this->candidato()->id,
-            403
-        );
+        $candidato = $this->candidato();
+        $cpf = MapeadorInscricao::cpf($candidato);
 
-        $candidatura->load('vaga');
+        try {
+            // A busca é sempre pelo CPF do autenticado: não há como pedir a
+            // inscrição de outra pessoa informando outro código de vaga.
+            $inscricao = $this->inscricoes->buscar($cpf, $candidatura);
+        } catch (DrhflowIndisponivelException) {
+            abort(503, 'Não foi possível consultar sua candidatura agora. Tente novamente em alguns minutos.');
+        }
 
-        // Visão do candidato: sem observações internas do coordenador
-        return Inertia::render('Candidato/Candidaturas/Show', [
-            'candidatura' => [
-                'id'                     => $candidatura->id,
-                'status'                 => $candidatura->status,
-                'created_at'             => $candidatura->created_at,
-                'nome'                   => $candidatura->nome,
-                'email'                  => $candidatura->email,
-                'cpf_formatado'          => $candidatura->cpf_formatado,
-                'telefone'               => $candidatura->telefone,
-                'curso'                  => $candidatura->curso,
-                'instituicao'            => $candidatura->instituicao,
-                'semestre'               => $candidatura->semestre,
-                'previsao_conclusao'     => $candidatura->previsao_conclusao,
-                'carta_apresentacao'     => $candidatura->carta_apresentacao,
-                'linkedin'               => $candidatura->linkedin,
-                'pretensao_salarial'     => $candidatura->pretensao_salarial,
-                'disponibilidade'        => $candidatura->disponibilidade,
-                'pcd'                    => $candidatura->pcd,
-                'pcd_tipo'               => $candidatura->pcd_tipo,
-                'endereco_completo'      => $candidatura->endereco_completo,
-                'curriculo_nome'         => $candidatura->curriculo_nome_original,
-                'tem_curriculo'          => $candidatura->temCurriculo(),
-                'entrevista_data'        => $candidatura->entrevista_data,
-                'entrevista_local'       => $candidatura->entrevista_local,
-                'entrevista_observacoes' => $candidatura->entrevista_observacoes,
-                'vaga'                   => $candidatura->vaga?->only([
-                    'id', 'titulo', 'tipo', 'area', 'modalidade', 'cidade', 'estado', 'status', 'data_encerramento',
-                ]),
-            ],
+        abort_if($inscricao === null, 404);
+
+        $complemento = InscricaoComplemento::where('cpf', $cpf)
+            ->where('cd_vaga_emprego', $candidatura)
+            ->first();
+
+        return view('candidato.candidaturas.show', [
+            'candidatura' => $this->comVaga($inscricao),
+            // Dados próprios do portal — o DRHFlow não tem campo para eles.
+            'cartaApresentacao' => $complemento?->carta_apresentacao,
+            'conflitoInteresse' => $complemento?->conflito_interesse,
+            'conflitoInteresseDetalhe' => $complemento?->conflito_interesse_detalhe,
+            'curriculoNome' => $complemento?->curriculoVigente?->nome_original
+                ?? $candidato->curriculoAtual?->nome_original,
+            'temCurriculo' => $complemento?->curriculo_id_vigente !== null || $candidato->temCurriculo(),
         ]);
     }
 
-    public function downloadCurriculo(Candidatura $candidatura)
+    public function downloadCurriculo(int $candidatura)
     {
-        abort_unless($candidatura->candidato_id === $this->candidato()->id, 403);
-        abort_unless($candidatura->temCurriculo(), 404, 'Currículo não encontrado.');
+        $candidato = $this->candidato();
 
-        return Storage::disk('local')->download(
-            $candidatura->curriculo_path,
-            $candidatura->curriculo_nome_original ?? 'curriculo.pdf'
+        $complemento = InscricaoComplemento::where('cpf', MapeadorInscricao::cpf($candidato))
+            ->where('cd_vaga_emprego', $candidatura)
+            ->first();
+
+        // A versão enviada naquele momento, não a atual do perfil: é o PDF que o
+        // processo recebeu.
+        $versao = $complemento?->curriculoVigente ?? $candidato->curriculoAtual;
+
+        abort_unless($versao !== null, 404, 'Currículo não encontrado.');
+        abort_unless((int) $versao->candidato_id === (int) $candidato->id, 403);
+
+        return Storage::disk(Candidato::DISCO_CURRICULOS)->download(
+            $versao->path,
+            $versao->nome_original ?? 'curriculo.pdf'
         );
+    }
+
+    /**
+     * Anexa a vaga à inscrição.
+     *
+     * Uma vaga já encerrada some da consulta de disponibilidade, mas a inscrição
+     * nela continua existindo — por isso a ausência da vaga não invalida a
+     * inscrição, apenas deixa o cargo sem detalhe.
+     */
+    private function comVaga(InscricaoDrhflow $inscricao): InscricaoDrhflow
+    {
+        try {
+            return $inscricao->comVaga($this->vagas->buscarPorCodigo($inscricao->cdVagaEmprego));
+        } catch (DrhflowIndisponivelException) {
+            return $inscricao;
+        }
     }
 }

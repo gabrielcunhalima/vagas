@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 /**
  * Coordenador — cria vagas e as envia para autorização.
@@ -19,10 +19,10 @@ class UsuariosSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'coordenador@fapeu.org.br'],
             [
-                'name'     => 'Coordenador Teste',
+                'name' => 'Coordenador Teste',
                 'password' => Hash::make('password'),
-                'perfil'   => 'coordenador',
-                'ativo'    => true,
+                'perfil' => 'coordenador',
+                'ativo' => true,
             ]
         );
     }

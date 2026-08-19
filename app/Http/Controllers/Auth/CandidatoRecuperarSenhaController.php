@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
-use Inertia\Inertia;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class CandidatoRecuperarSenhaController extends Controller
 {
@@ -25,7 +25,7 @@ class CandidatoRecuperarSenhaController extends Controller
             return redirect()->route('candidato.vagas');
         }
 
-        return Inertia::render('Candidato/Auth/EsqueciSenha');
+        return view('candidato.auth.esqueci-senha');
     }
 
     public function sendResetLinkEmail(Request $request)
@@ -34,13 +34,13 @@ class CandidatoRecuperarSenhaController extends Controller
             'email' => ['required', 'email'],
         ], [
             'email.required' => 'Informe seu e-mail.',
-            'email.email'    => 'E-mail inválido.',
+            'email.email' => 'E-mail inválido.',
         ]);
 
         // Candidatos inativos não recebem o link: mesma regra de negócio do login,
         // mas resposta genérica para não revelar o estado da conta a um visitante.
         $candidato = Candidato::where('email', $request->input('email'))->first();
-        if ($candidato && !$candidato->ativo) {
+        if ($candidato && ! $candidato->ativo) {
             return back()->with('success', self::MENSAGEM_GENERICA);
         }
 
@@ -48,10 +48,10 @@ class CandidatoRecuperarSenhaController extends Controller
             $status = Password::broker('candidatos')->sendResetLink(
                 $request->only('email')
             );
-        } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+        } catch (TransportExceptionInterface $e) {
             Log::error('Falha no transporte de e-mail ao enviar recuperação de senha do candidato.', [
                 'email' => $request->input('email'),
-                'erro'  => $e->getMessage(),
+                'erro' => $e->getMessage(),
             ]);
 
             return back()->with('success', self::MENSAGEM_GENERICA);
@@ -70,7 +70,7 @@ class CandidatoRecuperarSenhaController extends Controller
             return redirect()->route('candidato.vagas');
         }
 
-        return Inertia::render('Candidato/Auth/RedefinirSenha', [
+        return view('candidato.auth.redefinir-senha', [
             'token' => $token,
             'email' => $request->query('email', ''),
         ]);
@@ -79,22 +79,22 @@ class CandidatoRecuperarSenhaController extends Controller
     public function reset(Request $request)
     {
         $request->validate([
-            'token'    => ['required'],
-            'email'    => ['required', 'email'],
+            'token' => ['required'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
         ], [
-            'token.required'      => 'Link de redefinição inválido.',
-            'email.required'      => 'Informe seu e-mail.',
-            'email.email'         => 'E-mail inválido.',
-            'password.required'   => 'Informe a nova senha.',
-            'password.confirmed'  => 'As senhas não coincidem.',
-            'password.min'        => 'A senha deve ter no mínimo 8 caracteres.',
+            'token.required' => 'Link de redefinição inválido.',
+            'email.required' => 'Informe seu e-mail.',
+            'email.email' => 'E-mail inválido.',
+            'password.required' => 'Informe a nova senha.',
+            'password.confirmed' => 'As senhas não coincidem.',
+            'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
         ]);
 
         // Candidatos inativos não podem redefinir senha: mesma regra do login,
         // aplicada antes do broker para não trocar a senha de uma conta bloqueada.
         $candidatoAlvo = Candidato::where('email', $request->input('email'))->first();
-        if ($candidatoAlvo && !$candidatoAlvo->ativo) {
+        if ($candidatoAlvo && ! $candidatoAlvo->ativo) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => 'Este link de redefinição é inválido ou já expirou. Solicite um novo.']);

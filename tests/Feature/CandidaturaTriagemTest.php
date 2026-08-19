@@ -2,61 +2,82 @@
 
 namespace Tests\Feature;
 
+use App\Mail\Vagas\AprovacaoMail;
+use App\Mail\Vagas\ConviteEntrevistaMail;
+use App\Mail\Vagas\ReprovacaoMail;
+use App\Models\Candidato;
 use App\Models\User;
-use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
-use Tests\TestCase;
+use App\Models\Vagas\CandidaturaEvento;
+use App\Models\Vagas\Vaga;
+use App\Services\AnonimizacaoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use App\Mail\Vagas\ConviteEntrevistaMail;
-use App\Mail\Vagas\AprovacaoMail;
-use App\Mail\Vagas\ReprovacaoMail;
+use Tests\TestCase;
 
 class CandidaturaTriagemTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $coord;
+
     private User $coord2;
+
     private User $admin;
+
     private Vaga $vaga;
+
+    private Candidato $candidato;
+
     private Candidatura $candidatura;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->coord  = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
+        $this->coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
         $this->coord2 = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
-        $this->admin  = User::factory()->create(['perfil' => 'admin', 'ativo' => true]);
+        $this->admin = User::factory()->create(['perfil' => 'admin', 'ativo' => true]);
 
         $this->vaga = Vaga::create([
-            'titulo'            => 'Vaga com Candidaturas',
-            'descricao'         => 'Descrição detalhada da vaga que tem candidaturas para triagem.',
-            'requisitos'        => 'Requisitos para a vaga de triagem de candidaturas.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga com Candidaturas',
+            'descricao' => 'Descrição detalhada da vaga que tem candidaturas para triagem.',
+            'requisitos' => 'Requisitos para a vaga de triagem de candidaturas.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $this->coord->id,
-            'notificar_email'   => true,
+            'status' => 'ativa',
+            'coordenador_id' => $this->coord->id,
+            'notificar_email' => true,
+        ]);
+
+        $this->candidato = Candidato::factory()->create([
+            'nome' => 'Candidato de Teste',
+            'email' => 'candidato@teste.com',
+            'cpf' => '52998224725',
         ]);
 
         $this->candidatura = Candidatura::create([
-            'vaga_id'               => $this->vaga->id,
-            'nome'                  => 'Candidato de Teste',
-            'email'                 => 'candidato@teste.com',
-            'cpf'                   => '52998224725',
-            'curso'                 => 'Ciência da Computação',
-            'instituicao'           => 'UFSC',
-            'status'                => 'recebida',
-            'pais'                  => 'Brasil',
-            'curriculo_path'        => 'vagas/curriculos/fake.pdf',
-            'curriculo_nome_original' => 'curriculo.pdf',
+            'vaga_id' => $this->vaga->id,
+            'candidato_id' => $this->candidato->id,
+            'status' => 'recebida',
+        ]);
+    }
+
+    /** Coloca a candidatura num estado terminal com a data da decisão registrada. */
+    private function decidirEm(string $status, \DateTimeInterface $quando): void
+    {
+        $this->candidatura->update(['status' => $status]);
+        $this->candidatura->eventos()->create([
+            'tipo' => CandidaturaEvento::TIPO_TRANSICAO,
+            'status_anterior' => 'entrevista',
+            'status_novo' => $status,
+            'autor_id' => $this->coord->id,
+            'ocorrido_em' => $quando,
         ]);
     }
 
@@ -66,8 +87,8 @@ class CandidaturaTriagemTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas");
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Index');
-        $this->assertVeInertia($response, 'Candidato de Teste');
+        $response->assertViewIs('coord.candidaturas.index');
+        $response->assertSee('Candidato de Teste');
     }
 
     public function test_coordenador_nao_acessa_candidaturas_de_vaga_alheia(): void
@@ -84,22 +105,22 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_filtro_por_status_na_listagem(): void
     {
+        $outroCandidato = Candidato::factory()->create([
+            'nome' => 'Candidato Em Análise',
+            'email' => 'analise@teste.com',
+            'cpf' => '71428793860',
+        ]);
+
         Candidatura::create([
-            'vaga_id'     => $this->vaga->id,
-            'nome'        => 'Candidato Em Análise',
-            'email'       => 'analise@teste.com',
-            'cpf'         => '71428793860',
-            'curso'       => 'Sistemas',
-            'instituicao' => 'UFSC',
-            'status'      => 'em_analise',
-            'pais'        => 'Brasil',
-            'curriculo_path' => 'vagas/curriculos/fake2.pdf',
+            'vaga_id' => $this->vaga->id,
+            'candidato_id' => $outroCandidato->id,
+            'status' => 'em_analise',
         ]);
 
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas?status=recebida");
         $response->assertStatus(200);
-        $this->assertVeInertia($response, 'Candidato de Teste');
-        $this->assertNaoVeInertia($response, 'Candidato Em Análise');
+        $response->assertSee('Candidato de Teste');
+        $response->assertDontSee('Candidato Em Análise');
     }
 
     public function test_busca_candidaturas_por_nome(): void
@@ -107,7 +128,7 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)
             ->get("/coord/vagas/{$this->vaga->id}/candidaturas?busca=Candidato+de+Teste");
         $response->assertStatus(200);
-        $this->assertVeInertia($response, 'Candidato de Teste');
+        $response->assertSee('Candidato de Teste');
     }
 
     // ── Listagem todas candidaturas ───────────────────────────────────────────
@@ -116,13 +137,13 @@ class CandidaturaTriagemTest extends TestCase
     {
         $response = $this->actingAs($this->coord)->get('/coord/candidaturas');
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Todas');
+        $response->assertViewIs('coord.candidaturas.todas');
     }
 
     public function test_listagem_geral_exibe_contadores(): void
     {
         $response = $this->actingAs($this->coord)->get('/coord/candidaturas');
-        $this->assertPropInertia($response, 'contadores');
+        $response->assertViewHas('contadores');
     }
 
     // ── Show candidatura ──────────────────────────────────────────────────────
@@ -133,26 +154,26 @@ class CandidaturaTriagemTest extends TestCase
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
         );
         $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Coord/Candidaturas/Show');
-        $this->assertVeInertia($response, 'Candidato de Teste');
+        $response->assertViewIs('coord.candidaturas.show');
+        $response->assertSee('Candidato de Teste');
     }
 
     public function test_candidatura_de_outra_vaga_retorna_404(): void
     {
         $outraVaga = Vaga::create([
-            'titulo'            => 'Outra Vaga',
-            'descricao'         => 'Descrição de outra vaga para teste de isolamento.',
-            'requisitos'        => 'Requisitos de outra vaga.',
-            'tipo'              => 'estagio',
-            'area'              => 'Administração',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Outra Vaga',
+            'descricao' => 'Descrição de outra vaga para teste de isolamento.',
+            'requisitos' => 'Requisitos de outra vaga.',
+            'tipo' => 'estagio',
+            'area' => 'Administração',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $this->coord->id,
-            'notificar_email'   => true,
+            'status' => 'ativa',
+            'coordenador_id' => $this->coord->id,
+            'notificar_email' => true,
         ]);
 
         $response = $this->actingAs($this->coord)->get(
@@ -183,15 +204,15 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
-                'entrevista_data'  => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'status' => 'entrevista',
+                'entrevista_data' => now()->addDays(5)->format('Y-m-d H:i:s'),
                 'entrevista_local' => 'Sala de Reuniões A',
             ]
         );
         $response->assertRedirect();
         $this->assertDatabaseHas('candidaturas', [
-            'id'               => $this->candidatura->id,
-            'status'           => 'entrevista',
+            'id' => $this->candidatura->id,
+            'status' => 'entrevista',
             'entrevista_local' => 'Sala de Reuniões A',
         ]);
     }
@@ -202,12 +223,12 @@ class CandidaturaTriagemTest extends TestCase
         $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
-                'entrevista_data'  => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'status' => 'entrevista',
+                'entrevista_data' => now()->addDays(5)->format('Y-m-d H:i:s'),
                 'entrevista_local' => 'Sala de Reuniões A',
             ]
         );
-        Mail::assertSent(ConviteEntrevistaMail::class, fn($mail) => $mail->hasTo('candidato@teste.com'));
+        Mail::assertSent(ConviteEntrevistaMail::class, fn ($mail) => $mail->hasTo('candidato@teste.com'));
     }
 
     public function test_entrevista_sem_data_falha(): void
@@ -215,7 +236,7 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
+                'status' => 'entrevista',
                 'entrevista_local' => 'Sala A',
             ]
         );
@@ -227,7 +248,7 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'          => 'entrevista',
+                'status' => 'entrevista',
                 'entrevista_data' => now()->addDays(5)->format('Y-m-d H:i:s'),
             ]
         );
@@ -239,8 +260,8 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
-                'entrevista_data'  => now()->subDays(1)->format('Y-m-d H:i:s'),
+                'status' => 'entrevista',
+                'entrevista_data' => now()->subDays(1)->format('Y-m-d H:i:s'),
                 'entrevista_local' => 'Sala A',
             ]
         );
@@ -260,7 +281,7 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $this->assertDatabaseHas('candidaturas', ['id' => $this->candidatura->id, 'status' => 'aprovado']);
-        Mail::assertSent(AprovacaoMail::class, fn($mail) => $mail->hasTo('candidato@teste.com'));
+        Mail::assertSent(AprovacaoMail::class, fn ($mail) => $mail->hasTo('candidato@teste.com'));
     }
 
     // ── Update status: → reprovado ────────────────────────────────────────────
@@ -274,7 +295,7 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $this->assertDatabaseHas('candidaturas', ['id' => $this->candidatura->id, 'status' => 'reprovado']);
-        Mail::assertSent(ReprovacaoMail::class, fn($mail) => $mail->hasTo('candidato@teste.com'));
+        Mail::assertSent(ReprovacaoMail::class, fn ($mail) => $mail->hasTo('candidato@teste.com'));
     }
 
     public function test_reprovacao_a_partir_de_em_analise(): void
@@ -332,15 +353,15 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'               => 'recebida',
+                'status' => 'recebida',
                 'observacoes_internas' => 'Candidato promissor, acompanhar.',
             ]
         );
         $response->assertRedirect();
         $this->assertDatabaseHas('candidaturas', [
-            'id'                   => $this->candidatura->id,
+            'id' => $this->candidatura->id,
             'observacoes_internas' => 'Candidato promissor, acompanhar.',
-            'status'               => 'recebida',
+            'status' => 'recebida',
         ]);
         Mail::assertNothingSent();
     }
@@ -349,8 +370,8 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_download_curriculo_disponivel(): void
     {
-        Storage::fake('local');
-        Storage::disk('local')->put('vagas/curriculos/fake.pdf', 'conteúdo do pdf');
+        Storage::fake(Candidato::DISCO_CURRICULOS);
+        Storage::disk(Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
 
         $response = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo"
@@ -358,14 +379,148 @@ class CandidaturaTriagemTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_download_curriculo_sem_arquivo_retorna_404(): void
+    public function test_download_curriculo_sem_curriculo_no_perfil_e_recusado(): void
     {
-        $this->candidatura->update(['curriculo_path' => null]);
+        $this->candidato->removerCurriculoAtual();
 
         $response = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo"
         );
-        $response->assertStatus(404);
+        $response->assertForbidden();
+    }
+
+    // ─── Decaimento de acesso ────────────────────────────────────────────────
+
+    public function test_reprovada_dentro_da_carencia_mantem_os_dados_visiveis(): void
+    {
+        $this->decidirEm('reprovado', now()->subDays(10));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertFalse($res->original->getData()['acessoExpirado']);
+        $res->assertSee('Candidato de Teste');
+    }
+
+    public function test_reprovada_apos_a_carencia_esconde_os_dados_pessoais(): void
+    {
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertTrue($res->original->getData()['acessoExpirado']);
+        $res->assertDontSee('Candidato de Teste');
+        $res->assertDontSee('candidato@teste.com');
+    }
+
+    public function test_aprovada_nao_perde_acesso_com_o_tempo(): void
+    {
+        $this->decidirEm('aprovado', now()->subDays(400));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertFalse($res->original->getData()['acessoExpirado']);
+        $res->assertSee('Candidato de Teste');
+    }
+
+    public function test_candidatura_parada_em_vaga_encerrada_perde_acesso(): void
+    {
+        $this->vaga->update([
+            'status' => 'encerrada',
+            'data_encerramento' => now()->subDays(120)->toDateString(),
+        ]);
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertTrue($res->original->getData()['acessoExpirado']);
+    }
+
+    public function test_registro_do_processo_permanece_apos_o_decaimento(): void
+    {
+        $this->candidatura->update(['observacoes_internas' => 'Anotação da equipe.']);
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertSee('Anotação da equipe.');
+        $this->assertNotEmpty($res->original->getData()['motivoExpiracao']);
+    }
+
+    public function test_download_de_curriculo_recusado_apos_o_decaimento(): void
+    {
+        Storage::fake(Candidato::DISCO_CURRICULOS);
+        Storage::disk(Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $this->actingAs($this->coord)
+            ->get("/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo")
+            ->assertForbidden();
+    }
+
+    public function test_listagem_nao_expoe_dados_de_candidatura_com_acesso_expirado(): void
+    {
+        $this->decidirEm('reprovado', now()->subDays(120));
+
+        $res = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas");
+
+        $res->assertDontSee('Candidato de Teste');
+        $res->assertDontSee('candidato@teste.com');
+    }
+
+    public function test_conta_excluida_encerra_o_acesso_na_hora(): void
+    {
+        app(AnonimizacaoService::class)->anonimizarCandidato($this->candidato);
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $res->assertOk();
+        $this->assertTrue($res->original->getData()['acessoExpirado']);
+        $res->assertDontSee('candidato@teste.com');
+    }
+
+    // ─── Histórico do processo ───────────────────────────────────────────────
+
+    public function test_transicao_de_status_registra_evento(): void
+    {
+        $this->actingAs($this->coord)->patch(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
+            ['status' => 'em_analise']
+        );
+
+        $evento = $this->candidatura->eventos()->latest('ocorrido_em')->first();
+
+        $this->assertSame('recebida', $evento->status_anterior);
+        $this->assertSame('em_analise', $evento->status_novo);
+        $this->assertSame($this->coord->id, $evento->autor_id);
+    }
+
+    public function test_historico_chega_na_tela_da_candidatura(): void
+    {
+        $this->actingAs($this->coord)->patch(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
+            ['status' => 'em_analise']
+        );
+
+        $res = $this->actingAs($this->coord)->get(
+            "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"
+        );
+
+        $this->assertNotEmpty($res->original->getData()['candidatura']['eventos']);
     }
 
     public function test_coordenador_nao_acessa_candidatura_de_vaga_alheia_status(): void

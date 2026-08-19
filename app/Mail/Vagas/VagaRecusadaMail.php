@@ -18,7 +18,7 @@ class VagaRecusadaMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Sua vaga foi recusada: ' . $this->vaga->titulo,
+            subject: 'Sua vaga foi recusada: '.$this->vaga->titulo,
         );
     }
 

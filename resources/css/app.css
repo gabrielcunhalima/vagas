@@ -1,9 +1,6 @@
 @import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 
 @source '../**/*.blade.php';
-@source '../**/*.jsx';
 @source '../**/*.js';
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -139,6 +136,31 @@
     --font-heading: var(--font-sans);
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Escala tipográfica — cada degrau é 2px (0.125rem) maior que o
+   padrão do Tailwind. O acréscimo é absoluto e igual em todos os
+   degraus, então os intervalos entre eles seguem os de origem.
+
+   As alturas de linha NÃO são redefinidas de propósito: os
+   --text-*--line-height do Tailwind são razões sem unidade, então
+   o entrelinhamento acompanha o tamanho por conta própria.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+    --text-xs: 0.875rem;    /* 12px → 14px */
+    --text-sm: 1rem;        /* 14px → 16px */
+    --text-base: 1.125rem;  /* 16px → 18px */
+    --text-lg: 1.25rem;     /* 18px → 20px */
+    --text-xl: 1.375rem;    /* 20px → 22px */
+    --text-2xl: 1.625rem;   /* 24px → 26px */
+    --text-3xl: 2rem;       /* 30px → 32px */
+    --text-4xl: 2.375rem;   /* 36px → 38px */
+    --text-5xl: 3.125rem;   /* 48px → 50px */
+    --text-6xl: 3.875rem;   /* 60px → 62px */
+    --text-7xl: 4.625rem;   /* 72px → 74px */
+    --text-8xl: 6.125rem;   /* 96px → 98px */
+    --text-9xl: 8.125rem;   /* 128px → 130px */
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;
@@ -165,4 +187,44 @@
         -webkit-appearance: none;
         margin: 0;
     }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Dialog nativo — resources/js/ui/dialog.js
+   ───────────────────────────────────────────────────────────── */
+dialog[data-dialog] {
+    margin: auto;
+    border: none;
+    padding: 0;
+    background: transparent;
+    max-height: 85dvh;
+}
+dialog[data-dialog]::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sheet (off-canvas) — resources/js/ui/sheet.js
+   ───────────────────────────────────────────────────────────── */
+[data-sheet] [data-sheet-panel] {
+    transition: transform 0.2s ease;
+}
+[data-sheet][data-side='right'] [data-sheet-panel] {
+    transform: translateX(100%);
+}
+[data-sheet][data-side='left'] [data-sheet-panel] {
+    transform: translateX(-100%);
+}
+[data-sheet][data-side='bottom'] [data-sheet-panel] {
+    transform: translateY(100%);
+}
+[data-sheet].sheet-aberto [data-sheet-panel] {
+    transform: translate(0);
+}
+[data-sheet] [data-sheet-backdrop] {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+[data-sheet].sheet-aberto [data-sheet-backdrop] {
+    opacity: 1;
 }

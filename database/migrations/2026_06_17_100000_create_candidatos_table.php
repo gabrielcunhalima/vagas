@@ -63,10 +63,10 @@ return new class extends Migration
         // Liga candidaturas ao candidato (nullable — candidaturas antigas permanecem sem vínculo)
         Schema::table('candidaturas', function (Blueprint $table) {
             $table->foreignId('candidato_id')
-                  ->nullable()
-                  ->after('vaga_id')
-                  ->constrained('candidatos')
-                  ->nullOnDelete();
+                ->nullable()
+                ->after('vaga_id')
+                ->constrained('candidatos')
+                ->nullOnDelete();
         });
     }
 

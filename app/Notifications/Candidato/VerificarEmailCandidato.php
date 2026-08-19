@@ -16,7 +16,7 @@ class VerificarEmailCandidato extends VerifyEmail
             'candidato.verification.verify',
             Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
             [
-                'id'   => $notifiable->getKey(),
+                'id' => $notifiable->getKey(),
                 'hash' => sha1($notifiable->getEmailForVerification()),
             ]
         );
@@ -30,7 +30,7 @@ class VerificarEmailCandidato extends VerifyEmail
             ->subject('Confirme seu e-mail: Portal de Vagas FAPEU')
             ->view('emails.vagas.verificar-email-candidato', [
                 'candidato' => $notifiable,
-                'url'       => $url,
+                'url' => $url,
             ]);
     }
 }

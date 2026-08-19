@@ -18,7 +18,7 @@ class VagaAutorizadaMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Sua vaga foi publicada com sucesso: ' . $this->vaga->titulo,
+            subject: 'Sua vaga foi publicada com sucesso: '.$this->vaga->titulo,
         );
     }
 

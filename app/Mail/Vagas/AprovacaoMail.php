@@ -18,7 +18,7 @@ class AprovacaoMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Parabéns, a vaga é sua! ' . $this->candidatura->vaga->titulo,
+            subject: 'Parabéns, a vaga é sua! '.$this->candidatura->vaga->titulo,
         );
     }
 

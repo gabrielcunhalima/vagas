@@ -115,4 +115,20 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Destinatário único (teste e homologação)
+    |--------------------------------------------------------------------------
+    |
+    | Quando preenchido, TODO e-mail da aplicação é desviado para este endereço,
+    | independentemente do destinatário original.
+    |
+    | Os ambientes de teste e homologação carregam e-mails de candidatos reais.
+    | Sem esta trava, um teste de inscrição ou a rotina de aviso de inatividade
+    | escreve para pessoas de verdade. Deve ficar VAZIO em produção.
+    |
+    */
+
+    'always_to' => env('MAIL_ALWAYS_TO'),
+
 ];

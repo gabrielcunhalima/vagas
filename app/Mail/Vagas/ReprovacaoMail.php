@@ -18,7 +18,7 @@ class ReprovacaoMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Retorno do Processo Seletivo: ' . $this->candidatura->vaga->titulo,
+            subject: 'Retorno do Processo Seletivo: '.$this->candidatura->vaga->titulo,
         );
     }
 

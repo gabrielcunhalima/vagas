@@ -3,107 +3,134 @@
 namespace App\Http\Controllers\Vagas;
 
 use App\Http\Controllers\Controller;
-use App\Models\Vagas\Vaga;
+use App\Support\Drhflow\DominioDrhflowRepository;
+use App\Support\Drhflow\DrhflowIndisponivelException;
+use App\Support\Drhflow\VagaDrhflowRepository;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * A listagem e o detalhe públicos, agora lendo do DRHFlow.
+ *
+ * A vaga é identificada por `CD_VAGA_EMPREGO`, não pelo `id` da tabela MySQL —
+ * que continua existindo para o coordenador e o gestor, no caminho legado.
+ */
 class VagaPublicaController extends Controller
 {
+    /** Filtros que a origem sustenta (design D4). Área, modalidade e curso saíram. */
+    private const FILTROS = [
+        'busca', 'tipo', 'escolaridade', 'cidade', 'estado',
+        'projeto', 'salario_min', 'salario_max',
+    ];
+
+    public function __construct(
+        private readonly VagaDrhflowRepository $vagas,
+        private readonly DominioDrhflowRepository $dominios,
+    ) {}
+
     public function index(Request $request)
     {
-        $query = Vaga::ativas();
+        $filtros = array_filter(
+            $request->only(self::FILTROS),
+            fn ($v) => $v !== null && $v !== ''
+        );
 
-        if ($request->filled('busca')) {
-            $query->busca($request->busca);
-        }
-        if ($request->filled('area')) {
-            $query->porArea($request->area);
-        }
-        if ($request->filled('tipo')) {
-            $query->porTipo($request->tipo);
-        }
-        if ($request->filled('modalidade')) {
-            $query->porModalidade($request->modalidade);
-        }
-        if ($request->filled('curso')) {
-            $query->porCurso($request->curso);
-        }
-        if ($request->filled('cidade')) {
-            $query->where('cidade', 'like', '%' . $request->cidade . '%');
-        }
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->estado);
-        }
-        if ($request->filled('salario_min')) {
-            $query->where('remuneracao', '>=', $request->salario_min);
-        }
-        if ($request->filled('salario_max')) {
-            $query->where(fn($q) => $q->where('remuneracao_max', '<=', $request->salario_max)
-                                       ->orWhere('remuneracao', '<=', $request->salario_max));
+        try {
+            $pagina = $this->vagas->paginar($filtros, porPagina: 12, pagina: (int) $request->integer('page', 1));
+            $total = $this->vagas->contar();
+
+            // Uma vaga com função fora de VW_FUNCAO_5ANOS some da listagem sem
+            // aviso. O log é o que torna "minha vaga não aparece" diagnosticável.
+            $this->vagas->registrarVagasOcultasPorFuncao();
+        } catch (DrhflowIndisponivelException) {
+            return $this->listagemIndisponivel($filtros);
         }
 
-        $ordenar = $request->get('ordenar', 'recentes');
-        $query->when($ordenar === 'recentes', fn($q) => $q->latest('autorizada_em'))
-              ->when($ordenar === 'encerramento', fn($q) => $q->orderBy('data_encerramento'))
-              ->when($ordenar === 'relevancia', fn($q) => $q->latest('autorizada_em'));
+        $dados = array_merge([
+            'vagas' => $pagina->withQueryString(),
+            'total' => $total,
+            'filtros' => $request->only([...self::FILTROS, 'ordenar']),
+            'indisponivel' => false,
+        ], $this->opcoesDeFiltro());
 
-        $total = $query->count();
+        // Troca de filtro/ordenação/página via fetch (resources/js/vagas-filtro.js):
+        // devolve só o fragmento lista+detalhe, não a página inteira.
+        if ($request->ajax()) {
+            return view('publico.vagas._resultado', $dados);
+        }
 
-        /* A listagem é um split view: o painel de detalhe renderiza a vaga
-           selecionada direto do payload, sem requisição por clique. Por isso os
-           itens paginados carregam os mesmos campos da página de detalhe. */
-        $vagas = $query->paginate(12)->withQueryString()
-            ->through(fn(Vaga $v) => $this->vagaCompleta($v));
-
-        return Inertia::render('Publico/Vagas/Index', [
-            'vagas'   => $vagas,
-            'areas'   => Vaga::$areas,
-            'cursos'  => Vaga::$cursos,
-            'total'   => $total,
-            'filtros' => $request->only([
-                'busca', 'area', 'tipo', 'modalidade', 'curso',
-                'cidade', 'estado', 'salario_min', 'salario_max', 'ordenar',
-            ]),
-        ]);
+        return view('publico.vagas.index', $dados);
     }
 
-    public function show(Vaga $vaga)
+    public function show(int $vaga)
     {
-        abort_unless($vaga->esta_aberta, 404);
+        try {
+            $encontrada = $this->vagas->buscarPorCodigo($vaga);
+        } catch (DrhflowIndisponivelException) {
+            abort(503, 'As vagas estão temporariamente indisponíveis. Tente novamente em alguns minutos.');
+        }
 
-        $vagasRelacionadas = Vaga::ativas()
-            ->where('area', $vaga->area)
-            ->where('id', '!=', $vaga->id)
-            ->latest('autorizada_em')
-            ->take(3)
-            ->get();
+        // Código inexistente, vaga fechada e prazo vencido são o mesmo 404: de
+        // fora, todos são "vaga não encontrada", e separá-los revelaria a
+        // existência de vagas que o candidato não pode ver.
+        abort_if($encontrada === null, 404);
 
-        return Inertia::render('Publico/Vagas/Show', [
-            'vaga'         => $this->vagaCompleta($vaga),
-            'relacionadas' => $vagasRelacionadas->map(fn(Vaga $v) => $this->vagaResumo($v)),
-        ]);
+        return view('publico.vagas.show', ['vaga' => $encontrada]);
     }
 
-    /** Campos expostos publicamente nos cards de listagem. */
-    private function vagaResumo(Vaga $v): array
+    /**
+     * Indisponibilidade do DRHFlow: a tela diz o que aconteceu.
+     *
+     * Uma listagem vazia seria lida como "não há vagas abertas" — a leitura
+     * errada que a capacidade `vagas-drhflow` proíbe explicitamente.
+     *
+     * @param  array<string, mixed>  $filtros
+     */
+    private function listagemIndisponivel(array $filtros)
     {
-        return $v->only([
-            'id', 'titulo', 'descricao', 'tipo', 'area', 'modalidade',
-            'remuneracao', 'remuneracao_max', 'carga_horaria',
-            'cidade', 'estado', 'local_trabalho',
-            'data_encerramento', 'autorizada_em', 'created_at',
-        ]);
+        $dados = [
+            'vagas' => new LengthAwarePaginator([], 0, 12, 1),
+            'total' => 0,
+            'filtros' => $filtros,
+            'indisponivel' => true,
+            'tipos' => [],
+            'escolaridades' => [],
+            'projetos' => [],
+            'municipios' => [],
+            'ufs' => [],
+        ];
+
+        if (request()->ajax()) {
+            return view('publico.vagas._resultado', $dados);
+        }
+
+        return view('publico.vagas.index', $dados);
     }
 
-    /** Campos expostos publicamente na página de detalhe. */
-    private function vagaCompleta(Vaga $v): array
+    /**
+     * Opções dos selects, vindas dos domínios do próprio DRHFlow.
+     *
+     * Se os domínios falharem depois da listagem ter dado certo, os filtros
+     * ficam vazios mas as vagas continuam na tela — perder o select é menos
+     * grave que perder a lista.
+     *
+     * @return array<string, mixed>
+     */
+    private function opcoesDeFiltro(): array
     {
-        return array_merge($this->vagaResumo($v), $v->only([
-            'requisitos', 'requisitos_desejaveis', 'beneficios', 'curso_desejado',
-            'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'pais',
-            'projeto_nome', 'projeto_codigo',
-        ]), [
-            'endereco_completo' => $v->endereco_completo,
-        ]);
+        try {
+            return [
+                'tipos' => $this->dominios->tiposAdmissao(),
+                'escolaridades' => $this->dominios->grausInstrucao(),
+                'projetos' => $this->dominios->projetosComVaga(),
+                'municipios' => $this->dominios->municipiosComVaga(),
+                'ufs' => $this->dominios->ufs(),
+            ];
+        } catch (DrhflowIndisponivelException) {
+            return [
+                'tipos' => [], 'escolaridades' => [], 'projetos' => [],
+                'municipios' => [], 'ufs' => [],
+            ];
+        }
     }
 }

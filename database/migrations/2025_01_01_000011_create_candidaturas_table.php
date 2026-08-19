@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('vaga_id')
-                  ->constrained('vagas')
-                  ->cascadeOnDelete();
+                ->constrained('vagas')
+                ->cascadeOnDelete();
 
             $table->string('nome');
             $table->string('email');

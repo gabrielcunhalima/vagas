@@ -3,8 +3,9 @@
 namespace Tests\Unit;
 
 use App\Models\User;
-use Tests\TestCase;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class UserModelTest extends TestCase
 {
@@ -14,7 +15,7 @@ class UserModelTest extends TestCase
     {
         return User::factory()->create(array_merge([
             'perfil' => 'coordenador',
-            'ativo'  => true,
+            'ativo' => true,
         ], $attrs));
     }
 
@@ -92,12 +93,12 @@ class UserModelTest extends TestCase
     public function test_relacionamento_vagas_criadas(): void
     {
         $coord = $this->makeUser(['perfil' => 'coordenador']);
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $coord->vagasCriadas());
+        $this->assertInstanceOf(HasMany::class, $coord->vagasCriadas());
     }
 
     public function test_relacionamento_vagas_autorizadas(): void
     {
         $gestor = $this->makeUser(['perfil' => 'gestor']);
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $gestor->vagasAutorizadas());
+        $this->assertInstanceOf(HasMany::class, $gestor->vagasAutorizadas());
     }
 }

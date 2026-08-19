@@ -1,0 +1,1 @@
+<div {{ $attributes->merge(['class' => 'flex h-9 w-full min-w-0 items-center rounded-lg border border-input transition-colors outline-none focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30']) }}>{{ $slot }}</div>

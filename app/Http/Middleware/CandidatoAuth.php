@@ -10,8 +10,7 @@ class CandidatoAuth
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!Auth::guard('candidato')->check()) {
-            $redirect = $request->fullUrl();
+        if (! Auth::guard('candidato')->check()) {
             return redirect()->route('candidato.login', ['redirect' => $request->path()])
                 ->with('info', 'Faça login para continuar.');
         }

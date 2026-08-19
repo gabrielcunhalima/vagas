@@ -12,13 +12,14 @@ trait ValidaCpf
         for ($t = 9; $t < 11; $t++) {
             $soma = 0;
             for ($i = 0; $i < $t; $i++) {
-                $soma += (int)$cpf[$i] * ($t + 1 - $i);
+                $soma += (int) $cpf[$i] * ($t + 1 - $i);
             }
             $resto = $soma % 11;
-            if ((int)$cpf[$t] !== ($resto < 2 ? 0 : 11 - $resto)) {
+            if ((int) $cpf[$t] !== ($resto < 2 ? 0 : 11 - $resto)) {
                 return false;
             }
         }
+
         return true;
     }
 }

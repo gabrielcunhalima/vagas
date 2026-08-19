@@ -2,371 +2,233 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Vagas\Vaga;
-use App\Models\Vagas\Candidatura;
-use Tests\TestCase;
+use App\Mail\Vagas\CandidaturaRecebidaMail;
+use App\Models\Candidato;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use App\Mail\Vagas\CandidaturaRecebidaMail;
-use App\Mail\Vagas\NovaCandidaturaMail;
+use Tests\Concerns\UsaDrhflowFalso;
+use Tests\TestCase;
 
+/**
+ * As pré-condições e a validação do envio da inscrição.
+ *
+ * A gravação em si — o que vai para cada coluna de `EN_CANDIDATO_VAGA_EMPREGO`,
+ * a idempotência por CPF + vaga, o complemento local — está em
+ * `Drhflow\InscricaoDrhflowTest`. Aqui ficam os portões: autenticação,
+ * verificação de e-mail, perfil completo, vaga aberta e as regras do formulário.
+ */
 class InscricaoTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private User $coord;
+    use RefreshDatabase, UsaDrhflowFalso;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
+        $this->configurarDrhflowFalso();
+        Storage::fake(Candidato::DISCO_CURRICULOS);
     }
 
-    private function criarVaga(array $attrs = []): Vaga
-    {
-        return Vaga::create(array_merge([
-            'titulo'            => 'Estágio em TI',
-            'descricao'         => 'Descrição da vaga pública de estágio em TI para candidatura.',
-            'requisitos'        => 'Requisitos básicos para estágio em TI.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
-            'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $this->coord->id,
-            'notificar_email'   => true,
-        ], $attrs));
-    }
-
+    /** Só o que é próprio da inscrição — o resto vem do perfil. */
     private function dadosInscricao(array $over = []): array
     {
-        Storage::fake('local');
         return array_merge([
-            '_honeypot'          => '',
-            'nome'               => 'João da Silva Santos',
-            'email'              => 'joao@teste.com',
-            'cpf'                => '529.982.247-25',
-            'telefone'           => '48999001122',
-            'curso'              => 'Ciência da Computação',
-            'instituicao'        => 'UFSC',
-            'semestre'           => '6',
-            'previsao_conclusao' => now()->addYear()->format('Y-m-d'),
+            '_honeypot' => '',
             'carta_apresentacao' => 'Tenho interesse nesta vaga por conta das tecnologias utilizadas.',
-            'curriculo'          => UploadedFile::fake()->create('curriculo.pdf', 100, 'application/pdf'),
-            'linkedin'           => 'https://linkedin.com/in/joaosilva',
-            'pretensao_salarial' => '1500.00',
-            'disponibilidade'    => 'Manhã',
-            'pcd'                => false,
-            'lgpd_consentimento' => true,
+            'conflito_interesse' => '0',
+            'codigo_conduta_aceite' => '1',
         ], $over);
     }
 
-    // ── Página pública da vaga ────────────────────────────────────────────────
-
-    public function test_pagina_vaga_publica_acessivel(): void
+    private function contagemNoDrhflow(): int
     {
-        $vaga = $this->criarVaga();
-        $response = $this->get("/vagas/{$vaga->id}");
-        $response->assertStatus(200);
-        $this->assertVeInertia($response, $vaga->titulo);
+        return $this->drhflow()->table('EN_CANDIDATO_VAGA_EMPREGO')->count();
     }
 
-    public function test_vaga_encerrada_nao_exibida_na_listagem(): void
-    {
-        $this->criarVaga(['titulo' => 'Vaga Ativa']);
-        $this->criarVaga(['titulo' => 'Vaga Encerrada', 'status' => 'encerrada', 'data_encerramento' => now()->subDays(5)->toDateString()]);
+    // ─── Pré-condições de acesso ─────────────────────────────────────────────
 
-        $response = $this->get('/vagas');
-        $this->assertVeInertia($response, 'Vaga Ativa');
-        $this->assertNaoVeInertia($response, 'Vaga Encerrada');
+    public function test_visitante_nao_autenticado_e_levado_ao_login(): void
+    {
+        $codigo = $this->vagaDrhflow();
+
+        $this->get(route('inscricao.create', $codigo))
+            ->assertRedirect(route('candidato.login', ['redirect' => "candidatura/{$codigo}"]));
     }
 
-    public function test_vaga_rascunho_nao_exibida_na_listagem_publica(): void
+    public function test_candidato_sem_email_verificado_nao_alcanca_a_candidatura(): void
     {
-        $this->criarVaga(['titulo' => 'Vaga Rascunho', 'status' => 'rascunho']);
-        $response = $this->get('/vagas');
-        $this->assertNaoVeInertia($response, 'Vaga Rascunho');
+        $codigo = $this->vagaDrhflow();
+        $candidato = Candidato::factory()->naoVerificado()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->get(route('inscricao.create', $codigo))
+            ->assertRedirect(route('candidato.verification.notice'));
     }
 
-    // ── Formulário de candidatura ─────────────────────────────────────────────
+    public function test_envio_sem_conta_autenticada_e_recusado(): void
+    {
+        $codigo = $this->vagaDrhflow();
+
+        $this->post(route('inscricao.store', $codigo), $this->dadosInscricao())
+            ->assertRedirect(route('candidato.login', ['redirect' => "candidatura/{$codigo}"]));
+
+        $this->assertSame(0, $this->contagemNoDrhflow());
+    }
 
     public function test_formulario_candidatura_vaga_aberta(): void
     {
-        $vaga = $this->criarVaga();
-        $response = $this->get("/candidatura/{$vaga->id}");
-        $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Publico/Candidatura');
+        $codigo = $this->vagaDrhflow();
+
+        $res = $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->get(route('inscricao.create', $codigo));
+
+        $res->assertOk();
+        $res->assertViewIs('publico.candidatura');
+        $res->assertViewHas('perfil');
+        $res->assertViewHas('completude');
+        $res->assertViewHas('vaga');
     }
 
     public function test_formulario_candidatura_vaga_encerrada_retorna_404(): void
     {
-        $vaga = $this->criarVaga([
-            'status'            => 'ativa',
-            'data_encerramento' => now()->subDays(1)->toDateString(),
-        ]);
-        $response = $this->get("/candidatura/{$vaga->id}");
-        $response->assertStatus(404);
+        $codigo = $this->vagaDrhflow(['CD_SITUACAO' => 2]);
+
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->get(route('inscricao.create', $codigo))
+            ->assertNotFound();
     }
 
-    public function test_formulario_candidatura_vaga_rascunho_retorna_404(): void
+    public function test_inscricao_em_vaga_encerrada_retorna_404(): void
     {
-        $vaga = $this->criarVaga(['status' => 'rascunho']);
-        $response = $this->get("/candidatura/{$vaga->id}");
-        $response->assertStatus(404);
+        $codigo = $this->vagaDrhflow(['CD_SITUACAO' => 2]);
+
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao())
+            ->assertNotFound();
+
+        $this->assertSame(0, $this->contagemNoDrhflow());
     }
 
-    // ── Store candidatura com sucesso ─────────────────────────────────────────
+    // ─── Perfil completo como condição ───────────────────────────────────────
 
-    public function test_candidatura_armazenada_com_sucesso(): void
+    public function test_perfil_incompleto_nao_apresenta_formulario_de_envio(): void
     {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
+        $codigo = $this->vagaDrhflow();
+        $candidato = Candidato::factory()->minimo()->create();
 
-        $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
+        $res = $this->actingAs($candidato, 'candidato')->get(route('inscricao.create', $codigo));
 
-        $response->assertRedirect(route('inscricao.confirmacao', $vaga));
-        $this->assertDatabaseHas('candidaturas', [
-            'vaga_id' => $vaga->id,
-            'email'   => 'joao@teste.com',
-            'cpf'     => '52998224725',
-            'status'  => 'recebida',
-        ]);
+        $res->assertOk();
+        $completude = $res->original->getData()['completude'];
+        $this->assertFalse($completude['completo']);
+        $this->assertNotEmpty($completude['pendencias']);
     }
 
-    public function test_candidatura_salva_curriculo(): void
+    public function test_envio_com_perfil_incompleto_e_recusado(): void
     {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
+        $codigo = $this->vagaDrhflow();
+        $candidato = Candidato::factory()->minimo()->create();
 
-        $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
+        $this->actingAs($candidato, 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao())
+            ->assertRedirect(route('candidato.perfil.edit'));
 
-        $candidatura = Candidatura::where('email', 'joao@teste.com')->first();
-        $this->assertNotNull($candidatura->curriculo_path);
-        Storage::disk('local')->assertExists($candidatura->curriculo_path);
+        $this->assertSame(0, $this->contagemNoDrhflow());
+    }
+
+    public function test_perfil_sem_curriculo_bloqueia_o_envio(): void
+    {
+        $codigo = $this->vagaDrhflow();
+        $candidato = Candidato::factory()->semCurriculo()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao())
+            ->assertRedirect(route('candidato.perfil.edit'));
+
+        $this->assertSame(0, $this->contagemNoDrhflow());
+    }
+
+    // ─── Envio ───────────────────────────────────────────────────────────────
+
+    public function test_envio_grava_no_drhflow_e_conduz_ao_acompanhamento(): void
+    {
+        $codigo = $this->vagaDrhflow();
+        $candidato = Candidato::factory()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao())
+            ->assertRedirect(route('candidato.candidaturas.index'));
+
+        $this->assertSame(1, $this->contagemNoDrhflow());
     }
 
     public function test_candidatura_envia_email_ao_candidato(): void
     {
         Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
+        $codigo = $this->vagaDrhflow();
 
-        $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao());
 
-        Mail::assertSent(CandidaturaRecebidaMail::class, fn($mail) => $mail->hasTo('joao@teste.com'));
+        Mail::assertSent(CandidaturaRecebidaMail::class);
     }
 
-    public function test_candidatura_notifica_coordenador_quando_notificar_email_true(): void
+    // ─── Validação dos campos da vaga ────────────────────────────────────────
+
+    public function test_conflito_declarado_sem_detalhe_falha(): void
     {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga(['notificar_email' => true]);
+        $codigo = $this->vagaDrhflow();
 
-        $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao([
+                'conflito_interesse' => '1',
+                'conflito_interesse_detalhe' => '',
+            ]))
+            ->assertSessionHasErrors('conflito_interesse_detalhe');
 
-        Mail::assertSent(NovaCandidaturaMail::class, fn($mail) => $mail->hasTo($this->coord->email));
+        $this->assertSame(0, $this->contagemNoDrhflow());
     }
 
-    public function test_candidatura_nao_notifica_coordenador_quando_notificar_email_false(): void
+    public function test_sem_aceite_do_codigo_de_conduta_falha(): void
     {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga(['notificar_email' => false]);
+        $codigo = $this->vagaDrhflow();
 
-        $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao(['codigo_conduta_aceite' => '0']))
+            ->assertSessionHasErrors('codigo_conduta_aceite');
 
-        Mail::assertNotSent(NovaCandidaturaMail::class);
-    }
-
-    public function test_page_confirmacao_exibida(): void
-    {
-        $vaga = $this->criarVaga();
-        $response = $this->withSession(['candidatura_nome' => 'João'])
-            ->get("/candidatura/{$vaga->id}/confirmacao");
-        $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Publico/Confirmacao');
-    }
-
-    // ── Validações da inscrição ───────────────────────────────────────────────
-
-    public function test_inscricao_sem_nome_falha(): void
-    {
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-        $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao(['nome' => '']));
-        $response->assertSessionHasErrors('nome');
-    }
-
-    public function test_inscricao_sem_email_falha(): void
-    {
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-        $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao(['email' => '']));
-        $response->assertSessionHasErrors('email');
-    }
-
-    public function test_inscricao_cpf_invalido_falha(): void
-    {
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-        $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao(['cpf' => '111.111.111-11']));
-        $response->assertSessionHasErrors('cpf');
-    }
-
-    public function test_inscricao_sem_curriculo_falha(): void
-    {
-        $vaga = $this->criarVaga();
-        $dados = $this->dadosInscricao();
-        unset($dados['curriculo']);
-        $response = $this->post("/candidatura/{$vaga->id}", $dados);
-        $response->assertSessionHasErrors('curriculo');
-    }
-
-    public function test_inscricao_curriculo_nao_pdf_falha(): void
-    {
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-        $dados = $this->dadosInscricao([
-            'curriculo' => UploadedFile::fake()->create('curriculo.docx', 100, 'application/msword'),
-        ]);
-        $response = $this->post("/candidatura/{$vaga->id}", $dados);
-        $response->assertSessionHasErrors('curriculo');
-    }
-
-    public function test_inscricao_curriculo_maior_que_5mb_falha(): void
-    {
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-        $dados = $this->dadosInscricao([
-            'curriculo' => UploadedFile::fake()->create('curriculo.pdf', 6000, 'application/pdf'),
-        ]);
-        $response = $this->post("/candidatura/{$vaga->id}", $dados);
-        $response->assertSessionHasErrors('curriculo');
-    }
-
-    public function test_inscricao_duplicada_mesmo_cpf_falha(): void
-    {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-
-        // Primeira candidatura
-        $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
-
-        // Segunda candidatura com mesmo CPF
-        $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao([
-            'email' => 'outro@email.com',
-        ]));
-        $response->assertSessionHasErrors('cpf');
-    }
-
-    public function test_mesmo_cpf_pode_se_candidatar_em_vagas_diferentes(): void
-    {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga1 = $this->criarVaga(['titulo' => 'Vaga 1']);
-        $vaga2 = $this->criarVaga(['titulo' => 'Vaga 2']);
-
-        $this->post("/candidatura/{$vaga1->id}", $this->dadosInscricao());
-        $response = $this->post("/candidatura/{$vaga2->id}", $this->dadosInscricao());
-
-        $response->assertRedirect(route('inscricao.confirmacao', $vaga2));
-        $this->assertEquals(2, Candidatura::where('cpf', '52998224725')->count());
+        $this->assertSame(0, $this->contagemNoDrhflow());
     }
 
     public function test_honeypot_preenchido_bloqueia_inscricao(): void
     {
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-        $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao([
-            '_honeypot' => 'bot preencheu isso',
-        ]));
-        $response->assertSessionHasErrors('_honeypot');
+        $codigo = $this->vagaDrhflow();
+
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao(['_honeypot' => 'bot']))
+            ->assertSessionHasErrors('_honeypot');
+
+        $this->assertSame(0, $this->contagemNoDrhflow());
     }
 
-    public function test_inscricao_com_pcd_salva_tipo(): void
+    // ─── Unicidade por vaga ──────────────────────────────────────────────────
+
+    public function test_mesma_conta_pode_se_candidatar_em_vagas_diferentes(): void
     {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
+        $primeira = $this->vagaDrhflow();
+        $segunda = $this->vagaDrhflow(['CD_FUNCAO' => '0373']);
+        $candidato = Candidato::factory()->create();
 
-        $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao([
-            'pcd'      => true,
-            'pcd_tipo' => 'Deficiência Física',
-        ]));
+        $this->actingAs($candidato, 'candidato')->post(route('inscricao.store', $primeira), $this->dadosInscricao());
+        $this->actingAs($candidato, 'candidato')->post(route('inscricao.store', $segunda), $this->dadosInscricao());
 
-        $this->assertDatabaseHas('candidaturas', [
-            'vaga_id'  => $vaga->id,
-            'pcd'      => true,
-            'pcd_tipo' => 'Deficiência Física',
-        ]);
+        $this->assertSame(2, $this->contagemNoDrhflow());
     }
 
-    public function test_inscricao_em_vaga_encerrada_retorna_404(): void
+    // ─── Legado ──────────────────────────────────────────────────────────────
+
+    public function test_consulta_por_cpf_e_email_redireciona_para_area_autenticada(): void
     {
-        Storage::fake('local');
-        $vaga = $this->criarVaga([
-            'status'            => 'ativa',
-            'data_encerramento' => now()->subDays(1)->toDateString(),
-        ]);
-        $response = $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
-        $response->assertStatus(404);
-    }
-
-    // ── Consulta de candidaturas ──────────────────────────────────────────────
-
-    public function test_pagina_consulta_candidatura_acessivel(): void
-    {
-        $response = $this->get('/minhas-candidaturas');
-        $response->assertStatus(200);
-        $this->assertComponenteInertia($response, 'Publico/ConsultaCandidatura');
-    }
-
-    public function test_consulta_candidatura_por_cpf_e_email(): void
-    {
-        Mail::fake();
-        Storage::fake('local');
-        $vaga = $this->criarVaga();
-        $this->post("/candidatura/{$vaga->id}", $this->dadosInscricao());
-
-        $response = $this->post('/minhas-candidaturas', [
-            'cpf'   => '529.982.247-25',
-            'email' => 'joao@teste.com',
-        ]);
-
-        $response->assertStatus(200);
-        $this->assertPropInertia($response, 'candidaturas');
-        $this->assertVeInertia($response, 'Estágio em TI');
-    }
-
-    public function test_consulta_sem_candidaturas_retorna_lista_vazia(): void
-    {
-        $response = $this->post('/minhas-candidaturas', [
-            'cpf'   => '529.982.247-25',
-            'email' => 'naoexiste@email.com',
-        ]);
-        $response->assertStatus(200);
-        $candidaturas = $this->propsInertia($response)['candidaturas'];
-        $this->assertCount(0, $candidaturas);
-    }
-
-    public function test_consulta_sem_cpf_falha(): void
-    {
-        $response = $this->post('/minhas-candidaturas', ['email' => 'teste@email.com']);
-        $response->assertSessionHasErrors('cpf');
-    }
-
-    public function test_consulta_sem_email_falha(): void
-    {
-        $response = $this->post('/minhas-candidaturas', ['cpf' => '529.982.247-25']);
-        $response->assertSessionHasErrors('email');
+        $this->get('/minhas-candidaturas')->assertRedirect('/minha-conta/candidaturas');
     }
 }

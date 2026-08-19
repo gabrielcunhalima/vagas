@@ -47,6 +47,25 @@ return [
             'report' => false,
         ],
 
+        /*
+        | PDFs de currículo, uma pasta por CPF — o layout que o DRHFlow espera.
+        |
+        | A raiz é configurável por ambiente: local em desenvolvimento,
+        | /home/Curriculos em produção. Precisa ficar FORA de qualquer diretório
+        | servido pela web; o download passa pelo portal, que confere quem pede.
+        |
+        | throw => true de propósito: uma falha silenciosa de gravação deixaria o
+        | perfil apontando para um arquivo que não existe.
+        */
+        'curriculos' => [
+            'driver' => 'local',
+            'root' => env('CURRICULOS_ROOT') ?: storage_path('app/private/Curriculos'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

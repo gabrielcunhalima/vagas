@@ -27,7 +27,26 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!-- O DRHFlow é um SQL Server compartilhado com o RH e a credencial tem
+             escrita. Nenhum teste pode alcançá-lo: quem precisa dele usa o
+             trait Tests\Concerns\UsaDrhflowFalso, que troca a conexão por
+             SQLite. Estes valores garantem que um teste que esqueça o trait
+             falhe por conexão recusada em vez de escrever no banco do RH. -->
+        <env name="DRHFLOW_HOST" value="0.0.0.0"/>
+        <env name="DRHFLOW_PORT" value="1"/>
+        <env name="DRHFLOW_DATABASE" value="drhflow_inalcancavel"/>
+        <env name="DRHFLOW_USERNAME" value=""/>
+        <env name="DRHFLOW_PASSWORD" value=""/>
+        <env name="DRHFLOW_TIMEOUT" value="1"/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Trava de segurança: AppServiceProvider::redirecionarEmailsDeTeste()
+             chama Mail::alwaysTo() com este valor, reescrevendo o destinatário
+             de todo e-mail/notificação disparado durante os testes, nunca um
+             endereço de candidato real, mesmo que algum teste esqueça
+             Mail::fake()/Notification::fake(). Vale para php artisan test local
+             e para o job "Testes e build" do CI, que roda por cima deste mesmo
+             phpunit.xml. -->
+        <env name="MAIL_ALWAYS_TO" value="gabriel.lima@fapeu.org.br"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

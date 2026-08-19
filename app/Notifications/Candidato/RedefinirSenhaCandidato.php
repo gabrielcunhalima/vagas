@@ -23,7 +23,7 @@ class RedefinirSenhaCandidato extends ResetPassword
             ->subject('Redefinição de senha: Portal de Vagas FAPEU')
             ->view('emails.vagas.redefinir-senha-candidato', [
                 'candidato' => $notifiable,
-                'url'       => $url,
+                'url' => $url,
             ]);
     }
 }
