@@ -2,11 +2,12 @@
 
 namespace App\Models\Vagas;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Vaga extends Model
 {
@@ -50,12 +51,12 @@ class Vaga extends Model
 
     protected $casts = [
         'data_encerramento' => 'date',
-        'autorizada_em'     => 'datetime',
-        'encerrada_em'      => 'datetime',
-        'remuneracao'       => 'decimal:2',
-        'remuneracao_max'   => 'decimal:2',
-        'notificar_email'   => 'boolean',
-        'curso_desejado'    => 'array',
+        'autorizada_em' => 'datetime',
+        'encerrada_em' => 'datetime',
+        'remuneracao' => 'decimal:2',
+        'remuneracao_max' => 'decimal:2',
+        'notificar_email' => 'boolean',
+        'curso_desejado' => 'array',
     ];
 
     public static array $cursos = [
@@ -131,31 +132,31 @@ class Vaga extends Model
     public static array $tiposLabel = [
         'estagio' => 'Estágio',
         'emprego' => 'CLT',
-        'bolsa'   => 'Bolsa',
+        'bolsa' => 'Bolsa',
     ];
 
     public static array $modalidadesLabel = [
         'presencial' => 'Presencial',
-        'remoto'     => 'Remoto',
-        'hibrido'    => 'Híbrido',
+        'remoto' => 'Remoto',
+        'hibrido' => 'Híbrido',
     ];
 
     public static array $statusLabel = [
-        'rascunho'               => 'Rascunho',
+        'rascunho' => 'Rascunho',
         'aguardando_autorizacao' => 'Aguardando Autorização',
-        'ativa'                  => 'Ativa',
-        'encerrada'              => 'Encerrada',
-        'recusada'               => 'Recusada',
-        'inativa'                => 'Inativa',
+        'ativa' => 'Ativa',
+        'encerrada' => 'Encerrada',
+        'recusada' => 'Recusada',
+        'inativa' => 'Inativa',
     ];
 
     public static array $statusCor = [
-        'rascunho'               => 'secondary',
+        'rascunho' => 'secondary',
         'aguardando_autorizacao' => 'warning',
-        'ativa'                  => 'success',
-        'encerrada'              => 'dark',
-        'recusada'               => 'danger',
-        'inativa'                => 'secondary',
+        'ativa' => 'success',
+        'encerrada' => 'dark',
+        'recusada' => 'danger',
+        'inativa' => 'secondary',
     ];
 
     public function getTipoLabelAttribute(): string
@@ -187,9 +188,10 @@ class Vaga extends Model
 
     public function getDiasRestantesAttribute(): int
     {
-        if (!$this->data_encerramento) {
+        if (! $this->data_encerramento) {
             return 0;
         }
+
         return max(0, (int) Carbon::today()->diffInDays($this->data_encerramento, false));
     }
 
@@ -208,6 +210,7 @@ class Vaga extends Model
             $this->cidade && $this->estado ? "{$this->cidade}/{$this->estado}" : $this->cidade,
             $this->cep,
         ]);
+
         return implode(', ', $partes);
     }
 
@@ -218,18 +221,18 @@ class Vaga extends Model
 
     public function coordenador()
     {
-        return $this->belongsTo(\App\Models\User::class, 'coordenador_id');
+        return $this->belongsTo(User::class, 'coordenador_id');
     }
 
     public function gestor()
     {
-        return $this->belongsTo(\App\Models\User::class, 'gestor_id');
+        return $this->belongsTo(User::class, 'gestor_id');
     }
 
     public function scopeAtivas(Builder $query): Builder
     {
         return $query->where('status', 'ativa')
-                     ->where('data_encerramento', '>=', Carbon::today());
+            ->where('data_encerramento', '>=', Carbon::today());
     }
 
     public function scopeAguardandoAutorizacao(Builder $query): Builder
@@ -261,9 +264,9 @@ class Vaga extends Model
     {
         return $query->where(function ($q) use ($termo) {
             $q->where('titulo', 'like', "%{$termo}%")
-              ->orWhere('descricao', 'like', "%{$termo}%")
-              ->orWhere('area', 'like', "%{$termo}%")
-              ->orWhere('projeto_nome', 'like', "%{$termo}%");
+                ->orWhere('descricao', 'like', "%{$termo}%")
+                ->orWhere('area', 'like', "%{$termo}%")
+                ->orWhere('projeto_nome', 'like', "%{$termo}%");
         });
     }
 

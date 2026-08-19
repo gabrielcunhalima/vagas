@@ -20,18 +20,18 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required',
         ], [
-            'email.required'    => 'Informe o e-mail.',
-            'email.email'       => 'E-mail inválido.',
+            'email.required' => 'Informe o e-mail.',
+            'email.email' => 'E-mail inválido.',
             'password.required' => 'Informe a senha.',
         ]);
 
         $credenciais = $request->only('email', 'password');
-        $lembrar     = $request->boolean('remember');
+        $lembrar = $request->boolean('remember');
 
-        if (!Auth::attempt($credenciais, $lembrar)) {
+        if (! Auth::attempt($credenciais, $lembrar)) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => 'E-mail ou senha incorretos.']);
@@ -39,8 +39,9 @@ class LoginController extends Controller
 
         $user = Auth::user();
 
-        if (!$user->ativo) {
+        if (! $user->ativo) {
             Auth::logout();
+
             return back()->withErrors(['email' => 'Usuário inativo. Contate o administrador.']);
         }
 
@@ -54,6 +55,7 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 
@@ -61,7 +63,7 @@ class LoginController extends Controller
     {
         return match (Auth::user()->perfil) {
             'gestor' => redirect()->route('gestor.dashboard'),
-            default  => redirect()->route('coord.dashboard'),
+            default => redirect()->route('coord.dashboard'),
         };
     }
 }

@@ -2,11 +2,11 @@
 
 namespace App\Models\Vagas;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 use App\Models\Candidato;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Candidatura extends Model
 {
@@ -33,33 +33,33 @@ class Candidatura extends Model
     ];
 
     protected $casts = [
-        'entrevista_data'          => 'datetime',
-        'conflito_interesse'       => 'boolean',
+        'entrevista_data' => 'datetime',
+        'conflito_interesse' => 'boolean',
         'codigo_conduta_aceito_em' => 'datetime',
     ];
 
     public static array $statusLabel = [
-        'recebida'   => 'Recebida',
+        'recebida' => 'Recebida',
         'em_analise' => 'Em Análise',
         'entrevista' => 'Entrevista',
-        'aprovado'   => 'Aprovado',
-        'reprovado'  => 'Reprovado',
+        'aprovado' => 'Aprovado',
+        'reprovado' => 'Reprovado',
     ];
 
     public static array $statusCor = [
-        'recebida'   => 'info',
+        'recebida' => 'info',
         'em_analise' => 'warning',
         'entrevista' => 'primary',
-        'aprovado'   => 'success',
-        'reprovado'  => 'danger',
+        'aprovado' => 'success',
+        'reprovado' => 'danger',
     ];
 
     public static array $proximosStatus = [
-        'recebida'   => ['em_analise', 'entrevista', 'reprovado'],
+        'recebida' => ['em_analise', 'entrevista', 'reprovado'],
         'em_analise' => ['entrevista', 'reprovado'],
         'entrevista' => ['aprovado', 'reprovado'],
-        'aprovado'   => [],
-        'reprovado'  => [],
+        'aprovado' => [],
+        'reprovado' => [],
     ];
 
     /**
@@ -104,6 +104,7 @@ class Candidatura extends Model
     public function getCpfFormatadoAttribute(): string
     {
         $cpf = preg_replace('/\D/', '', $this->cpf);
+
         return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf);
     }
 
@@ -117,6 +118,7 @@ class Candidatura extends Model
             $this->cidade && $this->estado ? "{$this->cidade}/{$this->estado}" : $this->cidade,
             $this->cep,
         ]);
+
         return implode(', ', $partes);
     }
 
@@ -134,15 +136,15 @@ class Candidatura extends Model
     public function eventos()
     {
         return $this->hasMany(CandidaturaEvento::class, 'candidatura_id')
-                    ->orderBy('ocorrido_em');
+            ->orderBy('ocorrido_em');
     }
 
     /** Momento da decisão final — base do prazo de decaimento de acesso do coordenador. */
     public function eventoDecisao()
     {
         return $this->hasOne(CandidaturaEvento::class, 'candidatura_id')
-                    ->whereIn('status_novo', ['aprovado', 'reprovado'])
-                    ->latestOfMany('ocorrido_em');
+            ->whereIn('status_novo', ['aprovado', 'reprovado'])
+            ->latestOfMany('ocorrido_em');
     }
 
     public function scopePorStatus(Builder $query, string $status): Builder
@@ -155,11 +157,11 @@ class Candidatura extends Model
     {
         return $query->whereHas('candidato', function ($q) use ($termo) {
             $q->where('nome', 'like', "%{$termo}%")
-              ->orWhere('email', 'like', "%{$termo}%")
-              ->orWhere('cpf', 'like', "%{$termo}%")
-              ->orWhereHas('formacoes', function ($fq) use ($termo) {
-                  $fq->where('curso', 'like', "%{$termo}%");
-              });
+                ->orWhere('email', 'like', "%{$termo}%")
+                ->orWhere('cpf', 'like', "%{$termo}%")
+                ->orWhereHas('formacoes', function ($fq) use ($termo) {
+                    $fq->where('curso', 'like', "%{$termo}%");
+                });
         });
     }
 
@@ -187,12 +189,12 @@ class Candidatura extends Model
     public function getPassoProgressoAttribute(): int
     {
         return match ($this->status) {
-            'recebida'   => 1,
+            'recebida' => 1,
             'em_analise' => 2,
             'entrevista' => 3,
-            'aprovado'   => 5,
-            'reprovado'  => 4,
-            default      => 1,
+            'aprovado' => 5,
+            'reprovado' => 4,
+            default => 1,
         };
     }
 }

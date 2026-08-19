@@ -12,7 +12,7 @@ class EnsureCandidatoEmailIsVerified
     {
         $candidato = Auth::guard('candidato')->user();
 
-        if (!$candidato || !$candidato->hasVerifiedEmail()) {
+        if (! $candidato || ! $candidato->hasVerifiedEmail()) {
             // Guarda o destino para que verificar não custe reencontrar a vaga.
             if ($request->isMethod('GET')) {
                 $request->session()->put('url.intended', $request->fullUrl());

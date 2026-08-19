@@ -1,21 +1,21 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Vagas\VagaPublicaController;
-use App\Http\Controllers\Vagas\InscricaoController;
-use App\Http\Controllers\Vagas\VagaController;
-use App\Http\Controllers\Vagas\CandidaturaController;
-use App\Http\Controllers\Vagas\DashboardController;
-use App\Http\Controllers\Vagas\CepController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\CandidatoLoginController;
 use App\Http\Controllers\Auth\CandidatoRecuperarSenhaController;
 use App\Http\Controllers\Auth\CandidatoRegistroController;
 use App\Http\Controllers\Auth\CandidatoVerificacaoController;
-use App\Http\Controllers\Candidato\PerfilController as CandidatoPerfilController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Candidato\MinhaCandidaturaController;
+use App\Http\Controllers\Candidato\PerfilController as CandidatoPerfilController;
 use App\Http\Controllers\Vagas\AlertaVagaController;
+use App\Http\Controllers\Vagas\CandidaturaController;
+use App\Http\Controllers\Vagas\CepController;
+use App\Http\Controllers\Vagas\DashboardController;
+use App\Http\Controllers\Vagas\InscricaoController;
+use App\Http\Controllers\Vagas\VagaController;
+use App\Http\Controllers\Vagas\VagaPublicaController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/auth/sso', [SsoController::class, 'entrar'])->name('auth.sso');
 

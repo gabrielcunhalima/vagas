@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -12,4 +13,4 @@ Artisan::command('inspire', function () {
  * Substitui `vagas:anonimizar-candidaturas-antigas`, que perdeu a premissa quando
  * as candidaturas deixaram de guardar cópia de dados pessoais.
  */
-Illuminate\Support\Facades\Schedule::command('vagas:anonimizar-contas-inativas')->daily();
+Schedule::command('vagas:anonimizar-contas-inativas')->daily();

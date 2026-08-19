@@ -14,7 +14,7 @@ class CepController extends Controller
     {
         $dados = $this->service->buscar($cep);
 
-        if (!$dados) {
+        if (! $dados) {
             return response()->json(['erro' => 'CEP não encontrado.'], 404);
         }
 

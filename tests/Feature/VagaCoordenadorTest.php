@@ -4,62 +4,65 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Vagas\Vaga;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class VagaCoordenadorTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $coord;
+
     private User $coord2;
+
     private User $admin;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->coord  = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true, 'password' => Hash::make('password')]);
+        $this->coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true, 'password' => Hash::make('password')]);
         $this->coord2 = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true, 'password' => Hash::make('password')]);
-        $this->admin  = User::factory()->create(['perfil' => 'admin', 'ativo' => true, 'password' => Hash::make('password')]);
+        $this->admin = User::factory()->create(['perfil' => 'admin', 'ativo' => true, 'password' => Hash::make('password')]);
     }
 
     private function vagaData(array $over = []): array
     {
         return array_merge([
-            'titulo'            => 'Estágio em Desenvolvimento de Sistemas',
-            'descricao'         => 'Descrição completa da vaga de desenvolvimento de sistemas.',
-            'requisitos'        => 'Requisitos mínimos: cursando TI a partir do 4º semestre.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Estágio em Desenvolvimento de Sistemas',
+            'descricao' => 'Descrição completa da vaga de desenvolvimento de sistemas.',
+            'requisitos' => 'Requisitos mínimos: cursando TI a partir do 4º semestre.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->format('Y-m-d'),
-            'remuneracao'       => '1200.00',
-            'carga_horaria'     => 30,
-            'notificar_email'   => true,
+            'remuneracao' => '1200.00',
+            'carga_horaria' => 30,
+            'notificar_email' => true,
         ], $over);
     }
 
     private function criarVaga(array $attrs = [], ?User $coord = null): Vaga
     {
         $owner = $coord ?? $this->coord;
+
         return Vaga::create(array_merge([
-            'titulo'            => 'Vaga de Teste',
-            'descricao'         => 'Descrição detalhada da vaga de teste criada nos testes.',
-            'requisitos'        => 'Requisitos mínimos para a vaga de teste.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga de Teste',
+            'descricao' => 'Descrição detalhada da vaga de teste criada nos testes.',
+            'requisitos' => 'Requisitos mínimos para a vaga de teste.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'rascunho',
-            'coordenador_id'    => $owner->id,
-            'notificar_email'   => true,
+            'status' => 'rascunho',
+            'coordenador_id' => $owner->id,
+            'notificar_email' => true,
         ], $attrs));
     }
 
@@ -148,8 +151,8 @@ class VagaCoordenadorTest extends TestCase
         $response->assertRedirect(route('coord.vagas.index'));
         $response->assertSessionHas('sucesso');
         $this->assertDatabaseHas('vagas', [
-            'titulo'         => 'Estágio em Desenvolvimento de Sistemas',
-            'status'         => 'rascunho',
+            'titulo' => 'Estágio em Desenvolvimento de Sistemas',
+            'status' => 'rascunho',
             'coordenador_id' => $this->coord->id,
         ]);
     }
@@ -164,8 +167,8 @@ class VagaCoordenadorTest extends TestCase
         ));
         $response->assertRedirect(route('coord.vagas.index'));
         $this->assertDatabaseHas('vagas', [
-            'titulo'  => 'Estágio em Desenvolvimento de Sistemas',
-            'status'  => 'aguardando_autorizacao',
+            'titulo' => 'Estágio em Desenvolvimento de Sistemas',
+            'status' => 'aguardando_autorizacao',
         ]);
     }
 
@@ -304,7 +307,7 @@ class VagaCoordenadorTest extends TestCase
     public function test_reativar_vaga_inativa_com_data_futura(): void
     {
         $vaga = $this->criarVaga([
-            'status'            => 'inativa',
+            'status' => 'inativa',
             'data_encerramento' => now()->addDays(10)->toDateString(),
         ]);
         $response = $this->actingAs($this->coord)->patch("/coord/vagas/{$vaga->id}/reativar");
@@ -315,7 +318,7 @@ class VagaCoordenadorTest extends TestCase
     public function test_reativar_vaga_com_data_passada_falha(): void
     {
         $vaga = $this->criarVaga([
-            'status'            => 'inativa',
+            'status' => 'inativa',
             'data_encerramento' => now()->subDays(3)->toDateString(),
         ]);
         $response = $this->actingAs($this->coord)->patch("/coord/vagas/{$vaga->id}/reativar");

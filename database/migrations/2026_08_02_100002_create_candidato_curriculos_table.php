@@ -17,8 +17,8 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('candidato_id')
-                  ->constrained('candidatos')
-                  ->cascadeOnDelete();
+                ->constrained('candidatos')
+                ->cascadeOnDelete();
 
             $table->string('path');
             $table->string('nome_original');

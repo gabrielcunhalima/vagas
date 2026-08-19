@@ -31,7 +31,7 @@ class CandidatoRegistroController extends Controller
         $cpf = preg_replace('/\D/', '', (string) $request->query('cpf'));
 
         // CPF malformado não vai ao banco: mesma regra de dígitos verificadores do envio.
-        if (!$this->validarCpf($cpf)) {
+        if (! $this->validarCpf($cpf)) {
             return response()->json(['existe' => false, 'valido' => false]);
         }
 
@@ -46,12 +46,12 @@ class CandidatoRegistroController extends Controller
         $dados = $request->validated();
 
         $candidato = Candidato::create([
-            'email'                 => $dados['email'],
-            'cpf'                   => $dados['cpf'],
-            'password'              => Hash::make($dados['password']),
-            'lgpd_consentimento'    => true,
+            'email' => $dados['email'],
+            'cpf' => $dados['cpf'],
+            'password' => Hash::make($dados['password']),
+            'lgpd_consentimento' => true,
             'lgpd_consentimento_em' => now(),
-            'ativo'                 => true,
+            'ativo' => true,
         ]);
 
         Auth::guard('candidato')->login($candidato, false);

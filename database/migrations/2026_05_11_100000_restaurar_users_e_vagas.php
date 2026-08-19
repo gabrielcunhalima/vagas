@@ -2,14 +2,14 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('users')) {
+        if (! Schema::hasTable('users')) {
             Schema::create('users', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -22,13 +22,13 @@ return new class extends Migration
                 $table->rememberToken();
                 $table->timestamps();
             });
-        } elseif (!Schema::hasColumn('users', 'cpf')) {
+        } elseif (! Schema::hasColumn('users', 'cpf')) {
             Schema::table('users', function (Blueprint $table) {
                 $table->string('cpf', 14)->nullable()->after('ativo')->index();
             });
         }
 
-        if (!Schema::hasTable('password_reset_tokens')) {
+        if (! Schema::hasTable('password_reset_tokens')) {
             Schema::create('password_reset_tokens', function (Blueprint $table) {
                 $table->string('email')->primary();
                 $table->string('token');
@@ -44,12 +44,12 @@ return new class extends Migration
             $table->unsignedBigInteger('gestor_id')->nullable()->change();
         });
 
-        if (!$this->foreignExists('vagas', 'vagas_coordenador_id_foreign')) {
+        if (! $this->foreignExists('vagas', 'vagas_coordenador_id_foreign')) {
             Schema::table('vagas', function (Blueprint $table) {
                 $table->foreign('coordenador_id')->references('id')->on('users')->nullOnDelete();
             });
         }
-        if (!$this->foreignExists('vagas', 'vagas_gestor_id_foreign')) {
+        if (! $this->foreignExists('vagas', 'vagas_gestor_id_foreign')) {
             Schema::table('vagas', function (Blueprint $table) {
                 $table->foreign('gestor_id')->references('id')->on('users')->nullOnDelete();
             });
@@ -69,10 +69,11 @@ return new class extends Migration
         }
 
         $row = DB::selectOne(
-            "SELECT 1 AS x FROM information_schema.TABLE_CONSTRAINTS
-              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?",
+            'SELECT 1 AS x FROM information_schema.TABLE_CONSTRAINTS
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?',
             [$table, $name]
         );
+
         return (bool) $row;
     }
 };

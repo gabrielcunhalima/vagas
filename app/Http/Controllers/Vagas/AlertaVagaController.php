@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Vagas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Vagas\AlertaVaga;
+use App\Models\Vagas\Vaga;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -20,18 +21,18 @@ class AlertaVagaController extends Controller
     public function create()
     {
         $candidato = Auth::guard('candidato')->user();
-        $alerta    = $candidato->alerta;
+        $alerta = $candidato->alerta;
 
         return view('publico.alertas', [
-            'areas'       => \App\Models\Vagas\Vaga::$areas,
-            'modalidades' => \App\Models\Vagas\Vaga::$modalidadesLabel,
-            'tipos'       => \App\Models\Vagas\Vaga::$tiposLabel,
-            'email'       => $candidato->email,
-            'alerta'      => $alerta ? [
-                'areas'       => $alerta->areas ?? [],
+            'areas' => Vaga::$areas,
+            'modalidades' => Vaga::$modalidadesLabel,
+            'tipos' => Vaga::$tiposLabel,
+            'email' => $candidato->email,
+            'alerta' => $alerta ? [
+                'areas' => $alerta->areas ?? [],
                 'modalidades' => $alerta->modalidades ?? [],
-                'tipos'       => $alerta->tipos ?? [],
-                'ativo'       => $alerta->ativo,
+                'tipos' => $alerta->tipos ?? [],
+                'ativo' => $alerta->ativo,
             ] : null,
         ]);
     }
@@ -42,17 +43,17 @@ class AlertaVagaController extends Controller
 
         // O e-mail não é coletado: vem da conta, e acompanha a troca dela.
         $request->validate([
-            'areas'       => 'nullable|array',
+            'areas' => 'nullable|array',
             'modalidades' => 'nullable|array',
-            'tipos'       => 'nullable|array',
+            'tipos' => 'nullable|array',
         ]);
 
         $preferencias = [
-            'email'       => $candidato->email,
-            'areas'       => $request->areas ?? [],
+            'email' => $candidato->email,
+            'areas' => $request->areas ?? [],
             'modalidades' => $request->modalidades ?? [],
-            'tipos'       => $request->tipos ?? [],
-            'ativo'       => true,
+            'tipos' => $request->tipos ?? [],
+            'ativo' => true,
         ];
 
         // Um alerta por conta: reconfigurar atualiza o existente, inclusive quando
@@ -66,7 +67,7 @@ class AlertaVagaController extends Controller
             $alerta->update($preferencias);
         } else {
             $candidato->alerta()->create($preferencias + [
-                'lgpd_consentimento'    => true,
+                'lgpd_consentimento' => true,
                 'lgpd_consentimento_em' => $candidato->lgpd_consentimento_em ?? now(),
             ]);
         }

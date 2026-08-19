@@ -27,7 +27,7 @@ class InscricaoRequest extends FormRequest
 
             'carta_apresentacao' => 'nullable|string|max:5000',
 
-            'conflito_interesse'         => 'required|boolean',
+            'conflito_interesse' => 'required|boolean',
             'conflito_interesse_detalhe' => 'required_if:conflito_interesse,1|nullable|string|max:2000',
 
             'codigo_conduta_aceite' => 'accepted',
@@ -37,10 +37,10 @@ class InscricaoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            '_honeypot.max'                          => 'Envio inválido.',
-            'conflito_interesse.required'            => 'Informe se você tem vínculo com alguém da equipe desta vaga.',
+            '_honeypot.max' => 'Envio inválido.',
+            'conflito_interesse.required' => 'Informe se você tem vínculo com alguém da equipe desta vaga.',
             'conflito_interesse_detalhe.required_if' => 'Detalhe a relação informada.',
-            'codigo_conduta_aceite.accepted'         => 'Você precisa aceitar o código de conduta da FAPEU.',
+            'codigo_conduta_aceite.accepted' => 'Você precisa aceitar o código de conduta da FAPEU.',
         ];
     }
 }

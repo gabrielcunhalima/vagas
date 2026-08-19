@@ -2,6 +2,7 @@
 
 namespace App\Models\Vagas;
 
+use App\Models\Candidato;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -12,11 +13,11 @@ class AlertaVaga extends Model
     protected $fillable = ['candidato_id', 'email', 'areas', 'modalidades', 'tipos', 'ativo', 'token', 'lgpd_consentimento', 'lgpd_consentimento_em'];
 
     protected $casts = [
-        'areas'      => 'array',
-        'modalidades'=> 'array',
-        'tipos'      => 'array',
-        'ativo'      => 'boolean',
-        'lgpd_consentimento'    => 'boolean',
+        'areas' => 'array',
+        'modalidades' => 'array',
+        'tipos' => 'array',
+        'ativo' => 'boolean',
+        'lgpd_consentimento' => 'boolean',
         'lgpd_consentimento_em' => 'datetime',
     ];
 
@@ -35,7 +36,7 @@ class AlertaVaga extends Model
 
     public function candidato()
     {
-        return $this->belongsTo(\App\Models\Candidato::class, 'candidato_id');
+        return $this->belongsTo(Candidato::class, 'candidato_id');
     }
 
     /** Destino do alerta: sempre o e-mail da conta, nunca um endereço digitado. */
@@ -46,9 +47,16 @@ class AlertaVaga extends Model
 
     public function compativel(Vaga $vaga): bool
     {
-        if (!empty($this->areas) && !in_array($vaga->area, $this->areas)) return false;
-        if (!empty($this->modalidades) && !in_array($vaga->modalidade, $this->modalidades)) return false;
-        if (!empty($this->tipos) && !in_array($vaga->tipo, $this->tipos)) return false;
+        if (! empty($this->areas) && ! in_array($vaga->area, $this->areas)) {
+            return false;
+        }
+        if (! empty($this->modalidades) && ! in_array($vaga->modalidade, $this->modalidades)) {
+            return false;
+        }
+        if (! empty($this->tipos) && ! in_array($vaga->tipo, $this->tipos)) {
+            return false;
+        }
+
         return true;
     }
 }

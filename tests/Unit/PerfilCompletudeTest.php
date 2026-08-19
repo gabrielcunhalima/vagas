@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Models\Candidato;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 /**
  * O critério de completude é o gate da candidatura e a origem da barra de
@@ -88,14 +88,14 @@ class PerfilCompletudeTest extends TestCase
     public function test_campos_opcionais_em_branco_nao_bloqueiam(): void
     {
         $candidato = Candidato::factory()->create([
-            'nome_social'        => null,
-            'linkedin'           => null,
-            'cep'                => null,
-            'logradouro'         => null,
-            'cidade'             => null,
-            'estado'             => null,
+            'nome_social' => null,
+            'linkedin' => null,
+            'cep' => null,
+            'logradouro' => null,
+            'cidade' => null,
+            'estado' => null,
             'pretensao_salarial' => null,
-            'disponibilidade'    => null,
+            'disponibilidade' => null,
         ]);
 
         $this->assertTrue($candidato->perfilCompleto());
@@ -135,9 +135,9 @@ class PerfilCompletudeTest extends TestCase
         $primeira = $candidato->curriculo_atual_id;
 
         $segunda = $candidato->curriculos()->create([
-            'path'          => 'candidatos/curriculos/v2.pdf',
+            'path' => 'candidatos/curriculos/v2.pdf',
             'nome_original' => 'curriculo-v2.pdf',
-            'enviado_em'    => now(),
+            'enviado_em' => now(),
         ]);
         $candidato->forceFill(['curriculo_atual_id' => $segunda->id])->save();
 

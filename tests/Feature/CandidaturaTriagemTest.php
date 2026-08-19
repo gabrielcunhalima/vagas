@@ -2,62 +2,69 @@
 
 namespace Tests\Feature;
 
+use App\Mail\Vagas\AprovacaoMail;
+use App\Mail\Vagas\ConviteEntrevistaMail;
+use App\Mail\Vagas\ReprovacaoMail;
 use App\Models\Candidato;
 use App\Models\User;
-use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
-use Tests\TestCase;
+use App\Models\Vagas\CandidaturaEvento;
+use App\Models\Vagas\Vaga;
+use App\Services\AnonimizacaoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use App\Mail\Vagas\ConviteEntrevistaMail;
-use App\Mail\Vagas\AprovacaoMail;
-use App\Mail\Vagas\ReprovacaoMail;
+use Tests\TestCase;
 
 class CandidaturaTriagemTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $coord;
+
     private User $coord2;
+
     private User $admin;
+
     private Vaga $vaga;
+
     private Candidato $candidato;
+
     private Candidatura $candidatura;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->coord  = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
+        $this->coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
         $this->coord2 = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
-        $this->admin  = User::factory()->create(['perfil' => 'admin', 'ativo' => true]);
+        $this->admin = User::factory()->create(['perfil' => 'admin', 'ativo' => true]);
 
         $this->vaga = Vaga::create([
-            'titulo'            => 'Vaga com Candidaturas',
-            'descricao'         => 'Descrição detalhada da vaga que tem candidaturas para triagem.',
-            'requisitos'        => 'Requisitos para a vaga de triagem de candidaturas.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga com Candidaturas',
+            'descricao' => 'Descrição detalhada da vaga que tem candidaturas para triagem.',
+            'requisitos' => 'Requisitos para a vaga de triagem de candidaturas.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $this->coord->id,
-            'notificar_email'   => true,
+            'status' => 'ativa',
+            'coordenador_id' => $this->coord->id,
+            'notificar_email' => true,
         ]);
 
         $this->candidato = Candidato::factory()->create([
-            'nome'  => 'Candidato de Teste',
+            'nome' => 'Candidato de Teste',
             'email' => 'candidato@teste.com',
-            'cpf'   => '52998224725',
+            'cpf' => '52998224725',
         ]);
 
         $this->candidatura = Candidatura::create([
-            'vaga_id'      => $this->vaga->id,
+            'vaga_id' => $this->vaga->id,
             'candidato_id' => $this->candidato->id,
-            'status'       => 'recebida',
+            'status' => 'recebida',
         ]);
     }
 
@@ -66,11 +73,11 @@ class CandidaturaTriagemTest extends TestCase
     {
         $this->candidatura->update(['status' => $status]);
         $this->candidatura->eventos()->create([
-            'tipo'            => \App\Models\Vagas\CandidaturaEvento::TIPO_TRANSICAO,
+            'tipo' => CandidaturaEvento::TIPO_TRANSICAO,
             'status_anterior' => 'entrevista',
-            'status_novo'     => $status,
-            'autor_id'        => $this->coord->id,
-            'ocorrido_em'     => $quando,
+            'status_novo' => $status,
+            'autor_id' => $this->coord->id,
+            'ocorrido_em' => $quando,
         ]);
     }
 
@@ -99,15 +106,15 @@ class CandidaturaTriagemTest extends TestCase
     public function test_filtro_por_status_na_listagem(): void
     {
         $outroCandidato = Candidato::factory()->create([
-            'nome'  => 'Candidato Em Análise',
+            'nome' => 'Candidato Em Análise',
             'email' => 'analise@teste.com',
-            'cpf'   => '71428793860',
+            'cpf' => '71428793860',
         ]);
 
         Candidatura::create([
-            'vaga_id'      => $this->vaga->id,
+            'vaga_id' => $this->vaga->id,
             'candidato_id' => $outroCandidato->id,
-            'status'       => 'em_analise',
+            'status' => 'em_analise',
         ]);
 
         $response = $this->actingAs($this->coord)->get("/coord/vagas/{$this->vaga->id}/candidaturas?status=recebida");
@@ -154,19 +161,19 @@ class CandidaturaTriagemTest extends TestCase
     public function test_candidatura_de_outra_vaga_retorna_404(): void
     {
         $outraVaga = Vaga::create([
-            'titulo'            => 'Outra Vaga',
-            'descricao'         => 'Descrição de outra vaga para teste de isolamento.',
-            'requisitos'        => 'Requisitos de outra vaga.',
-            'tipo'              => 'estagio',
-            'area'              => 'Administração',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Outra Vaga',
+            'descricao' => 'Descrição de outra vaga para teste de isolamento.',
+            'requisitos' => 'Requisitos de outra vaga.',
+            'tipo' => 'estagio',
+            'area' => 'Administração',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $this->coord->id,
-            'notificar_email'   => true,
+            'status' => 'ativa',
+            'coordenador_id' => $this->coord->id,
+            'notificar_email' => true,
         ]);
 
         $response = $this->actingAs($this->coord)->get(
@@ -197,15 +204,15 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
-                'entrevista_data'  => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'status' => 'entrevista',
+                'entrevista_data' => now()->addDays(5)->format('Y-m-d H:i:s'),
                 'entrevista_local' => 'Sala de Reuniões A',
             ]
         );
         $response->assertRedirect();
         $this->assertDatabaseHas('candidaturas', [
-            'id'               => $this->candidatura->id,
-            'status'           => 'entrevista',
+            'id' => $this->candidatura->id,
+            'status' => 'entrevista',
             'entrevista_local' => 'Sala de Reuniões A',
         ]);
     }
@@ -216,12 +223,12 @@ class CandidaturaTriagemTest extends TestCase
         $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
-                'entrevista_data'  => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'status' => 'entrevista',
+                'entrevista_data' => now()->addDays(5)->format('Y-m-d H:i:s'),
                 'entrevista_local' => 'Sala de Reuniões A',
             ]
         );
-        Mail::assertSent(ConviteEntrevistaMail::class, fn($mail) => $mail->hasTo('candidato@teste.com'));
+        Mail::assertSent(ConviteEntrevistaMail::class, fn ($mail) => $mail->hasTo('candidato@teste.com'));
     }
 
     public function test_entrevista_sem_data_falha(): void
@@ -229,7 +236,7 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
+                'status' => 'entrevista',
                 'entrevista_local' => 'Sala A',
             ]
         );
@@ -241,7 +248,7 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'          => 'entrevista',
+                'status' => 'entrevista',
                 'entrevista_data' => now()->addDays(5)->format('Y-m-d H:i:s'),
             ]
         );
@@ -253,8 +260,8 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'           => 'entrevista',
-                'entrevista_data'  => now()->subDays(1)->format('Y-m-d H:i:s'),
+                'status' => 'entrevista',
+                'entrevista_data' => now()->subDays(1)->format('Y-m-d H:i:s'),
                 'entrevista_local' => 'Sala A',
             ]
         );
@@ -274,7 +281,7 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $this->assertDatabaseHas('candidaturas', ['id' => $this->candidatura->id, 'status' => 'aprovado']);
-        Mail::assertSent(AprovacaoMail::class, fn($mail) => $mail->hasTo('candidato@teste.com'));
+        Mail::assertSent(AprovacaoMail::class, fn ($mail) => $mail->hasTo('candidato@teste.com'));
     }
 
     // ── Update status: → reprovado ────────────────────────────────────────────
@@ -288,7 +295,7 @@ class CandidaturaTriagemTest extends TestCase
         );
 
         $this->assertDatabaseHas('candidaturas', ['id' => $this->candidatura->id, 'status' => 'reprovado']);
-        Mail::assertSent(ReprovacaoMail::class, fn($mail) => $mail->hasTo('candidato@teste.com'));
+        Mail::assertSent(ReprovacaoMail::class, fn ($mail) => $mail->hasTo('candidato@teste.com'));
     }
 
     public function test_reprovacao_a_partir_de_em_analise(): void
@@ -346,15 +353,15 @@ class CandidaturaTriagemTest extends TestCase
         $response = $this->actingAs($this->coord)->patch(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/status",
             [
-                'status'               => 'recebida',
+                'status' => 'recebida',
                 'observacoes_internas' => 'Candidato promissor, acompanhar.',
             ]
         );
         $response->assertRedirect();
         $this->assertDatabaseHas('candidaturas', [
-            'id'                   => $this->candidatura->id,
+            'id' => $this->candidatura->id,
             'observacoes_internas' => 'Candidato promissor, acompanhar.',
-            'status'               => 'recebida',
+            'status' => 'recebida',
         ]);
         Mail::assertNothingSent();
     }
@@ -363,8 +370,8 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_download_curriculo_disponivel(): void
     {
-        Storage::fake(\App\Models\Candidato::DISCO_CURRICULOS);
-        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
+        Storage::fake(Candidato::DISCO_CURRICULOS);
+        Storage::disk(Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
 
         $response = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}/curriculo"
@@ -427,7 +434,7 @@ class CandidaturaTriagemTest extends TestCase
     public function test_candidatura_parada_em_vaga_encerrada_perde_acesso(): void
     {
         $this->vaga->update([
-            'status'            => 'encerrada',
+            'status' => 'encerrada',
             'data_encerramento' => now()->subDays(120)->toDateString(),
         ]);
 
@@ -454,8 +461,8 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_download_de_curriculo_recusado_apos_o_decaimento(): void
     {
-        Storage::fake(\App\Models\Candidato::DISCO_CURRICULOS);
-        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
+        Storage::fake(Candidato::DISCO_CURRICULOS);
+        Storage::disk(Candidato::DISCO_CURRICULOS)->put($this->candidato->curriculoAtual->path, 'conteúdo do pdf');
         $this->decidirEm('reprovado', now()->subDays(120));
 
         $this->actingAs($this->coord)
@@ -475,7 +482,7 @@ class CandidaturaTriagemTest extends TestCase
 
     public function test_conta_excluida_encerra_o_acesso_na_hora(): void
     {
-        app(\App\Services\AnonimizacaoService::class)->anonimizarCandidato($this->candidato);
+        app(AnonimizacaoService::class)->anonimizarCandidato($this->candidato);
 
         $res = $this->actingAs($this->coord)->get(
             "/coord/vagas/{$this->vaga->id}/candidaturas/{$this->candidatura->id}"

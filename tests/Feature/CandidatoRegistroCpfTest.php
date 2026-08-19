@@ -11,17 +11,18 @@ class CandidatoRegistroCpfTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const CPF_VALIDO   = '52998224725';
+    private const CPF_VALIDO = '52998224725';
+
     private const CPF_EXISTENTE = '11144477735';
 
     private function criarCandidato(string $cpf): Candidato
     {
         return Candidato::create([
-            'nome'     => 'Candidato Existente',
-            'email'    => 'existente@example.com',
-            'cpf'      => $cpf,
+            'nome' => 'Candidato Existente',
+            'email' => 'existente@example.com',
+            'cpf' => $cpf,
             'password' => Hash::make('Senha@Forte1'),
-            'ativo'    => true,
+            'ativo' => true,
         ]);
     }
 
@@ -109,7 +110,7 @@ class CandidatoRegistroCpfTest extends TestCase
     public function test_cadastro_com_senha_fraca_e_rejeitado_no_envio(): void
     {
         $response = $this->post(route('candidato.registro.post'), $this->payloadValido([
-            'password'              => 'senhafraca',
+            'password' => 'senhafraca',
             'password_confirmation' => 'senhafraca',
         ]));
 
@@ -130,11 +131,11 @@ class CandidatoRegistroCpfTest extends TestCase
     private function payloadValido(array $sobrescreve = []): array
     {
         return array_merge([
-            'cpf'                   => self::CPF_VALIDO,
-            'email'                 => 'novo@example.com',
-            'password'              => 'Senha@Forte1',
+            'cpf' => self::CPF_VALIDO,
+            'email' => 'novo@example.com',
+            'password' => 'Senha@Forte1',
             'password_confirmation' => 'Senha@Forte1',
-            'lgpd_consentimento'    => 1,
+            'lgpd_consentimento' => 1,
         ], $sobrescreve);
     }
 }

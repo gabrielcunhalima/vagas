@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 class SuperAdminSeeder extends Seeder
 {
     private const EMAIL = 'admin@fapeu.org.br';
+
     private const SENHA = 'password';
 
     public function run(): void
@@ -22,15 +23,15 @@ class SuperAdminSeeder extends Seeder
         User::updateOrCreate(
             ['email' => self::EMAIL],
             [
-                'name'              => 'Patrícia Gomes Ribeiro',
-                'password'          => Hash::make(self::SENHA),
-                'perfil'            => 'admin',
-                'cpf'               => '64712345896',
-                'ativo'             => true,
+                'name' => 'Patrícia Gomes Ribeiro',
+                'password' => Hash::make(self::SENHA),
+                'perfil' => 'admin',
+                'cpf' => '64712345896',
+                'ativo' => true,
                 'email_verified_at' => now(),
             ]
         );
 
-        $this->command?->info('Super admin: ' . self::EMAIL . ' / ' . self::SENHA);
+        $this->command?->info('Super admin: '.self::EMAIL.' / '.self::SENHA);
     }
 }

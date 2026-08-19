@@ -5,8 +5,8 @@ namespace Tests\Unit;
 use App\Models\User;
 use App\Models\Vagas\AlertaVaga;
 use App\Models\Vagas\Vaga;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class AlertaVagaModelTest extends TestCase
 {
@@ -15,31 +15,32 @@ class AlertaVagaModelTest extends TestCase
     private function makeAlerta(array $attrs = []): AlertaVaga
     {
         return AlertaVaga::create(array_merge([
-            'email'      => 'alerta@email.com',
-            'areas'      => [],
-            'modalidades'=> [],
-            'tipos'      => [],
-            'ativo'      => true,
+            'email' => 'alerta@email.com',
+            'areas' => [],
+            'modalidades' => [],
+            'tipos' => [],
+            'ativo' => true,
         ], $attrs));
     }
 
     private function makeVaga(array $attrs = []): Vaga
     {
         $coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
+
         return Vaga::create(array_merge([
-            'titulo'            => 'Vaga Teste Alerta',
-            'descricao'         => 'Descrição da vaga para testes de alerta de vagas.',
-            'requisitos'        => 'Requisitos mínimos da vaga de teste de alerta.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga Teste Alerta',
+            'descricao' => 'Descrição da vaga para testes de alerta de vagas.',
+            'requisitos' => 'Requisitos mínimos da vaga de teste de alerta.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $coord->id,
-            'notificar_email'   => true,
+            'status' => 'ativa',
+            'coordenador_id' => $coord->id,
+            'notificar_email' => true,
         ], $attrs));
     }
 
@@ -125,14 +126,14 @@ class AlertaVagaModelTest extends TestCase
     public function test_alerta_multiplos_filtros_todos_compatíveis(): void
     {
         $alerta = $this->makeAlerta([
-            'areas'      => ['Tecnologia da Informação'],
-            'modalidades'=> ['remoto'],
-            'tipos'      => ['estagio'],
+            'areas' => ['Tecnologia da Informação'],
+            'modalidades' => ['remoto'],
+            'tipos' => ['estagio'],
         ]);
         $vaga = $this->makeVaga([
-            'area'      => 'Tecnologia da Informação',
-            'modalidade'=> 'remoto',
-            'tipo'      => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'remoto',
+            'tipo' => 'estagio',
         ]);
         $this->assertTrue($alerta->compativel($vaga));
     }
@@ -140,14 +141,14 @@ class AlertaVagaModelTest extends TestCase
     public function test_alerta_multiplos_filtros_um_incompativel(): void
     {
         $alerta = $this->makeAlerta([
-            'areas'      => ['Tecnologia da Informação'],
-            'modalidades'=> ['remoto'],
-            'tipos'      => ['estagio'],
+            'areas' => ['Tecnologia da Informação'],
+            'modalidades' => ['remoto'],
+            'tipos' => ['estagio'],
         ]);
         $vaga = $this->makeVaga([
-            'area'      => 'Tecnologia da Informação',
-            'modalidade'=> 'presencial', // incompatível
-            'tipo'      => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial', // incompatível
+            'tipo' => 'estagio',
         ]);
         $this->assertFalse($alerta->compativel($vaga));
     }
@@ -157,9 +158,9 @@ class AlertaVagaModelTest extends TestCase
     public function test_campos_json_cast_array(): void
     {
         $alerta = $this->makeAlerta([
-            'areas'      => ['Administração', 'Saúde'],
-            'modalidades'=> ['presencial'],
-            'tipos'      => ['emprego', 'bolsa'],
+            'areas' => ['Administração', 'Saúde'],
+            'modalidades' => ['presencial'],
+            'tipos' => ['emprego', 'bolsa'],
         ]);
         $this->assertIsArray($alerta->areas);
         $this->assertIsArray($alerta->modalidades);

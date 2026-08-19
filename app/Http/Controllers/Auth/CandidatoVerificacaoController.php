@@ -25,12 +25,12 @@ class CandidatoVerificacaoController extends Controller
         $candidato = Auth::guard('candidato')->user();
 
         if ((string) $candidato->getKey() !== (string) $request->route('id')
-            || !hash_equals((string) $request->route('hash'), sha1($candidato->getEmailForVerification()))
+            || ! hash_equals((string) $request->route('hash'), sha1($candidato->getEmailForVerification()))
         ) {
             abort(403);
         }
 
-        if (!$candidato->hasVerifiedEmail()) {
+        if (! $candidato->hasVerifiedEmail()) {
             $candidato->markEmailAsVerified();
             event(new Verified($candidato));
         }

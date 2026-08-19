@@ -11,19 +11,20 @@ class CheckPerfil
 {
     public function handle(Request $request, Closure $next, string ...$perfis): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('login');
         }
 
         $user = Auth::user();
 
-        if (!$user->ativo) {
+        if (! $user->ativo) {
             Auth::logout();
+
             return redirect()->route('login')
                 ->withErrors(['email' => 'Usuário inativo.']);
         }
 
-        if (!in_array($user->perfil, $perfis)) {
+        if (! in_array($user->perfil, $perfis)) {
             abort(403, 'Acesso não autorizado para seu perfil.');
         }
 

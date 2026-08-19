@@ -30,13 +30,13 @@ class CandidatoRegistroRequest extends FormRequest
                 'string',
                 function ($attribute, $value, $fail) {
                     $cpfLimpo = preg_replace('/\D/', '', $value);
-                    if (strlen($cpfLimpo) !== 11 || !$this->validarCpf($cpfLimpo)) {
+                    if (strlen($cpfLimpo) !== 11 || ! $this->validarCpf($cpfLimpo)) {
                         $fail('CPF inválido.');
                     }
                 },
                 'unique:candidatos,cpf',
             ],
-            'email'    => ['required', 'email', 'max:255', 'unique:candidatos,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:candidatos,email'],
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
 
             // Obrigatório já aqui: há coleta de CPF neste mesmo passo.
@@ -47,12 +47,12 @@ class CandidatoRegistroRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'cpf.required'                => 'Informe seu CPF.',
-            'cpf.unique'                  => 'Este CPF já está cadastrado.',
-            'email.required'              => 'Informe seu e-mail.',
-            'email.unique'                => 'Este e-mail já está cadastrado.',
-            'password.required'           => 'Defina uma senha.',
-            'password.confirmed'          => 'As senhas não coincidem.',
+            'cpf.required' => 'Informe seu CPF.',
+            'cpf.unique' => 'Este CPF já está cadastrado.',
+            'email.required' => 'Informe seu e-mail.',
+            'email.unique' => 'Este e-mail já está cadastrado.',
+            'password.required' => 'Defina uma senha.',
+            'password.confirmed' => 'As senhas não coincidem.',
             'lgpd_consentimento.accepted' => 'Você precisa aceitar os termos da LGPD para continuar.',
         ];
     }

@@ -17,10 +17,10 @@ return new class extends Migration
     {
         Schema::table('candidatos', function (Blueprint $table) {
             $table->foreignId('curriculo_atual_id')
-                  ->nullable()
-                  ->after('curriculo_nome_original')
-                  ->constrained('candidato_curriculos')
-                  ->nullOnDelete();
+                ->nullable()
+                ->after('curriculo_nome_original')
+                ->constrained('candidato_curriculos')
+                ->nullOnDelete();
         });
     }
 

@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Candidato;
 use App\Models\User;
-use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
+use App\Models\Vagas\Vaga;
 use App\Services\AnonimizacaoService;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 /**
  * A fonte única é o que torna a exclusão verificável: como não há cópia de dado
@@ -26,34 +26,34 @@ class ExclusaoContaTest extends TestCase
         $coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
 
         $vaga = Vaga::create([
-            'titulo'            => 'Vaga com Candidatura',
-            'descricao'         => 'Descrição da vaga usada no teste de exclusão de conta.',
-            'requisitos'        => 'Requisitos da vaga de teste.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga com Candidatura',
+            'descricao' => 'Descrição da vaga usada no teste de exclusão de conta.',
+            'requisitos' => 'Requisitos da vaga de teste.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $coord->id,
+            'status' => 'ativa',
+            'coordenador_id' => $coord->id,
         ]);
 
         $candidato = Candidato::factory()->create([
-            'nome'                   => 'Maria Excluída',
-            'email'                  => 'maria@teste.com',
-            'pcd'                    => true,
-            'pcd_tipo'               => 'Deficiência Visual',
-            'possui_acessibilidade'  => true,
+            'nome' => 'Maria Excluída',
+            'email' => 'maria@teste.com',
+            'pcd' => true,
+            'pcd_tipo' => 'Deficiência Visual',
+            'possui_acessibilidade' => true,
             'acessibilidade_detalhe' => 'Leitor de tela.',
-            'pretensao_salarial'     => '2500.00',
+            'pretensao_salarial' => '2500.00',
         ]);
 
         $candidatura = Candidatura::create([
-            'vaga_id'      => $vaga->id,
+            'vaga_id' => $vaga->id,
             'candidato_id' => $candidato->id,
-            'status'       => 'recebida',
+            'status' => 'recebida',
         ]);
 
         return [$candidato, $candidatura, $coord, $vaga];
@@ -83,23 +83,23 @@ class ExclusaoContaTest extends TestCase
 
     public function test_exclusao_remove_todas_as_versoes_de_curriculo(): void
     {
-        Storage::fake(\App\Models\Candidato::DISCO_CURRICULOS);
+        Storage::fake(Candidato::DISCO_CURRICULOS);
         [$candidato] = $this->candidatoComCandidatura();
 
-        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($candidato->curriculoAtual->path, 'v1');
+        Storage::disk(Candidato::DISCO_CURRICULOS)->put($candidato->curriculoAtual->path, 'v1');
 
         $v2 = $candidato->curriculos()->create([
-            'path'          => 'candidatos/curriculos/v2.pdf',
+            'path' => 'candidatos/curriculos/v2.pdf',
             'nome_original' => 'curriculo-v2.pdf',
-            'enviado_em'    => now(),
+            'enviado_em' => now(),
         ]);
-        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->put($v2->path, 'v2');
+        Storage::disk(Candidato::DISCO_CURRICULOS)->put($v2->path, 'v2');
         $caminhoV1 = $candidato->curriculoAtual->path;
 
         app(AnonimizacaoService::class)->anonimizarCandidato($candidato);
 
-        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->assertMissing($caminhoV1);
-        Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->assertMissing($v2->path);
+        Storage::disk(Candidato::DISCO_CURRICULOS)->assertMissing($caminhoV1);
+        Storage::disk(Candidato::DISCO_CURRICULOS)->assertMissing($v2->path);
         $this->assertSame(0, $candidato->curriculos()->count());
     }
 
@@ -146,7 +146,7 @@ class ExclusaoContaTest extends TestCase
         $this->actingAs($candidato, 'candidato')
             ->delete(route('candidato.excluir'), [
                 'confirmar_exclusao' => true,
-                'password'           => 'senha-errada',
+                'password' => 'senha-errada',
             ])
             ->assertSessionHasErrors('password');
 
@@ -160,7 +160,7 @@ class ExclusaoContaTest extends TestCase
         $this->actingAs($candidato, 'candidato')
             ->delete(route('candidato.excluir'), [
                 'confirmar_exclusao' => true,
-                'password'           => 'password',
+                'password' => 'password',
             ])
             ->assertRedirect(route('home'));
 

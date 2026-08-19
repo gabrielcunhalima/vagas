@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Vagas;
 
 use App\Http\Controllers\Controller;
-use App\Models\Vagas\Vaga;
 use App\Http\Requests\Vagas\VagaRequest;
+use App\Mail\Vagas\AlertaNovaVagaMail;
 use App\Mail\Vagas\VagaAutorizadaMail;
 use App\Mail\Vagas\VagaRecusadaMail;
-use App\Mail\Vagas\AlertaNovaVagaMail;
 use App\Models\Vagas\AlertaVaga;
+use App\Models\Vagas\Vaga;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class VagaController extends Controller
 {
@@ -27,7 +27,7 @@ class VagaController extends Controller
 
     public function index(Request $request)
     {
-        $user  = Auth::user();
+        $user = Auth::user();
         $query = $user->isAdmin()
             ? Vaga::query()->latest()
             : Vaga::where('coordenador_id', $user->id)->latest();
@@ -61,8 +61,8 @@ class VagaController extends Controller
         $vagas = $query->paginate(15)->withQueryString();
 
         return view('coord.vagas.index', [
-            'vagas'   => $vagas,
-            'areas'   => Vaga::$areas,
+            'vagas' => $vagas,
+            'areas' => Vaga::$areas,
             'filtros' => $request->only(['status', 'area', 'tipo', 'encerramento_de', 'encerramento_ate', 'busca']),
         ]);
     }
@@ -70,8 +70,8 @@ class VagaController extends Controller
     public function create()
     {
         return view('coord.vagas.form', [
-            'vaga'   => null,
-            'areas'  => Vaga::$areas,
+            'vaga' => null,
+            'areas' => Vaga::$areas,
             'cursos' => Vaga::$cursos,
         ]);
     }
@@ -79,8 +79,8 @@ class VagaController extends Controller
     public function store(VagaRequest $request)
     {
         $dados = $request->validated();
-        $dados['coordenador_id']  = Auth::id();
-        $dados['curso_desejado']  = array_values(array_filter($dados['curso_desejado'] ?? []));
+        $dados['coordenador_id'] = Auth::id();
+        $dados['curso_desejado'] = array_values(array_filter($dados['curso_desejado'] ?? []));
         $dados['notificar_email'] = $request->boolean('notificar_email');
         $dados['status'] = $request->input('acao') === 'publicar'
             ? 'aguardando_autorizacao'
@@ -108,8 +108,8 @@ class VagaController extends Controller
         );
 
         return view('coord.vagas.form', [
-            'vaga'   => $vaga,
-            'areas'  => Vaga::$areas,
+            'vaga' => $vaga,
+            'areas' => Vaga::$areas,
             'cursos' => Vaga::$cursos,
         ]);
     }
@@ -119,7 +119,7 @@ class VagaController extends Controller
         $this->autorizarCoordenador($vaga);
 
         $dados = $request->validated();
-        $dados['curso_desejado']  = array_values(array_filter($dados['curso_desejado'] ?? []));
+        $dados['curso_desejado'] = array_values(array_filter($dados['curso_desejado'] ?? []));
         $dados['notificar_email'] = $request->boolean('notificar_email');
         $dados['status'] = $request->input('acao') === 'publicar'
             ? 'aguardando_autorizacao'
@@ -157,7 +157,7 @@ class VagaController extends Controller
         $this->autorizarCoordenador($vaga);
 
         $vaga->update([
-            'status'       => 'inativa',
+            'status' => 'inativa',
             'encerrada_em' => now(),
         ]);
 
@@ -175,7 +175,7 @@ class VagaController extends Controller
         );
 
         $vaga->update([
-            'status'       => 'ativa',
+            'status' => 'ativa',
             'encerrada_em' => null,
         ]);
 
@@ -185,7 +185,7 @@ class VagaController extends Controller
     public function toggleNotificacao(Vaga $vaga)
     {
         $this->autorizarCoordenador($vaga);
-        $vaga->update(['notificar_email' => !$vaga->notificar_email]);
+        $vaga->update(['notificar_email' => ! $vaga->notificar_email]);
 
         return back()->with('sucesso',
             $vaga->notificar_email
@@ -197,22 +197,22 @@ class VagaController extends Controller
     public function indexGestor(Request $request)
     {
         $status = $request->input('status', 'aguardando_autorizacao');
-        $query  = Vaga::where('status', $status)->with('coordenador')->latest();
+        $query = Vaga::where('status', $status)->with('coordenador')->latest();
 
         if ($request->filled('busca')) {
             $query->busca($request->busca);
         }
 
         $vagas = $query->paginate(15)->withQueryString()
-            ->through(fn(Vaga $v) => array_merge(
+            ->through(fn (Vaga $v) => array_merge(
                 $v->only(['id', 'titulo', 'tipo', 'area', 'modalidade', 'status', 'data_encerramento', 'motivo_recusa', 'created_at']),
                 ['coordenador' => $v->coordenador?->only(['name'])],
             ));
 
         return view('gestor.vagas.index', [
-            'vagas'  => $vagas,
+            'vagas' => $vagas,
             'status' => $status,
-            'busca'  => $request->input('busca', ''),
+            'busca' => $request->input('busca', ''),
         ]);
     }
 
@@ -223,7 +223,7 @@ class VagaController extends Controller
         return view('gestor.vagas.show', [
             'vaga' => array_merge($vaga->only(array_merge(self::CAMPOS_FORM, ['motivo_recusa', 'created_at'])), [
                 'endereco_completo' => $vaga->endereco_completo,
-                'coordenador'       => $vaga->coordenador?->only(['name', 'email']),
+                'coordenador' => $vaga->coordenador?->only(['name', 'email']),
             ]),
         ]);
     }
@@ -233,8 +233,8 @@ class VagaController extends Controller
         abort_unless($vaga->status === 'aguardando_autorizacao', 403);
 
         $vaga->update([
-            'status'        => 'ativa',
-            'gestor_id'     => Auth::id(),
+            'status' => 'ativa',
+            'gestor_id' => Auth::id(),
             'autorizada_em' => now(),
         ]);
 
@@ -242,7 +242,7 @@ class VagaController extends Controller
             try {
                 Mail::to($vaga->coordenador->email)->send(new VagaAutorizadaMail($vaga));
             } catch (\Exception $e) {
-                Log::error('Erro ao enviar e-mail VagaAutorizada: ' . $e->getMessage());
+                Log::error('Erro ao enviar e-mail VagaAutorizada: '.$e->getMessage());
             }
         }
 
@@ -252,7 +252,7 @@ class VagaController extends Controller
                 try {
                     Mail::to($alerta->email)->send(new AlertaNovaVagaMail($vaga, $alerta));
                 } catch (\Exception $e) {
-                    Log::error('Erro ao enviar alerta de vaga: ' . $e->getMessage());
+                    Log::error('Erro ao enviar alerta de vaga: '.$e->getMessage());
                 }
             }
         });
@@ -268,14 +268,14 @@ class VagaController extends Controller
             'motivo_recusa' => 'required|string|min:10|max:1000',
         ], [
             'motivo_recusa.required' => 'Informe o motivo da recusa.',
-            'motivo_recusa.min'      => 'O motivo deve ter pelo menos 10 caracteres.',
+            'motivo_recusa.min' => 'O motivo deve ter pelo menos 10 caracteres.',
         ]);
 
         abort_unless($vaga->status === 'aguardando_autorizacao', 403);
 
         $vaga->update([
-            'status'        => 'recusada',
-            'gestor_id'     => Auth::id(),
+            'status' => 'recusada',
+            'gestor_id' => Auth::id(),
             'motivo_recusa' => $request->motivo_recusa,
         ]);
 
@@ -283,7 +283,7 @@ class VagaController extends Controller
             try {
                 Mail::to($vaga->coordenador->email)->send(new VagaRecusadaMail($vaga));
             } catch (\Exception $e) {
-                Log::error('Erro ao enviar e-mail VagaRecusada: ' . $e->getMessage());
+                Log::error('Erro ao enviar e-mail VagaRecusada: '.$e->getMessage());
             }
         }
 
@@ -295,7 +295,7 @@ class VagaController extends Controller
     private function autorizarCoordenador(Vaga $vaga): void
     {
         $user = Auth::user();
-        if (!$user->isAdmin() && (int) $vaga->coordenador_id !== (int) $user->id) {
+        if (! $user->isAdmin() && (int) $vaga->coordenador_id !== (int) $user->id) {
             abort(403, 'Acesso não autorizado a esta vaga.');
         }
     }

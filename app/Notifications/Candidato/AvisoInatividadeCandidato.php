@@ -31,10 +31,10 @@ class AvisoInatividadeCandidato extends Notification
         return (new MailMessage)
             ->subject('Sua conta no Portal de Vagas FAPEU será encerrada')
             ->view('emails.vagas.aviso-inatividade-candidato', [
-                'candidato'          => $notifiable,
+                'candidato' => $notifiable,
                 'diasParaAnonimizar' => $this->diasParaAnonimizar,
-                'anosInativa'        => $this->anosInativa,
-                'url'                => route('candidato.login'),
+                'anosInativa' => $this->anosInativa,
+                'url' => route('candidato.login'),
             ]);
     }
 }

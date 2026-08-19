@@ -23,18 +23,18 @@ class CandidatoFactory extends Factory
     public function definition(): array
     {
         return [
-            'email'                 => fake()->unique()->safeEmail(),
-            'cpf'                   => self::cpfValido(),
-            'password'              => static::$password ??= Hash::make('password'),
-            'email_verified_at'     => now(),
-            'lgpd_consentimento'    => true,
+            'email' => fake()->unique()->safeEmail(),
+            'cpf' => self::cpfValido(),
+            'password' => static::$password ??= Hash::make('password'),
+            'email_verified_at' => now(),
+            'lgpd_consentimento' => true,
             'lgpd_consentimento_em' => now(),
-            'ativo'                 => true,
+            'ativo' => true,
 
             // Tudo o que Candidato::CAMPOS_OBRIGATORIOS exige.
-            'nome'                  => fake()->name(),
-            'nacionalidade'         => 'Brasileira',
-            'telefone'              => '48999001122',
+            'nome' => fake()->name(),
+            'nacionalidade' => 'Brasileira',
+            'telefone' => '48999001122',
             'possui_acessibilidade' => false,
         ];
     }
@@ -46,10 +46,10 @@ class CandidatoFactory extends Factory
             if ($candidato->formacoes()->count() === 0) {
                 $candidato->formacoes()->create([
                     'nivel_escolaridade' => 'superior_incompleto',
-                    'situacao_curso'     => 'cursando',
-                    'curso'              => 'Ciência da Computação',
-                    'instituicao'        => 'UFSC',
-                    'semestre'           => '6',
+                    'situacao_curso' => 'cursando',
+                    'curso' => 'Ciência da Computação',
+                    'instituicao' => 'UFSC',
+                    'semestre' => '6',
                     'previsao_conclusao' => now()->addYear()->format('Y-m-d'),
                 ]);
             }
@@ -59,10 +59,10 @@ class CandidatoFactory extends Factory
             }
 
             $versao = CandidatoCurriculo::create([
-                'candidato_id'  => $candidato->id,
-                'path'          => 'candidatos/curriculos/teste-' . $candidato->id . '.pdf',
+                'candidato_id' => $candidato->id,
+                'path' => 'candidatos/curriculos/teste-'.$candidato->id.'.pdf',
                 'nome_original' => 'curriculo.pdf',
-                'enviado_em'    => now(),
+                'enviado_em' => now(),
             ]);
 
             $candidato->forceFill(['curriculo_atual_id' => $versao->id])->save();
@@ -73,9 +73,9 @@ class CandidatoFactory extends Factory
     public function minimo(): static
     {
         return $this->state(fn () => [
-            'nome'                  => null,
-            'nacionalidade'         => null,
-            'telefone'              => null,
+            'nome' => null,
+            'nacionalidade' => null,
+            'telefone' => null,
             'possui_acessibilidade' => null,
         ])->afterCreating(function (Candidato $candidato) {
             $candidato->forceFill(['curriculo_atual_id' => null])->save();

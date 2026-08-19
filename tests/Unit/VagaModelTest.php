@@ -4,9 +4,9 @@ namespace Tests\Unit;
 
 use App\Models\User;
 use App\Models\Vagas\Vaga;
-use Tests\TestCase;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Carbon\Carbon;
+use Tests\TestCase;
 
 class VagaModelTest extends TestCase
 {
@@ -17,21 +17,21 @@ class VagaModelTest extends TestCase
         $coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
 
         return Vaga::create(array_merge([
-            'titulo'            => 'Vaga de Teste',
-            'descricao'         => 'Descrição completa da vaga de teste para validação.',
-            'requisitos'        => 'Requisitos básicos para a vaga de teste.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
-            'remuneracao'       => 1200.00,
-            'carga_horaria'     => 30,
+            'titulo' => 'Vaga de Teste',
+            'descricao' => 'Descrição completa da vaga de teste para validação.',
+            'requisitos' => 'Requisitos básicos para a vaga de teste.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
+            'remuneracao' => 1200.00,
+            'carga_horaria' => 30,
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $coord->id,
-            'notificar_email'   => true,
+            'status' => 'ativa',
+            'coordenador_id' => $coord->id,
+            'notificar_email' => true,
         ], $attrs));
     }
 
@@ -163,11 +163,11 @@ class VagaModelTest extends TestCase
     {
         $vaga = $this->makeVaga([
             'logradouro' => 'Av. Madre Benvenuta',
-            'numero'     => '2007',
-            'bairro'     => 'Santa Mônica',
-            'cidade'     => 'Florianópolis',
-            'estado'     => 'SC',
-            'cep'        => '88040-400',
+            'numero' => '2007',
+            'bairro' => 'Santa Mônica',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'cep' => '88040-400',
         ]);
         $endereco = $vaga->endereco_completo;
         $this->assertStringContainsString('Av. Madre Benvenuta', $endereco);
@@ -257,7 +257,7 @@ class VagaModelTest extends TestCase
     public function test_relacionamento_candidaturas(): void
     {
         $vaga = $this->makeVaga();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $vaga->candidaturas());
+        $this->assertInstanceOf(HasMany::class, $vaga->candidaturas());
     }
 
     public function test_relacionamento_coordenador(): void

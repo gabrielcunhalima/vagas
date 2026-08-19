@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Candidato;
 use App\Models\Vagas\AlertaVaga;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class AlertaVagaTest extends TestCase
 {
@@ -67,7 +67,7 @@ class AlertaVagaTest extends TestCase
 
         $this->assertDatabaseHas('vaga_alertas', [
             'candidato_id' => $candidato->id,
-            'email'        => 'dono@email.com',
+            'email' => 'dono@email.com',
         ]);
     }
 
@@ -172,6 +172,6 @@ class AlertaVagaTest extends TestCase
 
     public function test_cancelar_alerta_token_invalido_retorna_404(): void
     {
-        $this->get('/alertas/cancelar/' . str_repeat('z', 64))->assertStatus(404);
+        $this->get('/alertas/cancelar/'.str_repeat('z', 64))->assertStatus(404);
     }
 }

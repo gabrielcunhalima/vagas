@@ -26,12 +26,12 @@ return new class extends Migration
 
         foreach ($comCurriculo as $candidato) {
             $versaoId = DB::table('candidato_curriculos')->insertGetId([
-                'candidato_id'  => $candidato->id,
-                'path'          => $candidato->curriculo_path,
+                'candidato_id' => $candidato->id,
+                'path' => $candidato->curriculo_path,
                 'nome_original' => $candidato->curriculo_nome_original ?? 'curriculo.pdf',
-                'enviado_em'    => $candidato->created_at ?? now(),
-                'created_at'    => now(),
-                'updated_at'    => now(),
+                'enviado_em' => $candidato->created_at ?? now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             DB::table('candidatos')

@@ -34,12 +34,12 @@ class CandidaturaPolicy
      */
     public function verDadosPessoais(User $user, Candidatura $candidatura): bool
     {
-        if (!$this->ver($user, $candidatura)) {
+        if (! $this->ver($user, $candidatura)) {
             return false;
         }
 
         // Conta excluída: o acesso cessa na hora, sem prazo nem exceção.
-        if (!$candidatura->candidato || $candidatura->candidato->trashed()) {
+        if (! $candidatura->candidato || $candidatura->candidato->trashed()) {
             return false;
         }
 

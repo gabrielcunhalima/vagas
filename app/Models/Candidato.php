@@ -2,19 +2,28 @@
 
 namespace App\Models;
 
+use App\Models\Vagas\AlertaVaga;
+use App\Models\Vagas\Candidatura;
 use App\Notifications\Candidato\RedefinirSenhaCandidato;
 use App\Notifications\Candidato\VerificarEmailCandidato;
+use App\Support\Drhflow\DrhflowIndisponivelException;
+use App\Support\Drhflow\InscricaoDrhflowRepository;
+use App\Support\Drhflow\MapeadorInscricao;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Vagas\Candidatura;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Candidato extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, SoftDeletes, Notifiable, MustVerifyEmailTrait;
+    use HasFactory, MustVerifyEmailTrait, Notifiable, SoftDeletes;
 
     protected $table = 'candidatos';
 
@@ -30,9 +39,9 @@ class Candidato extends Authenticatable implements MustVerifyEmail
      * própria e são tratados em pendencias().
      */
     public const CAMPOS_OBRIGATORIOS = [
-        'nome'          => 'Nome completo',
+        'nome' => 'Nome completo',
         'nacionalidade' => 'Nacionalidade',
-        'telefone'      => 'Telefone',
+        'telefone' => 'Telefone',
     ];
 
     protected $fillable = [
@@ -77,22 +86,22 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
-            'email_verified_at'   => 'datetime',
-            'password'            => 'hashed',
-            'pretensao_salarial'  => 'decimal:2',
-            'pcd'                 => 'boolean',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'pretensao_salarial' => 'decimal:2',
+            'pcd' => 'boolean',
             'possui_acessibilidade' => 'boolean',
-            'ativo'               => 'boolean',
-            'lgpd_consentimento'  => 'boolean',
+            'ativo' => 'boolean',
+            'lgpd_consentimento' => 'boolean',
             'lgpd_consentimento_em' => 'datetime',
-            'ultimo_acesso_em'      => 'datetime',
-            'aviso_inatividade_em'  => 'datetime',
+            'ultimo_acesso_em' => 'datetime',
+            'aviso_inatividade_em' => 'datetime',
         ];
     }
 
     public function sendEmailVerificationNotification(): void
     {
-        $this->notify(new VerificarEmailCandidato());
+        $this->notify(new VerificarEmailCandidato);
     }
 
     public function sendPasswordResetNotification($token): void
@@ -109,7 +118,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     public function curriculos()
     {
         return $this->hasMany(CandidatoCurriculo::class, 'candidato_id')
-                    ->orderByDesc('enviado_em');
+            ->orderByDesc('enviado_em');
     }
 
     /** A versão vigente — a única que qualquer consumidor dos dados lê. */
@@ -126,7 +135,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
 
     public function alerta()
     {
-        return $this->hasOne(\App\Models\Vagas\AlertaVaga::class, 'candidato_id');
+        return $this->hasOne(AlertaVaga::class, 'candidato_id');
     }
 
     /** Todas as formações cadastradas, na ordem em que foram informadas. */
@@ -147,6 +156,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     public function getCpfFormatadoAttribute(): string
     {
         $cpf = preg_replace('/\D/', '', $this->cpf);
+
         return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf);
     }
 
@@ -165,7 +175,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
                 && filled($formacao->instituicao)
                 && filled($formacao->previsao_conclusao);
 
-            if (!$completa) {
+            if (! $completa) {
                 return false;
             }
 
@@ -188,7 +198,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
             }
         }
 
-        if (!$this->temFormacaoCompleta()) {
+        if (! $this->temFormacaoCompleta()) {
             $faltando['formacao'] = 'Formação acadêmica';
         }
 
@@ -197,7 +207,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
             $faltando['possui_acessibilidade'] = 'Necessidade de acessibilidade';
         }
 
-        if (!$this->temCurriculo()) {
+        if (! $this->temCurriculo()) {
             $faltando['curriculo'] = 'Currículo em PDF';
         }
 
@@ -213,15 +223,15 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     public function estadoCompletude(): array
     {
         $pendencias = $this->pendencias();
-        $total      = count(self::CAMPOS_OBRIGATORIOS) + 3; // + formação + acessibilidade + currículo
-        $atendidos  = max(0, $total - count($pendencias));
+        $total = count(self::CAMPOS_OBRIGATORIOS) + 3; // + formação + acessibilidade + currículo
+        $atendidos = max(0, $total - count($pendencias));
 
         return [
-            'completo'   => $pendencias === [],
+            'completo' => $pendencias === [],
             'pendencias' => $pendencias,
-            'atendidos'  => $atendidos,
-            'total'      => $total,
-            'progresso'  => (int) round($atendidos / $total * 100),
+            'atendidos' => $atendidos,
+            'total' => $total,
+            'progresso' => (int) round($atendidos / $total * 100),
         ];
     }
 
@@ -249,20 +259,20 @@ class Candidato extends Authenticatable implements MustVerifyEmail
      * caminho adivinhável. Ele fica guardado em `nome_original`, que é o que o
      * download devolve.
      */
-    public function adicionarCurriculo(\Illuminate\Http\UploadedFile $arquivo): CandidatoCurriculo
+    public function adicionarCurriculo(UploadedFile $arquivo): CandidatoCurriculo
     {
-        $caminho = $this->pastaCurriculos() . '/' . \Illuminate\Support\Str::uuid() . '.pdf';
+        $caminho = $this->pastaCurriculos().'/'.Str::uuid().'.pdf';
 
         // putFileAs cria a pasta do CPF quando ainda não existe. O disco tem
         // throw => true, então uma falha aqui interrompe em vez de gravar um
         // registro apontando para arquivo inexistente.
-        \Illuminate\Support\Facades\Storage::disk(self::DISCO_CURRICULOS)
+        Storage::disk(self::DISCO_CURRICULOS)
             ->putFileAs($this->pastaCurriculos(), $arquivo, basename($caminho));
 
         $versao = $this->curriculos()->create([
-            'path'          => $caminho,
+            'path' => $caminho,
             'nome_original' => $arquivo->getClientOriginalName(),
-            'enviado_em'    => now(),
+            'enviado_em' => now(),
         ]);
 
         $this->forceFill(['curriculo_atual_id' => $versao->id])->save();
@@ -288,12 +298,12 @@ class Candidato extends Authenticatable implements MustVerifyEmail
      * inscrição feita fora do portal para o mesmo CPF e a mesma vaga já ocupa
      * esse par, e criar uma segunda violaria a chave primária de lá.
      *
-     * @throws \App\Support\Drhflow\DrhflowIndisponivelException
+     * @throws DrhflowIndisponivelException
      */
     public function jaSeInscreveuNa(int $cdVagaEmprego): bool
     {
-        return app(\App\Support\Drhflow\InscricaoDrhflowRepository::class)
-            ->existe(\App\Support\Drhflow\MapeadorInscricao::cpf($this), $cdVagaEmprego);
+        return app(InscricaoDrhflowRepository::class)
+            ->existe(MapeadorInscricao::cpf($this), $cdVagaEmprego);
     }
 
     /**
@@ -304,7 +314,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
      * carimbo do aviso de inatividade), e usá-lo faria a conta parecer viva por
      * efeito da própria rotina que a examina.
      */
-    public function ultimaAtividadeEm(): ?\Illuminate\Support\Carbon
+    public function ultimaAtividadeEm(): ?Carbon
     {
         $marcos = array_filter([
             $this->ultimo_acesso_em,
@@ -317,8 +327,8 @@ class Candidato extends Authenticatable implements MustVerifyEmail
 
         return collect($marcos)
             ->map(fn ($marco) => $marco instanceof \DateTimeInterface
-                ? \Illuminate\Support\Carbon::instance($marco)
-                : \Illuminate\Support\Carbon::parse($marco))
+                ? Carbon::instance($marco)
+                : Carbon::parse($marco))
             ->max();
     }
 
@@ -326,7 +336,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     public function registrarAtividade(): void
     {
         $this->forceFill([
-            'ultimo_acesso_em'     => now(),
+            'ultimo_acesso_em' => now(),
             'aviso_inatividade_em' => null,
         ])->save();
     }
@@ -358,11 +368,11 @@ class Candidato extends Authenticatable implements MustVerifyEmail
     private function temInscricaoEmAndamentoNoDrhflow(): bool
     {
         try {
-            return app(\App\Support\Drhflow\InscricaoDrhflowRepository::class)
-                ->doCpf(\App\Support\Drhflow\MapeadorInscricao::cpf($this))
+            return app(InscricaoDrhflowRepository::class)
+                ->doCpf(MapeadorInscricao::cpf($this))
                 ->contains(fn ($inscricao) => ! $inscricao->avaliacaoConcluida);
-        } catch (\App\Support\Drhflow\DrhflowIndisponivelException $e) {
-            \Illuminate\Support\Facades\Log::warning(
+        } catch (DrhflowIndisponivelException $e) {
+            Log::warning(
                 'DRHFlow indisponível ao verificar processo em aberto; conta tratada como em andamento.',
                 ['candidato_id' => $this->id, 'erro' => $e->getMessage()]
             );
@@ -370,5 +380,4 @@ class Candidato extends Authenticatable implements MustVerifyEmail
             return true;
         }
     }
-
 }

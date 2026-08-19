@@ -20,8 +20,8 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('candidatura_id')
-                  ->constrained('candidaturas')
-                  ->cascadeOnDelete();
+                ->constrained('candidaturas')
+                ->cascadeOnDelete();
 
             // 'submissao' | 'transicao_status'
             $table->string('tipo', 30);
@@ -31,14 +31,14 @@ return new class extends Migration
 
             // Coordenador que realizou a transição; nulo quando o autor é o candidato.
             $table->foreignId('autor_id')
-                  ->nullable()
-                  ->constrained('users')
-                  ->nullOnDelete();
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
 
             $table->foreignId('curriculo_id_vigente')
-                  ->nullable()
-                  ->constrained('candidato_curriculos')
-                  ->nullOnDelete();
+                ->nullable()
+                ->constrained('candidato_curriculos')
+                ->nullOnDelete();
 
             $table->text('observacao')->nullable();
             $table->timestamp('ocorrido_em');

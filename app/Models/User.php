@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Vagas\Vaga;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Vagas\Vaga;
 
 class User extends Authenticatable
 {
@@ -29,9 +29,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'ativo'             => 'boolean',
-            'perfil'            => 'string',
+            'password' => 'hashed',
+            'ativo' => 'boolean',
+            'perfil' => 'string',
         ];
     }
 

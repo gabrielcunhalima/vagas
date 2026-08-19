@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Candidato;
 use App\Models\User;
 
 return [
@@ -72,7 +73,7 @@ return [
         ],
         'candidatos' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Candidato::class,
+            'model' => Candidato::class,
         ],
 
         // 'users' => [

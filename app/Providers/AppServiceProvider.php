@@ -4,11 +4,11 @@ namespace App\Providers;
 
 use App\Models\Vagas\Candidatura;
 use App\Policies\CandidaturaPolicy;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Foundation\Vite;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {

@@ -19,6 +19,7 @@ class CandidaturaEvento extends Model
     protected $table = 'candidatura_eventos';
 
     public const TIPO_SUBMISSAO = 'submissao';
+
     public const TIPO_TRANSICAO = 'transicao_status';
 
     protected $fillable = [
@@ -61,7 +62,7 @@ class CandidaturaEvento extends Model
             return 'Candidatura enviada';
         }
 
-        $de   = Candidatura::$statusLabel[$this->status_anterior] ?? $this->status_anterior;
+        $de = Candidatura::$statusLabel[$this->status_anterior] ?? $this->status_anterior;
         $para = Candidatura::$statusLabel[$this->status_novo] ?? $this->status_novo;
 
         return "Status alterado de \"{$de}\" para \"{$para}\"";

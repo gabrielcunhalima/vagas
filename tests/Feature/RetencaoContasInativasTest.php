@@ -4,13 +4,15 @@ namespace Tests\Feature;
 
 use App\Models\Candidato;
 use App\Models\User;
-use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
+use App\Models\Vagas\Vaga;
 use App\Notifications\Candidato\AvisoInatividadeCandidato;
-use Tests\TestCase;
+use App\Support\Drhflow\MapeadorInscricao;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Tests\Concerns\UsaDrhflowFalso;
+use Tests\TestCase;
 
 /**
  * A anonimização por inatividade é irreversível, então o que estes testes guardam
@@ -130,7 +132,7 @@ class RetencaoContasInativasTest extends TestCase
 
         // O candidato volta antes da varredura seguinte.
         $this->post(route('candidato.login.post'), [
-            'email'    => $candidato->email,
+            'email' => $candidato->email,
             'password' => 'password',
         ])->assertRedirect();
 
@@ -161,7 +163,7 @@ class RetencaoContasInativasTest extends TestCase
         $candidato = $this->contaInativaHa(3);
         $codigo = $this->vagaDrhflow();
         $this->inscricaoDrhflow(
-            \App\Support\Drhflow\MapeadorInscricao::cpf($candidato),
+            MapeadorInscricao::cpf($candidato),
             $codigo,
             ['DT_CADASTRO' => now()->subYears(3)]
         );
@@ -178,7 +180,7 @@ class RetencaoContasInativasTest extends TestCase
         $candidato = $this->contaInativaHa(3);
         $codigo = $this->vagaDrhflow();
         $this->inscricaoDrhflow(
-            \App\Support\Drhflow\MapeadorInscricao::cpf($candidato),
+            MapeadorInscricao::cpf($candidato),
             $codigo,
             ['DT_CADASTRO' => now()->subYears(3), 'VL_MEDIA_AVALIACAO' => 7.5]
         );
@@ -195,7 +197,7 @@ class RetencaoContasInativasTest extends TestCase
         Notification::fake();
         $candidato = $this->contaInativaHa(3);
 
-        \Illuminate\Support\Facades\DB::purge('drhflow');
+        DB::purge('drhflow');
         config(['database.connections.drhflow' => [
             'driver' => 'sqlite',
             'database' => '/caminho/inexistente/drhflow.sqlite',
@@ -242,9 +244,9 @@ class RetencaoContasInativasTest extends TestCase
         $candidato = $this->contaInativaHa(2);
 
         $this->actingAs($candidato, 'candidato')->put(route('candidato.perfil.update'), [
-            'nome'  => $candidato->nome,
+            'nome' => $candidato->nome,
             'email' => $candidato->email,
-            'cpf'   => $candidato->cpf_formatado,
+            'cpf' => $candidato->cpf_formatado,
         ])->assertSessionHasNoErrors();
 
         $this->rodar();
@@ -268,24 +270,24 @@ class RetencaoContasInativasTest extends TestCase
         $coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
 
         $vaga = Vaga::create([
-            'titulo'            => 'Vaga do teste de retenção',
-            'descricao'         => 'Descrição da vaga usada no teste de retenção de contas inativas.',
-            'requisitos'        => 'Requisitos da vaga de teste.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga do teste de retenção',
+            'descricao' => 'Descrição da vaga usada no teste de retenção de contas inativas.',
+            'requisitos' => 'Requisitos da vaga de teste.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $coord->id,
+            'status' => 'ativa',
+            'coordenador_id' => $coord->id,
         ]);
 
         $candidatura = Candidatura::create([
-            'vaga_id'      => $vaga->id,
+            'vaga_id' => $vaga->id,
             'candidato_id' => $candidato->id,
-            'status'       => $status,
+            'status' => $status,
         ]);
 
         if ($quando) {

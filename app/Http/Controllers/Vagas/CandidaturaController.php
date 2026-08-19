@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Vagas;
 
 use App\Http\Controllers\Controller;
-use App\Models\Vagas\Vaga;
+use App\Mail\Vagas\AprovacaoMail;
+use App\Mail\Vagas\ConviteEntrevistaMail;
+use App\Mail\Vagas\ReprovacaoMail;
+use App\Models\Candidato;
 use App\Models\Vagas\Candidatura;
 use App\Models\Vagas\CandidaturaEvento;
+use App\Models\Vagas\Vaga;
 use App\Policies\CandidaturaPolicy;
-use App\Mail\Vagas\ConviteEntrevistaMail;
-use App\Mail\Vagas\AprovacaoMail;
-use App\Mail\Vagas\ReprovacaoMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class CandidaturaController extends Controller
@@ -30,16 +31,16 @@ class CandidaturaController extends Controller
         $podeVerPessoais = Auth::user()->can('verDadosPessoais', $c);
 
         return [
-            'id'         => $c->id,
-            'vaga_id'    => $c->vaga_id,
-            'nome'       => $podeVerPessoais ? $c->nome : null,
-            'email'      => $podeVerPessoais ? $c->email : null,
-            'cursos'     => $podeVerPessoais ? $c->formacoes->pluck('curso')->filter()->implode(', ') : null,
-            'pcd'        => $podeVerPessoais ? $c->pcd : null,
-            'acesso_expirado' => !$podeVerPessoais,
-            'status'     => $c->status,
+            'id' => $c->id,
+            'vaga_id' => $c->vaga_id,
+            'nome' => $podeVerPessoais ? $c->nome : null,
+            'email' => $podeVerPessoais ? $c->email : null,
+            'cursos' => $podeVerPessoais ? $c->formacoes->pluck('curso')->filter()->implode(', ') : null,
+            'pcd' => $podeVerPessoais ? $c->pcd : null,
+            'acesso_expirado' => ! $podeVerPessoais,
+            'status' => $c->status,
             'created_at' => $c->created_at,
-            'vaga'       => $c->vaga?->only(['id', 'titulo']),
+            'vaga' => $c->vaga?->only(['id', 'titulo']),
         ];
     }
 
@@ -47,9 +48,9 @@ class CandidaturaController extends Controller
     {
         $user = Auth::user();
 
-        $base = fn() => Candidatura::when(
-            !$user->isAdmin(),
-            fn($q) => $q->whereHas('vaga', fn($q2) => $q2->where('coordenador_id', $user->id))
+        $base = fn () => Candidatura::when(
+            ! $user->isAdmin(),
+            fn ($q) => $q->whereHas('vaga', fn ($q2) => $q2->where('coordenador_id', $user->id))
         );
 
         // `candidato` é obrigatório aqui: os dados pessoais vêm dele por delegação.
@@ -66,26 +67,26 @@ class CandidaturaController extends Controller
         }
 
         $candidaturas = $query->paginate(25)->withQueryString()
-            ->through(fn(Candidatura $c) => $this->candidaturaResumo($c));
+            ->through(fn (Candidatura $c) => $this->candidaturaResumo($c));
 
         $vagas = $user->isAdmin()
             ? Vaga::orderBy('titulo')->get(['id', 'titulo'])
             : Vaga::where('coordenador_id', $user->id)->orderBy('titulo')->get(['id', 'titulo']);
 
         $contadores = [
-            'todos'      => $base()->count(),
-            'recebida'   => $base()->porStatus('recebida')->count(),
+            'todos' => $base()->count(),
+            'recebida' => $base()->porStatus('recebida')->count(),
             'em_analise' => $base()->porStatus('em_analise')->count(),
             'entrevista' => $base()->porStatus('entrevista')->count(),
-            'aprovado'   => $base()->porStatus('aprovado')->count(),
-            'reprovado'  => $base()->porStatus('reprovado')->count(),
+            'aprovado' => $base()->porStatus('aprovado')->count(),
+            'reprovado' => $base()->porStatus('reprovado')->count(),
         ];
 
         return view('coord.candidaturas.todas', [
             'candidaturas' => $candidaturas,
-            'vagas'        => $vagas,
-            'contadores'   => $contadores,
-            'filtros'      => $request->only(['status', 'vaga_id', 'busca']),
+            'vagas' => $vagas,
+            'contadores' => $contadores,
+            'filtros' => $request->only(['status', 'vaga_id', 'busca']),
         ]);
     }
 
@@ -104,22 +105,22 @@ class CandidaturaController extends Controller
         }
 
         $candidaturas = $query->paginate(20)->withQueryString()
-            ->through(fn(Candidatura $c) => $this->candidaturaResumo($c));
+            ->through(fn (Candidatura $c) => $this->candidaturaResumo($c));
 
         $contadores = [
-            'todos'      => $vaga->candidaturas()->count(),
-            'recebida'   => $vaga->candidaturas()->porStatus('recebida')->count(),
+            'todos' => $vaga->candidaturas()->count(),
+            'recebida' => $vaga->candidaturas()->porStatus('recebida')->count(),
             'em_analise' => $vaga->candidaturas()->porStatus('em_analise')->count(),
             'entrevista' => $vaga->candidaturas()->porStatus('entrevista')->count(),
-            'aprovado'   => $vaga->candidaturas()->porStatus('aprovado')->count(),
-            'reprovado'  => $vaga->candidaturas()->porStatus('reprovado')->count(),
+            'aprovado' => $vaga->candidaturas()->porStatus('aprovado')->count(),
+            'reprovado' => $vaga->candidaturas()->porStatus('reprovado')->count(),
         ];
 
         return view('coord.candidaturas.index', [
-            'vaga'         => $vaga,
+            'vaga' => $vaga,
             'candidaturas' => $candidaturas,
-            'contadores'   => $contadores,
-            'filtros'      => $request->only(['status', 'busca']),
+            'contadores' => $contadores,
+            'filtros' => $request->only(['status', 'busca']),
         ]);
     }
 
@@ -138,10 +139,10 @@ class CandidaturaController extends Controller
             'entrevista_observacoes', 'observacoes_internas', 'created_at',
         ]), [
             'eventos' => $candidatura->eventos->map(fn ($ev) => [
-                'descricao'   => $ev->descricao,
-                'autor'       => $ev->autor?->name,
+                'descricao' => $ev->descricao,
+                'autor' => $ev->autor?->name,
                 'ocorrido_em' => $ev->ocorrido_em,
-                'curriculo'   => $ev->curriculoVigente?->nome_original,
+                'curriculo' => $ev->curriculoVigente?->nome_original,
             ]),
         ]);
 
@@ -154,25 +155,25 @@ class CandidaturaController extends Controller
                     'nome', 'email', 'telefone', 'linkedin', 'pretensao_salarial',
                     'disponibilidade', 'pcd', 'pcd_tipo',
                 ]), [
-                    'cpf_formatado'     => $candidatura->cpf_formatado,
+                    'cpf_formatado' => $candidatura->cpf_formatado,
                     'endereco_completo' => $candidatura->endereco_completo,
-                    'formacoes'         => $candidatura->formacoes->map(fn ($f) => [
+                    'formacoes' => $candidatura->formacoes->map(fn ($f) => [
                         'nivel_escolaridade' => $f->nivel_escolaridade,
-                        'situacao_curso'     => $f->situacao_curso,
-                        'curso'              => $f->curso,
-                        'instituicao'        => $f->instituicao,
-                        'semestre'           => $f->semestre,
+                        'situacao_curso' => $f->situacao_curso,
+                        'curso' => $f->curso,
+                        'instituicao' => $f->instituicao,
+                        'semestre' => $f->semestre,
                         'previsao_conclusao' => $f->previsao_conclusao?->format('Y-m-d'),
                     ])->values(),
-                    'outras_formacoes_mec'    => $candidatura->candidato?->outras_formacoes_mec,
-                    'outros_cursos'           => $candidatura->candidato?->outros_cursos,
-                    'tem_curriculo'     => $candidatura->temCurriculo(),
+                    'outras_formacoes_mec' => $candidatura->candidato?->outras_formacoes_mec,
+                    'outros_cursos' => $candidatura->candidato?->outros_cursos,
+                    'tem_curriculo' => $candidatura->temCurriculo(),
                     'curriculo_nome_original' => $candidatura->curriculo_nome_original,
                     // Deixa claro que a ficha é viva, não um retrato da inscrição.
-                    'perfil_atualizado_em'    => $candidatura->candidato?->updated_at,
+                    'perfil_atualizado_em' => $candidatura->candidato?->updated_at,
                 ])
                 : $registroProcesso,
-            'acessoExpirado' => !$podeVerPessoais,
+            'acessoExpirado' => ! $podeVerPessoais,
             'motivoExpiracao' => $podeVerPessoais ? null : $this->motivoExpiracao($candidatura),
             'proximosStatus' => Candidatura::$proximosStatus[$candidatura->status] ?? [],
         ]);
@@ -180,7 +181,7 @@ class CandidaturaController extends Controller
 
     private function motivoExpiracao(Candidatura $candidatura): string
     {
-        if (!$candidatura->candidato || $candidatura->candidato->trashed()) {
+        if (! $candidatura->candidato || $candidatura->candidato->trashed()) {
             return 'O candidato excluiu a conta e seus dados pessoais foram removidos, conforme a LGPD.';
         }
 
@@ -213,16 +214,16 @@ class CandidaturaController extends Controller
 
         if ($novoStatus === 'entrevista') {
             $request->validate([
-                'entrevista_data'  => 'required|date|after:now',
+                'entrevista_data' => 'required|date|after:now',
                 'entrevista_local' => 'required|string|max:255',
             ], [
-                'entrevista_data.required'  => 'Informe a data da entrevista.',
-                'entrevista_data.after'     => 'A data da entrevista deve ser futura.',
+                'entrevista_data.required' => 'Informe a data da entrevista.',
+                'entrevista_data.after' => 'A data da entrevista deve ser futura.',
                 'entrevista_local.required' => 'Informe o local da entrevista.',
             ]);
 
-            $dados['entrevista_data']        = $request->entrevista_data;
-            $dados['entrevista_local']       = $request->entrevista_local;
+            $dados['entrevista_data'] = $request->entrevista_data;
+            $dados['entrevista_local'] = $request->entrevista_local;
             $dados['entrevista_observacoes'] = $request->entrevista_observacoes;
         }
 
@@ -238,20 +239,20 @@ class CandidaturaController extends Controller
             // Registro do processo: quem decidiu, quando, e sobre qual currículo.
             // Nenhum dado de identidade é copiado para cá.
             $candidatura->eventos()->create([
-                'tipo'                 => CandidaturaEvento::TIPO_TRANSICAO,
-                'status_anterior'      => $statusAnterior,
-                'status_novo'          => $novoStatus,
-                'autor_id'             => Auth::id(),
+                'tipo' => CandidaturaEvento::TIPO_TRANSICAO,
+                'status_anterior' => $statusAnterior,
+                'status_novo' => $novoStatus,
+                'autor_id' => Auth::id(),
                 'curriculo_id_vigente' => $candidatura->candidato?->curriculo_atual_id,
-                'observacao'           => $request->input('observacoes_internas'),
-                'ocorrido_em'          => now(),
+                'observacao' => $request->input('observacoes_internas'),
+                'ocorrido_em' => now(),
             ]);
 
             $this->enviarEmailStatus($candidatura, $novoStatus);
         }
 
         $mensagem = $mudandoStatus
-            ? 'Status atualizado para "' . Candidatura::$statusLabel[$novoStatus] . '".'
+            ? 'Status atualizado para "'.Candidatura::$statusLabel[$novoStatus].'".'
             : 'Observações salvas com sucesso.';
 
         return redirect()
@@ -268,7 +269,7 @@ class CandidaturaController extends Controller
         // porta aberta de um processo cujos dados já deixaram de estar acessíveis.
         abort_unless(Auth::user()->can('baixarCurriculo', $candidatura), 403, 'Acesso aos dados deste candidato expirou.');
 
-        return Storage::disk(\App\Models\Candidato::DISCO_CURRICULOS)->download(
+        return Storage::disk(Candidato::DISCO_CURRICULOS)->download(
             $candidatura->curriculo_path,
             $candidatura->curriculo_nome_original ?? 'curriculo.pdf'
         );
@@ -277,7 +278,7 @@ class CandidaturaController extends Controller
     private function autorizarVaga(Vaga $vaga): void
     {
         $user = Auth::user();
-        if (!$user->isAdmin() && (int) $vaga->coordenador_id !== (int) $user->id) {
+        if (! $user->isAdmin() && (int) $vaga->coordenador_id !== (int) $user->id) {
             abort(403, 'Acesso não autorizado.');
         }
     }
@@ -287,16 +288,16 @@ class CandidaturaController extends Controller
         try {
             $mail = match ($status) {
                 'entrevista' => new ConviteEntrevistaMail($candidatura),
-                'aprovado'   => new AprovacaoMail($candidatura),
-                'reprovado'  => new ReprovacaoMail($candidatura),
-                default      => null,
+                'aprovado' => new AprovacaoMail($candidatura),
+                'reprovado' => new ReprovacaoMail($candidatura),
+                default => null,
             };
 
             if ($mail) {
                 Mail::to($candidatura->email)->send($mail);
             }
         } catch (\Exception $e) {
-            Log::error('Erro ao enviar e-mail de status: ' . $e->getMessage());
+            Log::error('Erro ao enviar e-mail de status: '.$e->getMessage());
         }
     }
 }

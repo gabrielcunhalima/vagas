@@ -4,10 +4,10 @@ namespace Tests\Unit;
 
 use App\Models\Candidato;
 use App\Models\User;
-use App\Models\Vagas\Vaga;
 use App\Models\Vagas\Candidatura;
-use Tests\TestCase;
+use App\Models\Vagas\Vaga;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CandidaturaModelTest extends TestCase
 {
@@ -16,20 +16,21 @@ class CandidaturaModelTest extends TestCase
     private function makeVaga(): Vaga
     {
         $coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
+
         return Vaga::create([
-            'titulo'            => 'Vaga Teste',
-            'descricao'         => 'Descrição detalhada da vaga para testes unitários.',
-            'requisitos'        => 'Requisitos mínimos para teste.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga Teste',
+            'descricao' => 'Descrição detalhada da vaga para testes unitários.',
+            'requisitos' => 'Requisitos mínimos para teste.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $coord->id,
-            'notificar_email'   => true,
+            'status' => 'ativa',
+            'coordenador_id' => $coord->id,
+            'notificar_email' => true,
         ]);
     }
 
@@ -48,9 +49,9 @@ class CandidaturaModelTest extends TestCase
         $candidato = Candidato::factory()->create($doPerfil);
 
         return Candidatura::create(array_merge([
-            'vaga_id'      => $vaga->id,
+            'vaga_id' => $vaga->id,
             'candidato_id' => $candidato->id,
-            'status'       => 'recebida',
+            'status' => 'recebida',
         ], array_diff_key($attrs, $doPerfil)));
     }
 
@@ -150,9 +151,9 @@ class CandidaturaModelTest extends TestCase
         $vaga = $this->makeVaga();
         $c = $this->makeCandidatura($vaga, [
             'logradouro' => 'Rua XV de Novembro',
-            'numero'     => '100',
-            'cidade'     => 'Florianópolis',
-            'estado'     => 'SC',
+            'numero' => '100',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
         ]);
         $this->assertStringContainsString('Rua XV de Novembro', $c->endereco_completo);
         $this->assertStringContainsString('Florianópolis/SC', $c->endereco_completo);
@@ -256,9 +257,9 @@ class CandidaturaModelTest extends TestCase
         $candidato = Candidato::factory()->semCurriculo()->create();
 
         $c = Candidatura::create([
-            'vaga_id'      => $vaga->id,
+            'vaga_id' => $vaga->id,
             'candidato_id' => $candidato->id,
-            'status'       => 'recebida',
+            'status' => 'recebida',
         ]);
 
         $this->assertFalse($c->temCurriculo());
@@ -270,9 +271,9 @@ class CandidaturaModelTest extends TestCase
         $c = $this->makeCandidatura($vaga);
 
         $nova = $c->candidato->curriculos()->create([
-            'path'          => 'candidatos/curriculos/v2.pdf',
+            'path' => 'candidatos/curriculos/v2.pdf',
             'nome_original' => 'curriculo-v2.pdf',
-            'enviado_em'    => now(),
+            'enviado_em' => now(),
         ]);
         $c->candidato->forceFill(['curriculo_atual_id' => $nova->id])->save();
 

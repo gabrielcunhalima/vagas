@@ -15,7 +15,7 @@ class SsoController extends Controller
     {
         $token = $request->query('token');
 
-        if (!$token) {
+        if (! $token) {
             abort(401, 'Token ausente.');
         }
 
@@ -31,8 +31,8 @@ class SsoController extends Controller
             abort(401, 'Token inválido ou expirado. Volte ao portal e tente novamente.');
         }
 
-        $cpf   = $payload->cpf   ?? null;
-        $email = $payload->email  ?? null;
+        $cpf = $payload->cpf ?? null;
+        $email = $payload->email ?? null;
 
         $user = null;
 
@@ -45,11 +45,11 @@ class SsoController extends Controller
         }
 
         // Fallback por e-mail (quando CPF ainda não está sincronizado)
-        if (!$user && $email) {
+        if (! $user && $email) {
             $user = User::where('email', $email)->where('ativo', true)->first();
         }
 
-        if (!$user) {
+        if (! $user) {
             abort(403, 'Usuário não encontrado neste sistema. Verifique se o e-mail ou CPF está cadastrado no Portal de Vagas.');
         }
 
@@ -58,7 +58,7 @@ class SsoController extends Controller
 
         return match ($user->perfil) {
             'gestor' => redirect()->route('gestor.dashboard'),
-            default  => redirect()->route('coord.dashboard'),
+            default => redirect()->route('coord.dashboard'),
         };
     }
 }

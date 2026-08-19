@@ -19,8 +19,8 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('candidato_id')
-                  ->constrained('candidatos')
-                  ->cascadeOnDelete();
+                ->constrained('candidatos')
+                ->cascadeOnDelete();
 
             $table->string('nivel_escolaridade', 50)->nullable();
             $table->enum('situacao_curso', ['cursando', 'concluido'])->nullable();
@@ -61,15 +61,15 @@ return new class extends Migration
             ->get(['id', 'nivel_escolaridade', 'situacao_curso', 'curso', 'instituicao', 'semestre', 'previsao_conclusao'])
             ->each(function ($candidato) {
                 DB::table('candidato_formacoes')->insert([
-                    'candidato_id'       => $candidato->id,
+                    'candidato_id' => $candidato->id,
                     'nivel_escolaridade' => $candidato->nivel_escolaridade,
-                    'situacao_curso'     => $candidato->situacao_curso,
-                    'curso'              => $candidato->curso,
-                    'instituicao'        => $candidato->instituicao,
-                    'semestre'           => $candidato->semestre,
+                    'situacao_curso' => $candidato->situacao_curso,
+                    'curso' => $candidato->curso,
+                    'instituicao' => $candidato->instituicao,
+                    'semestre' => $candidato->semestre,
                     'previsao_conclusao' => $candidato->previsao_conclusao,
-                    'created_at'         => now(),
-                    'updated_at'         => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             });
     }
@@ -95,11 +95,11 @@ return new class extends Migration
                 $primeira = $formacoes->first();
 
                 DB::table('candidatos')->where('id', $candidatoId)->update([
-                    'curso'              => $primeira->curso,
-                    'instituicao'        => $primeira->instituicao,
+                    'curso' => $primeira->curso,
+                    'instituicao' => $primeira->instituicao,
                     'nivel_escolaridade' => $primeira->nivel_escolaridade,
-                    'situacao_curso'     => $primeira->situacao_curso,
-                    'semestre'           => $primeira->semestre,
+                    'situacao_curso' => $primeira->situacao_curso,
+                    'semestre' => $primeira->semestre,
                     'previsao_conclusao' => $primeira->previsao_conclusao,
                 ]);
             });

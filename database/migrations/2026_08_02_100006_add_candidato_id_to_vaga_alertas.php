@@ -15,10 +15,10 @@ return new class extends Migration
     {
         Schema::table('vaga_alertas', function (Blueprint $table) {
             $table->foreignId('candidato_id')
-                  ->nullable()
-                  ->after('id')
-                  ->constrained('candidatos')
-                  ->cascadeOnDelete();
+                ->nullable()
+                ->after('id')
+                ->constrained('candidatos')
+                ->cascadeOnDelete();
         });
     }
 

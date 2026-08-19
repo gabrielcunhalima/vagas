@@ -33,17 +33,17 @@ class AnonimizarContasInativas extends Command
 
     public function handle(AnonimizacaoService $anonimizacao): int
     {
-        $anos     = max(1, (int) $this->option('anos'));
+        $anos = max(1, (int) $this->option('anos'));
         $carencia = max(1, (int) $this->option('carencia'));
-        $simular  = (bool) $this->option('dry-run');
+        $simular = (bool) $this->option('dry-run');
 
         $limiteInatividade = now()->subYears($anos);
 
-        $avisadas    = $this->avisar($limiteInatividade, $anos, $carencia, $simular);
+        $avisadas = $this->avisar($limiteInatividade, $anos, $carencia, $simular);
         $anonimizadas = $this->anonimizar($limiteInatividade, $carencia, $simular, $anonimizacao);
 
         $this->info(($simular ? '[simulação] ' : '')
-            . "{$avisadas} conta(s) avisada(s), {$anonimizadas} anonimizada(s).");
+            ."{$avisadas} conta(s) avisada(s), {$anonimizadas} anonimizada(s).");
 
         return self::SUCCESS;
     }
@@ -62,6 +62,7 @@ class AnonimizarContasInativas extends Command
 
             if ($simular) {
                 $this->line("  avisaria: {$candidato->email}");
+
                 continue;
             }
 
@@ -85,7 +86,7 @@ class AnonimizarContasInativas extends Command
         AnonimizacaoService $anonimizacao,
     ): int {
         $prazoAviso = now()->subDays($carencia);
-        $total      = 0;
+        $total = 0;
 
         foreach ($this->candidatosInativos($limite) as $candidato) {
             // O login zera o aviso, então chegar aqui significa que não houve retorno.
@@ -97,6 +98,7 @@ class AnonimizarContasInativas extends Command
 
             if ($simular) {
                 $this->line("  anonimizaria: {$candidato->email}");
+
                 continue;
             }
 

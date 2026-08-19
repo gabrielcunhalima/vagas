@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Models\Candidato;
 use App\Models\User;
 use App\Models\Vagas\Vaga;
-use Tests\TestCase;
+use App\Notifications\Candidato\VerificarEmailCandidato;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
-use App\Notifications\Candidato\VerificarEmailCandidato;
+use Tests\TestCase;
 
 class CadastroMinimoTest extends TestCase
 {
@@ -19,11 +19,11 @@ class CadastroMinimoTest extends TestCase
     private function dadosCadastro(array $over = []): array
     {
         return array_merge([
-            'cpf'                   => '529.982.247-25',
-            'email'                 => 'novo@teste.com',
-            'password'              => 'SenhaForte1!',
+            'cpf' => '529.982.247-25',
+            'email' => 'novo@teste.com',
+            'password' => 'SenhaForte1!',
             'password_confirmation' => 'SenhaForte1!',
-            'lgpd_consentimento'    => true,
+            'lgpd_consentimento' => true,
         ], $over);
     }
 
@@ -114,25 +114,25 @@ class CadastroMinimoTest extends TestCase
         $coord = User::factory()->create(['perfil' => 'coordenador', 'ativo' => true]);
 
         $vaga = Vaga::create([
-            'titulo'            => 'Vaga Antiga',
-            'descricao'         => 'Descrição da vaga anterior ao cadastro obrigatório de conta.',
-            'requisitos'        => 'Requisitos da vaga antiga.',
-            'tipo'              => 'estagio',
-            'area'              => 'Tecnologia da Informação',
-            'modalidade'        => 'presencial',
-            'cidade'            => 'Florianópolis',
-            'estado'            => 'SC',
-            'pais'              => 'Brasil',
+            'titulo' => 'Vaga Antiga',
+            'descricao' => 'Descrição da vaga anterior ao cadastro obrigatório de conta.',
+            'requisitos' => 'Requisitos da vaga antiga.',
+            'tipo' => 'estagio',
+            'area' => 'Tecnologia da Informação',
+            'modalidade' => 'presencial',
+            'cidade' => 'Florianópolis',
+            'estado' => 'SC',
+            'pais' => 'Brasil',
             'data_encerramento' => now()->addDays(30)->toDateString(),
-            'status'            => 'ativa',
-            'coordenador_id'    => $coord->id,
+            'status' => 'ativa',
+            'coordenador_id' => $coord->id,
         ]);
 
         $this->expectException(QueryException::class);
 
         DB::table('candidaturas')->insert([
-            'vaga_id'    => $vaga->id,
-            'status'     => 'recebida',
+            'vaga_id' => $vaga->id,
+            'status' => 'recebida',
             'created_at' => now(),
             'updated_at' => now(),
         ]);

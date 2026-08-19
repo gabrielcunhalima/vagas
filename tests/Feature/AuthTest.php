@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
@@ -15,8 +15,8 @@ class AuthTest extends TestCase
     {
         return User::factory()->create(array_merge([
             'password' => Hash::make('password'),
-            'ativo'    => true,
-            'perfil'   => 'coordenador',
+            'ativo' => true,
+            'perfil' => 'coordenador',
         ], $attrs));
     }
 
@@ -49,7 +49,7 @@ class AuthTest extends TestCase
     {
         $user = $this->criarUsuario(['perfil' => 'coordenador']);
         $response = $this->post('/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'password',
         ]);
         $response->assertRedirect(route('coord.dashboard'));
@@ -60,7 +60,7 @@ class AuthTest extends TestCase
     {
         $user = $this->criarUsuario(['perfil' => 'gestor']);
         $response = $this->post('/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'password',
         ]);
         $response->assertRedirect(route('gestor.dashboard'));
@@ -71,7 +71,7 @@ class AuthTest extends TestCase
     {
         $user = $this->criarUsuario(['perfil' => 'admin']);
         $response = $this->post('/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'password',
         ]);
         $response->assertRedirect(route('coord.dashboard'));
@@ -84,7 +84,7 @@ class AuthTest extends TestCase
     {
         $user = $this->criarUsuario();
         $response = $this->post('/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'senha_errada',
         ]);
         $response->assertSessionHasErrors('email');
@@ -94,7 +94,7 @@ class AuthTest extends TestCase
     public function test_login_email_inexistente_retorna_erro(): void
     {
         $response = $this->post('/login', [
-            'email'    => 'naoexiste@email.com',
+            'email' => 'naoexiste@email.com',
             'password' => 'password',
         ]);
         $response->assertSessionHasErrors('email');
@@ -105,7 +105,7 @@ class AuthTest extends TestCase
     {
         $user = $this->criarUsuario(['ativo' => false]);
         $response = $this->post('/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'password',
         ]);
         $response->assertSessionHasErrors('email');
@@ -128,7 +128,7 @@ class AuthTest extends TestCase
     public function test_login_email_invalido_retorna_erro(): void
     {
         $response = $this->post('/login', [
-            'email'    => 'nao_e_email',
+            'email' => 'nao_e_email',
             'password' => 'password',
         ]);
         $response->assertSessionHasErrors('email');
