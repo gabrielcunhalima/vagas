@@ -1,9 +1,6 @@
 @import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 
 @source '../**/*.blade.php';
-@source '../**/*.jsx';
 @source '../**/*.js';
 
 @custom-variant dark (&:where(.dark, .dark *));
