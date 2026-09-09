@@ -21,9 +21,16 @@
                         default => 'text-foreground',
                     } }}"
                 >
-                    <span class="flex-1">{{ $mensagem }}</span>
-                    <button type="button" data-flash-close class="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground" aria-label="Fechar">
-                        &times;
+                    <span class="flex-1 pt-0.5">{{ $mensagem }}</span>
+                    <button
+                        type="button"
+                        data-flash-close
+                        class="-mr-1 flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-current opacity-90 transition-[opacity,background-color] hover:bg-current/10 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                        aria-label="Fechar"
+                    >
+                        <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                            <path d="m4.5 4.5 7 7m0-7-7 7" />
+                        </svg>
                     </button>
                 </div>
             @endif

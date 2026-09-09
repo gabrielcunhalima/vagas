@@ -9,6 +9,10 @@
    Light — "Papel": fundo neutro esverdeado, verde FAPEU sólido
    ───────────────────────────────────────────────────────────── */
 :root {
+    /* Widgets nativos (dropdown do <select>, barras de rolagem, autofill)
+       seguem esta propriedade, não as variáveis abaixo. */
+    color-scheme: light;
+
     --background: #F6F8F7;
     --foreground: #1A2420;
     --card: #FFFFFF;
@@ -52,6 +56,8 @@
    Dark — "Floresta à noite": verde-carvão profundo, esmeralda viva
    ───────────────────────────────────────────────────────────── */
 .dark {
+    color-scheme: dark;
+
     --background: #0E1411;
     --foreground: #E4EBE7;
     --card: #151D18;
@@ -178,6 +184,14 @@
         background: color-mix(in srgb, var(--primary) 25%, transparent);
     }
 
+    /* Firefox e alguns ambientes pintam a lista do <select> a partir do fundo
+       do próprio campo, que aqui é transparente — sem isto o menu abre branco. */
+    select option,
+    select optgroup {
+        background-color: var(--popover);
+        color: var(--popover-foreground);
+    }
+
     input[type='number'] {
         -moz-appearance: textfield;
     }
@@ -198,6 +212,9 @@ dialog[data-dialog] {
     padding: 0;
     background: transparent;
     max-height: 85dvh;
+    /* O painel interno é quadrado; sem isto ele vaza sobre o arredondamento
+       do <dialog> e a barra de rolagem aparece fora do fundo escuro. */
+    overflow: hidden;
 }
 dialog[data-dialog]::backdrop {
     background: rgba(0, 0, 0, 0.5);

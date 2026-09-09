@@ -4,7 +4,7 @@
     headline="Sua próxima oportunidade começa aqui."
     sub="Estágios, bolsas e empregos em projetos administrados pela FAPEU"
 >
-    <h1 class="text-2xl font-bold tracking-tight">Bem-vindo de volta</h1>
+    <h1 class="text-2xl font-bold tracking-tight">Bem-vindo</h1>
     <p class="mt-1 text-sm text-muted-foreground">Entre para se candidatar e acompanhar suas candidaturas.</p>
 
     <form method="POST" action="{{ route('candidato.login.post') }}" class="mt-8 flex flex-col gap-5">

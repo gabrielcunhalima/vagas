@@ -131,6 +131,7 @@ class CandidatoRegistroCpfTest extends TestCase
     private function payloadValido(array $sobrescreve = []): array
     {
         return array_merge([
+            'nome' => 'Candidato Novo',
             'cpf' => self::CPF_VALIDO,
             'email' => 'novo@example.com',
             'password' => 'Senha@Forte1',

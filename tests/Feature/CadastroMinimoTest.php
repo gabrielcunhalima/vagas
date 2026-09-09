@@ -19,6 +19,7 @@ class CadastroMinimoTest extends TestCase
     private function dadosCadastro(array $over = []): array
     {
         return array_merge([
+            'nome' => 'Fulano de Tal',
             'cpf' => '529.982.247-25',
             'email' => 'novo@teste.com',
             'password' => 'SenhaForte1!',
@@ -38,7 +39,7 @@ class CadastroMinimoTest extends TestCase
 
         $this->assertAuthenticatedAs($candidato, 'candidato');
         $this->assertFalse($candidato->perfilCompleto());
-        $this->assertNull($candidato->nome);
+        $this->assertSame('Fulano de Tal', $candidato->nome);
         $this->assertNotNull($candidato->lgpd_consentimento_em);
     }
 
@@ -50,13 +51,29 @@ class CadastroMinimoTest extends TestCase
         $this->assertDatabaseCount('candidatos', 0);
     }
 
-    public function test_cadastro_nao_exige_nenhum_dado_de_perfil(): void
+    public function test_cadastro_so_exige_o_nome_dentre_os_dados_de_perfil(): void
     {
-        // Nem nome, nem formação, nem currículo, nem código de conduta.
+        // Nem telefone, nem nacionalidade, nem formação, nem currículo, nem código de conduta.
         $this->post(route('candidato.registro.post'), $this->dadosCadastro())
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseCount('candidatos', 1);
+    }
+
+    /** O nome é pedido no cadastro porque o portal chama o candidato por ele desde o primeiro acesso. */
+    public function test_cadastro_sem_nome_e_recusado(): void
+    {
+        $this->post(route('candidato.registro.post'), $this->dadosCadastro(['nome' => '']))
+            ->assertSessionHasErrors('nome');
+
+        $this->assertDatabaseCount('candidatos', 0);
+    }
+
+    public function test_cadastro_normaliza_os_espacos_do_nome(): void
+    {
+        $this->post(route('candidato.registro.post'), $this->dadosCadastro(['nome' => '  Fulano   de  Tal  ']));
+
+        $this->assertSame('Fulano de Tal', Candidato::where('email', 'novo@teste.com')->firstOrFail()->nome);
     }
 
     public function test_cadastro_envia_verificacao_de_email(): void

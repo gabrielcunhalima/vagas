@@ -150,7 +150,13 @@ class Candidato extends Authenticatable implements MustVerifyEmail
      */
     public function getNomeExibicaoAttribute(): string
     {
-        return $this->nome ?: strtok($this->email, '@');
+        return $this->nome_social ?: ($this->nome ?: strtok($this->email, '@'));
+    }
+
+    /** Só o primeiro nome — é assim que o menu do candidato o chama. */
+    public function getPrimeiroNomeAttribute(): string
+    {
+        return preg_split('/\s+/', trim($this->nome_exibicao))[0];
     }
 
     public function getCpfFormatadoAttribute(): string

@@ -10,6 +10,7 @@
         "firebase/php-jwt": "^7.0",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
+        "league/flysystem-sftp-v3": "^3.36",
         "tightenco/ziggy": "^2.6"
     },
     "require-dev": {

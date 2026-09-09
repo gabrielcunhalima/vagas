@@ -47,9 +47,9 @@
                         <details class="group relative hidden lg:block">
                             <summary class="flex h-10 cursor-pointer list-none items-center gap-2.5 rounded-full border border-border bg-background px-2 pl-2 hover:bg-muted [&::-webkit-details-marker]:hidden">
                                 <span class="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                                    {{ \App\Support\Iniciais::de($candidato->nome) }}
+                                    {{ \App\Support\Iniciais::de($candidato->nome_exibicao) }}
                                 </span>
-                                <span class="text-[0.925rem] font-medium">{{ Str::before($candidato->nome_exibicao, ' ') }}</span>
+                                <span class="text-[0.925rem] font-medium">{{ $candidato->primeiro_nome }}</span>
                                 <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                             </summary>
                             <div class="absolute right-0 z-10 mt-2 min-w-56 rounded-lg bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10">

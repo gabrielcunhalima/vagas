@@ -46,6 +46,7 @@ class CandidatoRegistroController extends Controller
         $dados = $request->validated();
 
         $candidato = Candidato::create([
+            'nome' => $dados['nome'],
             'email' => $dados['email'],
             'cpf' => $dados['cpf'],
             'password' => Hash::make($dados['password']),
