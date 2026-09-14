@@ -85,7 +85,7 @@ class InscricaoDrhflowTest extends TestCase
             '_honeypot' => '',
             'carta_apresentacao' => 'Tenho grande interesse nesta vaga.',
             'conflito_interesse' => 0,
-            'codigo_conduta_aceite' => 1,
+            'politica_privacidade_aceite' => 1,
         ], $dados));
     }
 

@@ -12,6 +12,7 @@ use App\Support\Drhflow\MapeadorInscricao;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Http\UploadedFile;
@@ -20,6 +21,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+
+use function Illuminate\Support\defer;
 
 class Candidato extends Authenticatable implements MustVerifyEmail
 {
@@ -104,6 +107,31 @@ class Candidato extends Authenticatable implements MustVerifyEmail
         $this->notify(new VerificarEmailCandidato);
     }
 
+    /**
+     * Dispara a confirmação de e-mail só depois que a resposta saiu.
+     *
+     * O SMTP leva de 2 a 8 segundos, às vezes mais, e dentro da requisição
+     * isso segurava a tela de "conta criada" até estourar o tempo limite. Não
+     * há worker de fila no servidor, então o envio roda no fim da própria
+     * requisição, já com o navegador liberado.
+     *
+     * A conta já existe quando isto roda: uma falha de envio não pode virar
+     * erro na tela, porque a pessoa tem o botão de reenviar logo ali.
+     */
+    public function enviarVerificacaoDeEmailAposResposta(): void
+    {
+        defer(function () {
+            try {
+                $this->sendEmailVerificationNotification();
+            } catch (\Throwable $e) {
+                Log::error('Falha ao enviar o e-mail de confirmação de conta.', [
+                    'candidato_id' => $this->id,
+                    'erro' => $e->getMessage(),
+                ]);
+            }
+        });
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new RedefinirSenhaCandidato($token));
@@ -121,8 +149,12 @@ class Candidato extends Authenticatable implements MustVerifyEmail
             ->orderByDesc('enviado_em');
     }
 
-    /** A versão vigente — a única que qualquer consumidor dos dados lê. */
-    public function curriculoAtual()
+    /**
+     * A versão vigente — a única que qualquer consumidor dos dados lê.
+     *
+     * @return BelongsTo<CandidatoCurriculo, $this>
+     */
+    public function curriculoAtual(): BelongsTo
     {
         return $this->belongsTo(CandidatoCurriculo::class, 'curriculo_atual_id');
     }
@@ -257,8 +289,9 @@ class Candidato extends Authenticatable implements MustVerifyEmail
 
     /**
      * Registra uma nova versão de currículo e move o ponteiro do perfil para ela.
-     * Versões anteriores nunca são sobrescritas nem apagadas: um evento de decisão
-     * precisa poder identificar qual PDF o processo julgou.
+     * Versões anteriores nunca são sobrescritas: um evento de decisão precisa
+     * poder identificar qual PDF o processo julgou. Quem as apaga é só a
+     * retenção (CandidatoCurriculo::RETENCAO_MESES).
      *
      * O nome do arquivo é um UUID, não o nome enviado: o nome original é dado do
      * candidato (costuma conter o próprio nome) e não deve virar parte de um
@@ -279,6 +312,7 @@ class Candidato extends Authenticatable implements MustVerifyEmail
             'path' => $caminho,
             'nome_original' => $arquivo->getClientOriginalName(),
             'enviado_em' => now(),
+            'renovado_em' => now(),
         ]);
 
         $this->forceFill(['curriculo_atual_id' => $versao->id])->save();

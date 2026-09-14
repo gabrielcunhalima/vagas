@@ -7,18 +7,6 @@ parameters:
 			path: app/Console/Commands/AnonimizarContasInativas.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculoAtual\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Candidato/MinhaCandidaturaController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nome_original\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Candidato/MinhaCandidaturaController.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>curriculoVigente" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
@@ -34,12 +22,6 @@ parameters:
 			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$candidaturas\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Candidato/PerfilController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculoAtual\.$#'
-			identifier: property.notFound
-			count: 2
 			path: app/Http/Controllers/Candidato/PerfilController.php
 
 		-
@@ -155,12 +137,6 @@ parameters:
 			identifier: larastan.relationExistence
 			count: 1
 			path: app/Http/Controllers/Vagas/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$curriculoAtual\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Vagas/InscricaoController.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\Candidato\:\:\$formacoes\.$#'

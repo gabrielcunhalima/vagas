@@ -36,7 +36,7 @@ class InscricaoTest extends TestCase
             '_honeypot' => '',
             'carta_apresentacao' => 'Tenho interesse nesta vaga por conta das tecnologias utilizadas.',
             'conflito_interesse' => '0',
-            'codigo_conduta_aceite' => '1',
+            'politica_privacidade_aceite' => '1',
         ], $over);
     }
 
@@ -173,6 +173,36 @@ class InscricaoTest extends TestCase
         Mail::assertSent(CandidaturaRecebidaMail::class);
     }
 
+    public function test_falha_no_email_nao_desfaz_a_candidatura(): void
+    {
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP fora do ar'));
+        $codigo = $this->vagaDrhflow();
+
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao())
+            ->assertRedirect(route('candidato.candidaturas.index'));
+
+        $this->assertSame(1, $this->contagemNoDrhflow());
+    }
+
+    public function test_candidatura_renova_o_prazo_do_curriculo(): void
+    {
+        $codigo = $this->vagaDrhflow();
+        $candidato = Candidato::factory()->create();
+        $candidato->curriculoAtual->forceFill([
+            'enviado_em' => now()->subMonths(5),
+            'renovado_em' => now()->subMonths(5),
+        ])->save();
+
+        $this->actingAs($candidato, 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao());
+
+        $versao = $candidato->curriculoAtual->fresh();
+        $this->assertTrue($versao->renovado_em->isToday());
+        // A data real do upload não muda — só a referência da retenção.
+        $this->assertTrue($versao->enviado_em->lt(now()->subMonths(4)));
+    }
+
     // ─── Validação dos campos da vaga ────────────────────────────────────────
 
     public function test_conflito_declarado_sem_detalhe_falha(): void
@@ -189,13 +219,25 @@ class InscricaoTest extends TestCase
         $this->assertSame(0, $this->contagemNoDrhflow());
     }
 
-    public function test_sem_aceite_do_codigo_de_conduta_falha(): void
+    public function test_formulario_pede_aceite_da_politica_de_privacidade(): void
     {
         $codigo = $this->vagaDrhflow();
 
         $this->actingAs(Candidato::factory()->create(), 'candidato')
-            ->post(route('inscricao.store', $codigo), $this->dadosInscricao(['codigo_conduta_aceite' => '0']))
-            ->assertSessionHasErrors('codigo_conduta_aceite');
+            ->get(route('inscricao.create', $codigo))
+            ->assertOk()
+            ->assertSee('name="politica_privacidade_aceite"', false)
+            ->assertSee('Política de Privacidade da FAPEU')
+            ->assertDontSee('Código de Conduta');
+    }
+
+    public function test_sem_aceite_da_politica_de_privacidade_falha(): void
+    {
+        $codigo = $this->vagaDrhflow();
+
+        $this->actingAs(Candidato::factory()->create(), 'candidato')
+            ->post(route('inscricao.store', $codigo), $this->dadosInscricao(['politica_privacidade_aceite' => '0']))
+            ->assertSessionHasErrors('politica_privacidade_aceite');
 
         $this->assertSame(0, $this->contagemNoDrhflow());
     }

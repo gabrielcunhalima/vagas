@@ -66,6 +66,11 @@
 
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-1.5">
+                            <x-ui.label for="filtro-codigo" class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Código da vaga</x-ui.label>
+                            <x-ui.input id="filtro-codigo" name="codigo" form="filtro-vagas" inputmode="numeric" autocomplete="off" value="{{ $filtros['codigo'] ?? '' }}" placeholder="Ex.: 1234" />
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
                             <x-ui.label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tipo de contratação</x-ui.label>
                             <select name="tipo" form="filtro-vagas" data-auto-apply class="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
                                 <option value="">Todos</option>

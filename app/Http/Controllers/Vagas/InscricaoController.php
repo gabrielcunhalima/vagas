@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
+use function Illuminate\Support\defer;
+
 /**
  * O envio da inscrição.
  *
@@ -118,11 +120,19 @@ class InscricaoController extends Controller
 
         $this->guardarComplemento($candidato, $vagaDrhflow->codigo, $dados, $request->boolean('conflito_interesse'));
 
-        try {
-            Mail::to($candidato->email)->send(new CandidaturaRecebidaMail($vagaDrhflow, $candidato));
-        } catch (\Exception $e) {
-            Log::error('Erro ao enviar e-mail de candidatura: '.$e->getMessage());
-        }
+        // Candidatar-se conta como reenviar o currículo: o prazo de retenção
+        // recomeça hoje.
+        $candidato->curriculoAtual?->renovar();
+
+        // Depois da resposta, pelo mesmo motivo da confirmação de conta: o SMTP
+        // não pode segurar a tela de "candidatura enviada".
+        defer(function () use ($candidato, $vagaDrhflow) {
+            try {
+                Mail::to($candidato->email)->send(new CandidaturaRecebidaMail($vagaDrhflow, $candidato));
+            } catch (\Throwable $e) {
+                Log::error('Erro ao enviar e-mail de candidatura: '.$e->getMessage());
+            }
+        });
 
         return redirect()
             ->route('candidato.candidaturas.index')

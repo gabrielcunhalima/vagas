@@ -10,6 +10,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CadastroMinimoTest extends TestCase
@@ -88,15 +89,52 @@ class CadastroMinimoTest extends TestCase
         );
     }
 
-    // ─── Estado navegável antes de verificar ─────────────────────────────────
+    /** O SMTP fora do ar não pode transformar uma conta criada em tela de erro. */
+    public function test_falha_no_envio_da_verificacao_nao_derruba_o_cadastro(): void
+    {
+        Notification::shouldReceive('send')->andThrow(new \RuntimeException('SMTP fora do ar'));
 
-    public function test_conta_nao_verificada_pode_preencher_o_perfil(): void
+        $this->post(route('candidato.registro.post'), $this->dadosCadastro())
+            ->assertRedirect(route('candidato.verification.notice'));
+
+        $this->assertDatabaseCount('candidatos', 1);
+    }
+
+    // ─── Nada da área interna antes de verificar ─────────────────────────────
+
+    /** @return array<string, array{0: string, 1: string}> */
+    public static function rotasInternas(): array
+    {
+        return [
+            'vagas da conta' => ['get', 'candidato.vagas'],
+            'meus dados' => ['get', 'candidato.perfil.edit'],
+            'salvar meus dados' => ['put', 'candidato.perfil.update'],
+            'alterar senha' => ['put', 'candidato.perfil.senha'],
+            'baixar currículo' => ['get', 'candidato.perfil.curriculo.download'],
+            'visualizar currículo' => ['get', 'candidato.perfil.curriculo.visualizar'],
+            'exportar dados' => ['get', 'candidato.perfil.exportar'],
+            'candidaturas' => ['get', 'candidato.candidaturas.index'],
+        ];
+    }
+
+    #[DataProvider('rotasInternas')]
+    public function test_conta_nao_verificada_nao_acessa_a_area_interna(string $metodo, string $rota): void
     {
         $candidato = Candidato::factory()->minimo()->naoVerificado()->create();
 
         $this->actingAs($candidato, 'candidato')
-            ->get(route('candidato.perfil.edit'))
-            ->assertOk();
+            ->{$metodo}(route($rota))
+            ->assertRedirect(route('candidato.verification.notice'));
+    }
+
+    public function test_conta_nao_verificada_ve_a_tela_de_confirmacao(): void
+    {
+        $candidato = Candidato::factory()->minimo()->naoVerificado()->create();
+
+        $this->actingAs($candidato, 'candidato')
+            ->get(route('candidato.verification.notice'))
+            ->assertOk()
+            ->assertSee($candidato->email);
     }
 
     public function test_conta_nao_verificada_nao_consulta_candidaturas(): void

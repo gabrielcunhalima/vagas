@@ -58,7 +58,7 @@ class CandidatoRegistroController extends Controller
         Auth::guard('candidato')->login($candidato, false);
         $request->session()->regenerate();
 
-        $candidato->sendEmailVerificationNotification();
+        $candidato->enviarVerificacaoDeEmailAposResposta();
 
         return redirect()->route('candidato.verification.notice')
             ->with('success', 'Conta criada com sucesso! Confirme seu e-mail para acessar.');

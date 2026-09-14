@@ -17,6 +17,7 @@
             @if ($vaga->isNova())
                 <x-badges.nova />
             @endif
+            <span class="ml-auto text-xs font-medium tabular-nums text-muted-foreground">Cód. {{ $vaga->codigo }}</span>
         </div>
 
         <h2 class="mt-3 text-xl font-bold leading-tight tracking-tight">{{ $vaga->titulo }}</h2>

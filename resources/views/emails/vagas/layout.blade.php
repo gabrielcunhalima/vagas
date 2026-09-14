@@ -25,7 +25,6 @@ p{font-size:1.025rem;line-height:1.65;color:#3E3E3F;margin:0 0 12px;}
     <div class="header">
         <img src="{{ url('imagens/fapeulogobranca.png') }}" alt="FAPEU" style="height:48px;width:auto;display:block;margin:0 auto 10px;">
         <h1>Portal de Vagas</h1>
-        <p>FAPEU, Fundação de Apoio à Pesquisa e Extensão Universitária</p>
     </div>
     <div class="body">
         @yield('body')

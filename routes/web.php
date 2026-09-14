@@ -84,37 +84,37 @@ Route::prefix('minha-conta')->name('candidato.')->group(function () {
         ->name('senha.update');
 
     /*
-     * A verificação de e-mail passa a valer por ATO, não por área.
-     *
-     * Bloquear a área inteira devolveria na saída o atrito que o cadastro mínimo
-     * removeu na entrada: a pessoa cria a conta e não consegue nem preencher o
-     * perfil antes de sair para o e-mail. Navegar e mexer nos próprios dados não
-     * tem efeito externo; candidatar-se e ativar alertas têm.
+     * O link do e-mail funciona sem sessão: ele costuma ser aberto em outro
+     * aparelho, e a assinatura da URL já comprova a posse do endereço. O
+     * controller decide o que fazer com a sessão que houver.
      */
+    Route::get('/verificar-email/{id}/{hash}', [CandidatoVerificacaoController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+
     Route::middleware('candidato.auth')->group(function () {
 
         Route::get('/verificar-email', [CandidatoVerificacaoController::class, 'notice'])->name('verification.notice');
-        Route::get('/verificar-email/{id}/{hash}', [CandidatoVerificacaoController::class, 'verify'])
-            ->middleware('signed')->name('verification.verify');
-        Route::post('/verificar-email/reenviar', [CandidatoVerificacaoController::class, 'resend'])->name('verification.send');
-
-        Route::get('/vagas', [VagaPublicaController::class, 'index'])->name('vagas');
-
-        // Perfil / Meus Dados — dado próprio, sem efeito externo: liberado sem verificação.
-        Route::get('/meus-dados', [CandidatoPerfilController::class, 'edit'])->name('perfil.edit');
-        Route::put('/meus-dados', [CandidatoPerfilController::class, 'update'])->name('perfil.update');
-        Route::put('/meus-dados/senha', [CandidatoPerfilController::class, 'updateSenha'])->name('perfil.senha');
-        Route::delete('/meus-dados/curriculo', [CandidatoPerfilController::class, 'removerCurriculo'])->name('perfil.curriculo.remover');
-        Route::get('/meus-dados/curriculo', [CandidatoPerfilController::class, 'downloadCurriculo'])->name('perfil.curriculo.download');
-        Route::get('/meus-dados/exportar', [CandidatoPerfilController::class, 'exportarDados'])->name('perfil.exportar');
-        Route::delete('/minha-conta', [CandidatoPerfilController::class, 'excluirConta'])->name('excluir');
+        Route::post('/verificar-email/reenviar', [CandidatoVerificacaoController::class, 'resend'])
+            ->middleware('throttle:6,1')->name('verification.send');
 
         /*
-         * Candidaturas exigem verificação: como candidatar-se já a exige, tudo que
-         * uma conta não verificada veria aqui só pode ter vindo da incorporação de
-         * histórico anterior, cuja titularidade ainda não foi comprovada.
+         * A área interna inteira exige e-mail confirmado. Uma conta não
+         * confirmada é só um CPF e um e-mail que ninguém comprovou: ela não vê
+         * perfil, candidaturas nem histórico incorporado, e toda rota daqui
+         * devolve para a tela de confirmação.
          */
         Route::middleware('candidato.verified')->group(function () {
+            Route::get('/vagas', [VagaPublicaController::class, 'index'])->name('vagas');
+
+            Route::get('/meus-dados', [CandidatoPerfilController::class, 'edit'])->name('perfil.edit');
+            Route::put('/meus-dados', [CandidatoPerfilController::class, 'update'])->name('perfil.update');
+            Route::put('/meus-dados/senha', [CandidatoPerfilController::class, 'updateSenha'])->name('perfil.senha');
+            Route::delete('/meus-dados/curriculo', [CandidatoPerfilController::class, 'removerCurriculo'])->name('perfil.curriculo.remover');
+            Route::get('/meus-dados/curriculo', [CandidatoPerfilController::class, 'downloadCurriculo'])->name('perfil.curriculo.download');
+            Route::get('/meus-dados/curriculo/visualizar', [CandidatoPerfilController::class, 'visualizarCurriculo'])->name('perfil.curriculo.visualizar');
+            Route::get('/meus-dados/exportar', [CandidatoPerfilController::class, 'exportarDados'])->name('perfil.exportar');
+            Route::delete('/minha-conta', [CandidatoPerfilController::class, 'excluirConta'])->name('excluir');
+
             Route::get('/candidaturas', [MinhaCandidaturaController::class, 'index'])->name('candidaturas.index');
 
             /*

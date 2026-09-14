@@ -139,6 +139,29 @@ class VagaPublicaTest extends TestCase
         $response->assertDontSee('BOLSISTA');
     }
 
+    public function test_filtro_por_codigo_da_vaga(): void
+    {
+        $this->vagaDrhflow(['CD_VAGA_EMPREGO' => 4321, 'CD_FUNCAO' => '0373']);
+        $this->vagaDrhflow(['CD_VAGA_EMPREGO' => 4322, 'CD_FUNCAO' => '0993']);
+
+        $response = $this->get('/vagas?codigo=4321');
+
+        $response->assertSee('PROGRAMADOR');
+        $response->assertDontSee('BOLSISTA');
+        $response->assertSee('Cód. 4321');
+    }
+
+    public function test_filtro_por_codigo_ignora_o_que_nao_e_digito(): void
+    {
+        $this->vagaDrhflow(['CD_VAGA_EMPREGO' => 4321, 'CD_FUNCAO' => '0373']);
+        $this->vagaDrhflow(['CD_VAGA_EMPREGO' => 4322, 'CD_FUNCAO' => '0993']);
+
+        $response = $this->get('/vagas?codigo='.urlencode(' #4322 '));
+
+        $response->assertSee('BOLSISTA');
+        $response->assertDontSee('PROGRAMADOR');
+    }
+
     public function test_filtro_por_faixa_salarial(): void
     {
         $this->vagaDrhflow(['CD_FUNCAO' => '0373', 'VL_SALARIO' => 5000]);

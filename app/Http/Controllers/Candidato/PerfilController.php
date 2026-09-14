@@ -50,6 +50,7 @@ class PerfilController extends Controller
                 'formacoes' => $this->formacoesParaFrontend($candidato),
                 'tem_curriculo' => $candidato->temCurriculo(),
                 'curriculo_nome_original' => $candidato->curriculoAtual?->nome_original,
+                'curriculo_expira_em' => $candidato->curriculoAtual?->expiraEm()->format('d/m/Y'),
                 'possui_acessibilidade' => $candidato->possui_acessibilidade,
                 'acessibilidade_detalhe' => $candidato->acessibilidade_detalhe,
             ]),
@@ -186,6 +187,26 @@ class PerfilController extends Controller
         return Storage::disk(Candidato::DISCO_CURRICULOS)->download(
             $versao->path,
             $versao->nome_original ?? 'curriculo.pdf'
+        );
+    }
+
+    /**
+     * O mesmo arquivo do download, mas para abrir no navegador: o visualizador
+     * de "Meus dados" carrega esta rota num iframe.
+     */
+    public function visualizarCurriculo()
+    {
+        $candidato = $this->candidato();
+
+        abort_unless($candidato->temCurriculo(), 404, 'Currículo não encontrado.');
+
+        $versao = $candidato->curriculoAtual;
+
+        return Storage::disk(Candidato::DISCO_CURRICULOS)->response(
+            $versao->path,
+            $versao->nome_original ?? 'curriculo.pdf',
+            ['Content-Type' => 'application/pdf'],
+            'inline'
         );
     }
 

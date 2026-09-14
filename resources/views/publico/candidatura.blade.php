@@ -79,9 +79,12 @@
                         </dl>
 
                         <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-                            <span class="inline-flex min-w-0 items-center gap-2 text-sm">
-                                <svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-                                <span class="truncate font-medium">{{ $perfil['curriculo_nome'] }}</span>
+                            <span class="inline-flex min-w-0 items-start gap-2 text-sm">
+                                <svg class="mt-0.5 size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                                <span class="min-w-0">
+                                    <span class="block truncate font-medium">{{ $perfil['curriculo_nome'] }}</span>
+                                    <span class="block text-xs text-muted-foreground">Ao se candidatar, seu currículo fica guardado por mais {{ \App\Models\CandidatoCurriculo::RETENCAO_MESES }} meses.</span>
+                                </span>
                             </span>
                             <x-ui.button tag="a" href="{{ route('candidato.perfil.edit') }}" variant="outline" size="sm" class="gap-1.5">
                                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
@@ -115,14 +118,14 @@
 
                     <div class="rounded-xl bg-card p-5 ring-1 ring-foreground/10">
                         <label class="flex items-start gap-2.5">
-                            <input type="checkbox" name="codigo_conduta_aceite" value="1" @checked(old('codigo_conduta_aceite')) class="mt-0.5 size-4 rounded border-input text-primary focus-visible:ring-3 focus-visible:ring-ring/50">
+                            <input type="checkbox" name="politica_privacidade_aceite" value="1" @checked(old('politica_privacidade_aceite')) class="mt-0.5 size-4 rounded border-input text-primary focus-visible:ring-3 focus-visible:ring-ring/50">
                             <span class="text-sm leading-relaxed">
-                                Li e aceito o
-                                <a href="https://fapeu.org.br/codigoconduta" target="_blank" rel="noreferrer" class="font-semibold text-primary hover:underline">Código de Conduta da FAPEU</a>
+                                Li e aceito a
+                                <button type="button" data-dialog-trigger="politica-privacidade" class="cursor-pointer font-semibold text-primary hover:underline">Política de Privacidade da FAPEU</button>
                                 para este processo seletivo. <span class="text-destructive">*</span>
                             </span>
                         </label>
-                        <x-input-error for="codigo_conduta_aceite" class="mt-2" />
+                        <x-input-error for="politica_privacidade_aceite" class="mt-2" />
                     </div>
 
                     <x-ui.button type="submit" size="lg" class="h-11 w-full gap-2 px-6 sm:w-auto sm:self-end">
@@ -183,4 +186,15 @@
             </aside>
         </div>
     </div>
+
+    <dialog data-dialog="politica-privacidade" class="w-full max-w-2xl rounded-xl">
+        <div class="max-h-[80vh] overflow-y-auto bg-card p-6 ring-1 ring-foreground/10">
+            <div class="flex justify-end">
+                <button type="button" data-dialog-close class="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-muted" aria-label="Fechar">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <x-politica-privacidade-conteudo />
+        </div>
+    </dialog>
 </x-layouts.public>

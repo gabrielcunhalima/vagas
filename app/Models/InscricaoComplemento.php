@@ -44,7 +44,11 @@ class InscricaoComplemento extends Model
         return $this->belongsTo(Candidato::class, 'candidato_id');
     }
 
-    /** A versão de currículo que estava vigente no envio — não a atual do perfil. */
+    /**
+     * A versão de currículo que estava vigente no envio — não a atual do perfil.
+     *
+     * @return BelongsTo<CandidatoCurriculo, $this>
+     */
     public function curriculoVigente(): BelongsTo
     {
         return $this->belongsTo(CandidatoCurriculo::class, 'curriculo_id_vigente');

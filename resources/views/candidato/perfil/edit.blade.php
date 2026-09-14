@@ -195,14 +195,23 @@
 
             <section class="rounded-xl bg-card p-5 ring-1 ring-foreground/10 sm:p-6">
                 <h2 class="text-sm font-bold tracking-tight">Currículo</h2>
-                <p class="mt-0.5 text-xs text-muted-foreground">Usado como padrão nas suas candidaturas.</p>
+                <p class="mt-0.5 text-xs text-muted-foreground">
+                    Usado como padrão nas suas candidaturas. Fica guardado por {{ \App\Models\CandidatoCurriculo::RETENCAO_MESES }} meses a partir do envio ou da sua última candidatura; depois disso, é removido automaticamente.
+                </p>
 
                 <div class="mt-4">
                     @if ($candidato['tem_curriculo'])
                         <div class="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5 ring-1 ring-foreground/10">
                             <svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-                            <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ $candidato['curriculo_nome_original'] }}</span>
-                            <div class="flex items-center gap-1">
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate text-sm font-medium">{{ $candidato['curriculo_nome_original'] }}</div>
+                                <div class="text-xs text-muted-foreground">Guardado até {{ $candidato['curriculo_expira_em'] }}</div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-1">
+                                <x-ui.button tag="button" type="button" variant="ghost" size="sm" data-dialog-trigger="visualizar-curriculo" class="gap-1.5">
+                                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Visualizar
+                                </x-ui.button>
                                 <x-ui.button tag="a" href="{{ route('candidato.perfil.curriculo.download') }}" variant="ghost" size="sm" class="gap-1.5">
                                     <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                                     Baixar
@@ -275,6 +284,26 @@
             </div>
         </div>
     </div>
+
+    @if ($candidato['tem_curriculo'])
+        {{-- O PDF só é pedido ao abrir (data-src): o arquivo vem do servidor de
+             arquivos, e carregá-lo junto com a página atrasaria "Meus dados". --}}
+        <dialog data-dialog="visualizar-curriculo" class="w-full max-w-4xl rounded-xl">
+            <div class="flex h-[85dvh] flex-col bg-card ring-1 ring-foreground/10">
+                <div class="flex items-center gap-3 border-b px-4 py-3">
+                    <h2 class="min-w-0 flex-1 truncate text-sm font-bold tracking-tight">{{ $candidato['curriculo_nome_original'] }}</h2>
+                    <x-ui.button tag="a" href="{{ route('candidato.perfil.curriculo.visualizar') }}" target="_blank" rel="noopener" variant="outline" size="sm" class="gap-1.5">
+                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                        Abrir em nova aba
+                    </x-ui.button>
+                    <button type="button" data-dialog-close class="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-muted" aria-label="Fechar">
+                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <iframe data-src="{{ route('candidato.perfil.curriculo.visualizar') }}" title="Currículo" class="min-h-0 w-full flex-1 bg-muted"></iframe>
+            </div>
+        </dialog>
+    @endif
 
     <dialog data-dialog="remover-curriculo" class="w-full max-w-md rounded-xl">
         <form method="POST" action="{{ route('candidato.perfil.curriculo.remover') }}" class="bg-card p-6 ring-1 ring-foreground/10">

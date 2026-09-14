@@ -9,7 +9,10 @@
     aria-current="{{ $selecionada ? 'true' : 'false' }}"
     class="block w-full cursor-pointer px-4 py-3.5 text-left transition-colors outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-ring {{ $selecionada ? 'bg-accent' : 'hover:bg-muted/60' }}"
 >
-    <h3 class="text-sm font-semibold leading-snug tracking-tight {{ $selecionada ? 'text-primary' : '' }}">{{ $vaga->titulo }}</h3>
+    <div class="flex items-start justify-between gap-3">
+        <h3 class="text-sm font-semibold leading-snug tracking-tight {{ $selecionada ? 'text-primary' : '' }}">{{ $vaga->titulo }}</h3>
+        <span class="mt-px shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[0.7rem] font-medium tabular-nums text-muted-foreground" title="Código da vaga">Cód. {{ $vaga->codigo }}</span>
+    </div>
 
     <div class="mt-1.5 flex flex-col gap-1 text-xs text-muted-foreground">
         <span class="inline-flex items-center gap-1.5">
