@@ -1,26 +1,29 @@
 {{-- $candidato: array (dados + tem_curriculo, curriculo_nome_original, formacoes, possui_acessibilidade, acessibilidade_detalhe) --}}
 @php
-    $completude = auth('candidato')->user()->estadoCompletude();
-    $ufs = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
-    $disponibilidades = ['Imediata', '15 dias', '30 dias', '60 dias'];
-    $rotulosPendencia = [
-        'nome' => 'Nome completo',
-        'nacionalidade' => 'Nacionalidade',
-        'telefone' => 'Telefone',
-        'formacao' => 'Formação acadêmica',
-        'possui_acessibilidade' => 'Necessidade de acessibilidade',
-        'curriculo' => 'Currículo em PDF',
-    ];
+$completude = auth('candidato')->user()->estadoCompletude();
+$ufs = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+$disponibilidades = ['Imediata', '15 dias', '30 dias', '60 dias'];
+$rotulosPendencia = [
+'nome' => 'Nome completo',
+'nacionalidade' => 'Nacionalidade',
+'telefone' => 'Telefone',
+'formacao' => 'Formação acadêmica',
+'possui_acessibilidade' => 'Necessidade de acessibilidade',
+'curriculo' => 'Currículo em PDF',
+];
 @endphp
 <x-layouts.public title="Meus dados">
     <div class="mx-auto w-full max-w-3xl px-4 pt-10">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">Meus dados</h1>
-                <p class="mt-1 text-sm text-muted-foreground">Mantenha seu perfil atualizado, ele preenche suas candidaturas automaticamente.</p>
             </div>
             <x-ui.button tag="a" href="{{ route('candidato.perfil.exportar') }}" variant="outline" size="sm" class="gap-1.5">
-                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                </svg>
                 Exportar meus dados
             </x-ui.button>
         </div>
@@ -29,12 +32,15 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h2 class="text-sm font-bold tracking-tight">
                     @if ($completude['completo'])
-                        <span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
-                            <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
-                            Perfil completo — você já pode se candidatar
-                        </span>
+                    <span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
+                        <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                            <path d="m9 11 3 3L22 4" />
+                        </svg>
+                        Perfil completo — você já pode se candidatar
+                    </span>
                     @else
-                        Complete seu perfil para se candidatar
+                    Complete seu perfil para se candidatar
                     @endif
                 </h2>
                 <span class="text-xs text-muted-foreground">{{ $completude['atendidos'] }} de {{ $completude['total'] }}</span>
@@ -44,13 +50,15 @@
 
             <ul class="mt-3 flex flex-wrap gap-1.5">
                 @foreach ($rotulosPendencia as $chave => $rotulo)
-                    @php $completo = !array_key_exists($chave, $completude['pendencias']); @endphp
-                    <li class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors {{ $completo ? 'bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/25 dark:text-emerald-500' : 'bg-muted text-muted-foreground' }}">
-                        @if ($completo)
-                            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        @endif
-                        {{ $rotulo }}
-                    </li>
+                @php $completo = !array_key_exists($chave, $completude['pendencias']); @endphp
+                <li class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors {{ $completo ? 'bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/25 dark:text-emerald-500' : 'bg-muted text-muted-foreground' }}">
+                    @if ($completo)
+                    <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    @endif
+                    {{ $rotulo }}
+                </li>
                 @endforeach
             </ul>
         </div>
@@ -92,20 +100,22 @@
 
                 <div class="mt-4 flex flex-col gap-4" data-formacoes-lista>
                     @foreach ($candidato['formacoes'] as $i => $formacao)
-                        @include('candidato.perfil._formacao', ['index' => $i, 'formacao' => $formacao])
+                    @include('candidato.perfil._formacao', ['index' => $i, 'formacao' => $formacao])
                     @endforeach
                 </div>
                 <template data-formacao-template>@include('candidato.perfil._formacao', ['index' => '__INDEX__', 'formacao' => []])</template>
                 <button type="button" data-adicionar-formacao class="mt-4 inline-flex h-8 cursor-pointer items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.925rem] font-medium hover:bg-muted">
-                    <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+                    <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5v14" />
+                    </svg>
                     Adicionar formação
                 </button>
 
                 <div class="mt-5 grid gap-4 border-t pt-5">
-                    <x-field label="Outras Formações Superiores reconhecidas pelo MEC (Ex.: Especialização em XXX - ANO, Mestrado em XXX - ANO e Doutorado em XXX - ANO):" name="outras_formacoes_mec">
+                    <x-field label="Outras Formações Superiores reconhecidas pelo MEC" name="outras_formacoes_mec">
                         <x-ui.textarea id="outras_formacoes_mec" name="outras_formacoes_mec" rows="3">{{ old('outras_formacoes_mec', $candidato['outras_formacoes_mec']) }}</x-ui.textarea>
                     </x-field>
-                    <x-field label="Outros Cursos, Palestras, Etc., informar nome e data:" name="outros_cursos">
+                    <x-field label="Especializações" name="outros_cursos" hint="Ex.: cursos de extensão, palestras, workshops, etc.">
                         <x-ui.textarea id="outros_cursos" name="outros_cursos" rows="3">{{ old('outros_cursos', $candidato['outros_cursos']) }}</x-ui.textarea>
                     </x-field>
                 </div>
@@ -118,9 +128,9 @@
                 <div class="mt-4 grid gap-4">
                     <x-field label="Você precisa de alguma adaptação de acessibilidade?" name="possui_acessibilidade" required>
                         <select id="possui_acessibilidade" name="possui_acessibilidade" class="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
-                            <option value="" @selected($possuiAcessibilidade === '')>Selecione</option>
-                            <option value="0" @selected($possuiAcessibilidade === '0')>Não</option>
-                            <option value="1" @selected($possuiAcessibilidade === '1')>Sim</option>
+                            <option value="" @selected($possuiAcessibilidade==='' )>Selecione</option>
+                            <option value="0" @selected($possuiAcessibilidade==='0' )>Não</option>
+                            <option value="1" @selected($possuiAcessibilidade==='1' )>Sim</option>
                         </select>
                     </x-field>
                     <div data-mostrar-se="possui_acessibilidade=1" class="{{ $possuiAcessibilidade === '1' ? '' : 'hidden' }}">
@@ -146,7 +156,7 @@
                         <select id="estado" name="estado" class="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
                             <option value="">UF</option>
                             @foreach ($ufs as $uf)
-                                <option value="{{ $uf }}" @selected(old('estado', $candidato['estado']) === $uf)>{{ $uf }}</option>
+                            <option value="{{ $uf }}" @selected(old('estado', $candidato['estado'])===$uf)>{{ $uf }}</option>
                             @endforeach
                         </select>
                     </x-field>
@@ -175,7 +185,7 @@
                         <select id="disponibilidade" name="disponibilidade" class="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
                             <option value="">Selecione</option>
                             @foreach ($disponibilidades as $d)
-                                <option value="{{ $d }}" @selected(old('disponibilidade', $candidato['disponibilidade']) === $d)>{{ $d }}</option>
+                            <option value="{{ $d }}" @selected(old('disponibilidade', $candidato['disponibilidade'])===$d)>{{ $d }}</option>
                             @endforeach
                         </select>
                     </x-field>
@@ -201,43 +211,64 @@
 
                 <div class="mt-4">
                     @if ($candidato['tem_curriculo'])
-                        <div class="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5 ring-1 ring-foreground/10">
-                            <svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-                            <div class="min-w-0 flex-1">
-                                <div class="truncate text-sm font-medium">{{ $candidato['curriculo_nome_original'] }}</div>
-                                <div class="text-xs text-muted-foreground">Guardado até {{ $candidato['curriculo_expira_em'] }}</div>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-1">
-                                <x-ui.button tag="button" type="button" variant="ghost" size="sm" data-dialog-trigger="visualizar-curriculo" class="gap-1.5">
-                                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
-                                    Visualizar
-                                </x-ui.button>
-                                <x-ui.button tag="a" href="{{ route('candidato.perfil.curriculo.download') }}" variant="ghost" size="sm" class="gap-1.5">
-                                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                                    Baixar
-                                </x-ui.button>
-                                <x-ui.button tag="button" type="button" variant="destructive" size="sm" data-dialog-trigger="remover-curriculo" class="gap-1.5">
-                                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z"/></svg>
-                                    Remover
-                                </x-ui.button>
-                            </div>
+                    <div class="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5 ring-1 ring-foreground/10">
+                        <svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                        </svg>
+                        <div class="min-w-0 flex-1">
+                            <div class="truncate text-sm font-medium">{{ $candidato['curriculo_nome_original'] }}</div>
+                            <div class="text-xs text-muted-foreground">Guardado até {{ $candidato['curriculo_expira_em'] }}</div>
                         </div>
+                        <div class="flex flex-wrap items-center gap-1">
+                            <x-ui.button tag="button" type="button" variant="ghost" size="sm" data-dialog-trigger="visualizar-curriculo" class="gap-1.5">
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                Visualizar
+                            </x-ui.button>
+                            <x-ui.button tag="a" href="{{ route('candidato.perfil.curriculo.download') }}" variant="ghost" size="sm" class="gap-1.5">
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" x2="12" y1="15" y2="3" />
+                                </svg>
+                                Baixar
+                            </x-ui.button>
+                            <x-ui.button tag="button" type="button" variant="destructive" size="sm" data-dialog-trigger="remover-curriculo" class="gap-1.5">
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z" />
+                                </svg>
+                                Remover
+                            </x-ui.button>
+                        </div>
+                    </div>
                     @endif
 
                     <x-field name="curriculo" :hint="$candidato['tem_curriculo'] ? 'Enviar um novo arquivo substitui o atual.' : null">
                         <div data-curriculo-dropzone>
                             <input type="file" name="curriculo" id="curriculo" accept="application/pdf,.pdf" data-curriculo-input>
                             <div data-curriculo-empty class="hidden flex-col items-center gap-1.5 rounded-lg border border-dashed border-input px-4 py-6 text-center transition-colors hover:border-primary/50 hover:bg-accent/40 {{ $errors->has('curriculo') ? 'border-destructive' : '' }}" tabindex="0" role="button">
-                                <svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+                                <svg class="size-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                                    <path d="M12 12v9" />
+                                    <path d="m16 16-4-4-4 4" />
+                                </svg>
                                 <span class="text-sm font-medium">Arraste o PDF ou clique para selecionar</span>
                                 <span class="text-xs text-muted-foreground">Somente PDF · máx. 5 MB</span>
                             </div>
                             <div data-curriculo-preview class="hidden flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5 ring-1 ring-foreground/10">
-                                <svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                                <svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                                </svg>
                                 <span class="min-w-0 flex-1 truncate text-sm font-medium" data-curriculo-filename></span>
                                 <span class="shrink-0 text-xs text-muted-foreground" data-curriculo-filesize></span>
                                 <button type="button" data-curriculo-remove class="shrink-0 cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Remover arquivo">
-                                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 6 6 18M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -246,7 +277,10 @@
             </section>
 
             <x-ui.button type="submit" class="h-10 gap-1.5 sm:self-end sm:px-8">
-                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+                    <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7" />
+                </svg>
                 Salvar alterações
             </x-ui.button>
         </form>
@@ -271,13 +305,18 @@
 
         <div class="mt-10 rounded-xl border border-destructive/30 bg-destructive/5 p-5 sm:p-6">
             <div class="flex items-start gap-3">
-                <svg class="mt-0.5 size-5 shrink-0 text-destructive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <svg class="mt-0.5 size-5 shrink-0 text-destructive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <path d="M12 9v4M12 17h.01" />
+                </svg>
                 <div class="flex-1">
                     <h2 class="text-sm font-bold tracking-tight text-destructive">Excluir minha conta</h2>
                     <p class="mt-1 text-sm leading-relaxed text-muted-foreground">Seus dados pessoais e candidaturas serão anonimizados de forma irreversível, conforme a LGPD.</p>
 
                     <x-ui.button tag="button" type="button" variant="destructive" size="sm" data-dialog-trigger="excluir-conta" class="mt-4 gap-1.5">
-                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z"/></svg>
+                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z" />
+                        </svg>
                         Excluir conta
                     </x-ui.button>
                 </div>
@@ -286,23 +325,27 @@
     </div>
 
     @if ($candidato['tem_curriculo'])
-        {{-- O PDF só é pedido ao abrir (data-src): o arquivo vem do servidor de
+    {{-- O PDF só é pedido ao abrir (data-src): o arquivo vem do servidor de
              arquivos, e carregá-lo junto com a página atrasaria "Meus dados". --}}
-        <dialog data-dialog="visualizar-curriculo" class="w-full max-w-4xl rounded-xl">
-            <div class="flex h-[85dvh] flex-col bg-card ring-1 ring-foreground/10">
-                <div class="flex items-center gap-3 border-b px-4 py-3">
-                    <h2 class="min-w-0 flex-1 truncate text-sm font-bold tracking-tight">{{ $candidato['curriculo_nome_original'] }}</h2>
-                    <x-ui.button tag="a" href="{{ route('candidato.perfil.curriculo.visualizar') }}" target="_blank" rel="noopener" variant="outline" size="sm" class="gap-1.5">
-                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-                        Abrir em nova aba
-                    </x-ui.button>
-                    <button type="button" data-dialog-close class="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-muted" aria-label="Fechar">
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <iframe data-src="{{ route('candidato.perfil.curriculo.visualizar') }}" title="Currículo" class="min-h-0 w-full flex-1 bg-muted"></iframe>
+    <dialog data-dialog="visualizar-curriculo" class="w-full max-w-4xl rounded-xl">
+        <div class="flex h-[85dvh] flex-col bg-card ring-1 ring-foreground/10">
+            <div class="flex items-center gap-3 border-b px-4 py-3">
+                <h2 class="min-w-0 flex-1 truncate text-sm font-bold tracking-tight">{{ $candidato['curriculo_nome_original'] }}</h2>
+                <x-ui.button tag="a" href="{{ route('candidato.perfil.curriculo.visualizar') }}" target="_blank" rel="noopener" variant="outline" size="sm" class="gap-1.5">
+                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    </svg>
+                    Abrir em nova aba
+                </x-ui.button>
+                <button type="button" data-dialog-close class="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-muted" aria-label="Fechar">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
-        </dialog>
+            <iframe data-src="{{ route('candidato.perfil.curriculo.visualizar') }}" title="Currículo" class="min-h-0 w-full flex-1 bg-muted"></iframe>
+        </div>
+    </dialog>
     @endif
 
     <dialog data-dialog="remover-curriculo" class="w-full max-w-md rounded-xl">

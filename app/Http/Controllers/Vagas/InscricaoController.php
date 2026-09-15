@@ -139,6 +139,12 @@ class InscricaoController extends Controller
             }
         });
 
+        Log::info('Candidatura enviada com sucesso.', [
+            'candidato_id' => $candidato->id,
+            'cd_vaga_emprego' => $vagaDrhflow->codigo,
+            'curriculo_id' => $candidato->curriculo_atual_id,
+        ]);
+
         return redirect()
             ->route('candidato.candidaturas.index')
             ->with('success', 'Candidatura enviada com sucesso! Acompanhe o andamento aqui.');

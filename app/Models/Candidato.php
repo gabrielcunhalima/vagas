@@ -307,10 +307,28 @@ class Candidato extends Authenticatable implements MustVerifyEmail
         $nome = self::nomeLivreNaPasta($disco, $this->pastaCurriculos(), $arquivo->getClientOriginalName());
         $caminho = $this->pastaCurriculos().'/'.$nome;
 
-        // putFileAs cria a pasta do CPF quando ainda não existe. O disco tem
-        // throw => true, então uma falha aqui interrompe em vez de gravar um
-        // registro apontando para arquivo inexistente.
-        $disco->putFileAs($this->pastaCurriculos(), $arquivo, $nome);
+        Log::info('Recebendo upload de currículo.', [
+            'candidato_id' => $this->id,
+            'nome_original' => $arquivo->getClientOriginalName(),
+            'tamanho_bytes' => $arquivo->getSize(),
+            'disco' => self::DISCO_CURRICULOS,
+            'caminho_destino' => $caminho,
+        ]);
+
+        try {
+            // putFileAs cria a pasta do CPF quando ainda não existe. O disco tem
+            // throw => true, então uma falha aqui interrompe em vez de gravar um
+            // registro apontando para arquivo inexistente.
+            $disco->putFileAs($this->pastaCurriculos(), $arquivo, $nome);
+        } catch (\Throwable $e) {
+            Log::error('Falha ao gravar arquivo de currículo no disco.', [
+                'candidato_id' => $this->id,
+                'caminho_destino' => $caminho,
+                'erro' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
 
         $versao = $this->curriculos()->create([
             'path' => $caminho,
@@ -321,6 +339,12 @@ class Candidato extends Authenticatable implements MustVerifyEmail
 
         $this->forceFill(['curriculo_atual_id' => $versao->id])->save();
         $this->setRelation('curriculoAtual', $versao);
+
+        Log::info('Upload de currículo concluído.', [
+            'candidato_id' => $this->id,
+            'curriculo_id' => $versao->id,
+            'caminho_destino' => $caminho,
+        ]);
 
         return $versao;
     }
@@ -368,6 +392,12 @@ class Candidato extends Authenticatable implements MustVerifyEmail
         try {
             app(CurriculoDrhflowRepository::class)
                 ->registrar(MapeadorInscricao::cpf($this), basename($versao->path));
+
+            Log::info('Currículo registrado no DRHFlow.', [
+                'candidato_id' => $this->id,
+                'curriculo_id' => $versao->id,
+                'nome_arquivo' => basename($versao->path),
+            ]);
 
             return true;
         } catch (DrhflowIndisponivelException $e) {
