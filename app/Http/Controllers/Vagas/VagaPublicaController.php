@@ -19,7 +19,7 @@ class VagaPublicaController extends Controller
 {
     /** Filtros que a origem sustenta (design D4). Área, modalidade e curso saíram. */
     private const FILTROS = [
-        'busca', 'tipo', 'escolaridade', 'cidade', 'estado',
+        'codigo', 'busca', 'tipo', 'escolaridade', 'cidade', 'estado',
         'projeto', 'salario_min', 'salario_max',
     ];
 

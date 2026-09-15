@@ -13,6 +13,17 @@
     <form method="POST" action="{{ route('candidato.registro.post', $redirect ? ['redirect' => $redirect] : []) }}" class="mt-6">
         @csrf
         <div class="flex flex-col gap-5 rounded-xl bg-card p-6 ring-1 ring-foreground/10">
+            <x-field label="Nome completo" name="nome" required>
+                <x-ui.input
+                    id="nome"
+                    name="nome"
+                    class="h-10"
+                    value="{{ old('nome') }}"
+                    autocomplete="name"
+                    autofocus
+                />
+            </x-field>
+
             <x-field label="CPF" name="cpf" required>
                 <x-ui.input
                     id="cpf"
@@ -20,7 +31,6 @@
                     inputmode="numeric"
                     class="h-10"
                     value="{{ old('cpf') }}"
-                    autofocus
                     data-cpf-input
                     data-cpf-check-url="{{ route('candidato.registro.verificar-cpf') }}"
                 />

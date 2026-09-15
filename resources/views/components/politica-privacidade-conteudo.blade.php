@@ -58,6 +58,11 @@
                 identificação pessoal). Você pode solicitar a exclusão da sua conta a qualquer momento, o
                 que anonimiza imediatamente seus dados e os de suas candidaturas.
             </p>
+            <p class="mt-2">
+                O currículo enviado fica armazenado por {{ \App\Models\CandidatoCurriculo::RETENCAO_MESES }} meses a partir do envio
+                ou da sua última candidatura, o que for mais recente. Passado esse prazo sem nova candidatura, ele é
+                removido automaticamente, e um novo currículo será pedido na próxima vez que você se candidatar.
+            </p>
         </div>
     </section>
 

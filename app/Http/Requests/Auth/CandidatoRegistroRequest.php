@@ -7,9 +7,10 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
 /**
- * Cadastro mínimo: e-mail, senha, CPF e consentimento.
+ * Cadastro mínimo: nome, e-mail, senha, CPF e consentimento.
  *
- * Os demais dados do candidato pertencem ao perfil e são preenchidos quando ele
+ * O nome entra aqui porque o portal precisa chamar o candidato por ele desde o
+ * primeiro acesso. Os demais dados pertencem ao perfil e são preenchidos quando ele
  * quiser — no máximo, cobrados como condição para se candidatar. O aceite do
  * código de conduta saiu daqui: é ato do processo seletivo, não da criação de conta.
  */
@@ -25,6 +26,7 @@ class CandidatoRegistroRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'nome' => ['required', 'string', 'max:255'],
             'cpf' => [
                 'required',
                 'string',
@@ -47,6 +49,7 @@ class CandidatoRegistroRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'nome.required' => 'Informe seu nome completo.',
             'cpf.required' => 'Informe seu CPF.',
             'cpf.unique' => 'Este CPF já está cadastrado.',
             'email.required' => 'Informe seu e-mail.',
@@ -61,6 +64,10 @@ class CandidatoRegistroRequest extends FormRequest
     {
         if ($this->cpf) {
             $this->merge(['cpf' => preg_replace('/\D/', '', $this->cpf)]);
+        }
+
+        if ($this->nome) {
+            $this->merge(['nome' => preg_replace('/\s+/u', ' ', trim($this->nome))]);
         }
     }
 }

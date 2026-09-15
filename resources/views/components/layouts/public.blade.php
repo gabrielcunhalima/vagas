@@ -9,7 +9,7 @@
             <div class="border-b border-amber-500/30 bg-amber-500/10">
                 <div class="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
                     <svg class="size-4 shrink-0 text-amber-600 dark:text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0z"/><path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/></svg>
-                    <span>Confirme seu e-mail para se candidatar e ativar alertas.</span>
+                    <span>Confirme seu e-mail para acessar sua conta.</span>
                     <form method="POST" action="{{ route('candidato.verification.send') }}" class="inline">
                         @csrf
                         <button type="submit" class="font-semibold text-primary hover:underline">Reenviar confirmação</button>
@@ -31,10 +31,7 @@
             <div class="{{ $container }} flex h-16 items-center justify-between gap-4">
                 <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-3">
                     <x-logo class="h-9" />
-                    <span class="hidden items-baseline gap-1.5 sm:flex">
-                        <span class="text-sm font-medium text-muted-foreground">Portal de</span>
-                        <span class="text-lg font-bold tracking-tight text-foreground">Vagas</span>
-                    </span>
+                    <span class="hidden text-sm font-bold tracking-tight text-foreground sm:inline">Portal de Vagas</span>
                 </a>
 
                 <div class="flex items-center gap-2.5">
@@ -47,9 +44,9 @@
                         <details class="group relative hidden lg:block">
                             <summary class="flex h-10 cursor-pointer list-none items-center gap-2.5 rounded-full border border-border bg-background px-2 pl-2 hover:bg-muted [&::-webkit-details-marker]:hidden">
                                 <span class="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                                    {{ \App\Support\Iniciais::de($candidato->nome) }}
+                                    {{ \App\Support\Iniciais::de($candidato->nome_exibicao) }}
                                 </span>
-                                <span class="text-[0.925rem] font-medium">{{ Str::before($candidato->nome_exibicao, ' ') }}</span>
+                                <span class="text-[0.925rem] font-medium">{{ $candidato->primeiro_nome }}</span>
                                 <svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                             </summary>
                             <div class="absolute right-0 z-10 mt-2 min-w-56 rounded-lg bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10">

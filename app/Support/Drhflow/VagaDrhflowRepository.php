@@ -181,6 +181,14 @@ class VagaDrhflowRepository
      */
     private function aplicarFiltros(Builder $consulta, array $filtros): Builder
     {
+        // O código é o que o RH e o candidato trocam entre si para falar de uma
+        // vaga. Máscara ou espaço digitados junto não podem virar "nenhuma vaga".
+        $codigo = Normalizador::digitos((string) ($filtros['codigo'] ?? ''));
+
+        if ($codigo !== '') {
+            $consulta->where('v.CD_VAGA_EMPREGO', (int) $codigo);
+        }
+
         if (filled($filtros['busca'] ?? null)) {
             $termo = '%'.str_replace(['%', '_'], ['[%]', '[_]'], trim((string) $filtros['busca'])).'%';
 

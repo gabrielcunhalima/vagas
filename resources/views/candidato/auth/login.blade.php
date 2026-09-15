@@ -4,7 +4,7 @@
     headline="Sua próxima oportunidade começa aqui."
     sub="Estágios, bolsas e empregos em projetos administrados pela FAPEU"
 >
-    <h1 class="text-2xl font-bold tracking-tight">Bem-vindo de volta</h1>
+    <h1 class="text-2xl font-bold tracking-tight">Bem-vindo</h1>
     <p class="mt-1 text-sm text-muted-foreground">Entre para se candidatar e acompanhar suas candidaturas.</p>
 
     <form method="POST" action="{{ route('candidato.login.post') }}" class="mt-8 flex flex-col gap-5">
@@ -36,8 +36,8 @@
         <a href="{{ $redirect ? route('candidato.registro', ['redirect' => $redirect]) : route('candidato.registro') }}" class="font-semibold text-primary hover:underline">Crie sua conta gratuita</a>
     </div>
 
-    <p class="mt-6 text-center text-xs text-muted-foreground">
+    <!-- <p class="mt-6 text-center text-xs text-muted-foreground">
         Coordenador ou gestor?
         <a href="{{ route('login') }}" class="font-medium hover:text-foreground hover:underline">Acesse o painel</a>
-    </p>
+    </p> -->
 </x-layouts.auth>

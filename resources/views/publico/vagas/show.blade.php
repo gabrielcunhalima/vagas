@@ -89,7 +89,7 @@
                     <div class="mt-4 flex flex-col gap-3">
                         <div class="flex items-center justify-between gap-3 text-sm">
                             <span class="inline-flex items-center gap-2 text-muted-foreground">
-                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14a2 2 0 0 1 0 4h-2v-4h2Z"/><path d="M9 10a2 2 0 0 0 0 4h6"/><circle cx="12" cy="12" r="10"/></svg>
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                                 Remuneração
                             </span>
                             <span class="text-right font-medium">{{ $vaga->remuneracaoFormatada() ?? 'A combinar' }}</span>

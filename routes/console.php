@@ -14,3 +14,9 @@ Artisan::command('inspire', function () {
  * as candidaturas deixaram de guardar cópia de dados pessoais.
  */
 Schedule::command('vagas:anonimizar-contas-inativas')->daily();
+
+/*
+ * Retenção de currículos: remove o PDF sem envio nem candidatura há 6 meses.
+ * Ver CandidatoCurriculo::RETENCAO_MESES.
+ */
+Schedule::command('vagas:remover-curriculos-expirados')->dailyAt('03:00');

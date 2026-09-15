@@ -38,6 +38,9 @@
         <env name="DRHFLOW_USERNAME" value=""/>
         <env name="DRHFLOW_PASSWORD" value=""/>
         <env name="DRHFLOW_TIMEOUT" value="1"/>
+        <!-- Nenhum teste pode tocar o servidor de curriculos real. -->
+        <env name="CURRICULOS_DRIVER" value="local"/>
+        <env name="CURRICULOS_ROOT" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <!-- Trava de segurança: AppServiceProvider::redirecionarEmailsDeTeste()
              chama Mail::alwaysTo() com este valor, reescrevendo o destinatário

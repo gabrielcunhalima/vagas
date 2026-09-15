@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
  * Identidade, contato, formação, endereço e currículo pertencem ao perfil e são
  * validados lá; aqui a exigência é que o perfil esteja completo, verificada no
  * controller. O que sobra são os campos que mudam a cada vaga: a carta, a
- * declaração de conflito de interesse e o aceite do código de conduta.
+ * declaração de conflito de interesse e o aceite da Política de Privacidade.
  */
 class InscricaoRequest extends FormRequest
 {
@@ -30,7 +30,7 @@ class InscricaoRequest extends FormRequest
             'conflito_interesse' => 'required|boolean',
             'conflito_interesse_detalhe' => 'required_if:conflito_interesse,1|nullable|string|max:2000',
 
-            'codigo_conduta_aceite' => 'accepted',
+            'politica_privacidade_aceite' => 'accepted',
         ];
     }
 
@@ -40,7 +40,7 @@ class InscricaoRequest extends FormRequest
             '_honeypot.max' => 'Envio inválido.',
             'conflito_interesse.required' => 'Informe se você tem vínculo com alguém da equipe desta vaga.',
             'conflito_interesse_detalhe.required_if' => 'Detalhe a relação informada.',
-            'codigo_conduta_aceite.accepted' => 'Você precisa aceitar o código de conduta da FAPEU.',
+            'politica_privacidade_aceite.accepted' => 'Você precisa aceitar a Política de Privacidade da FAPEU.',
         ];
     }
 }

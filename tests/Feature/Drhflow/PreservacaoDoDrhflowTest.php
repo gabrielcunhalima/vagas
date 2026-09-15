@@ -118,7 +118,7 @@ class PreservacaoDoDrhflowTest extends TestCase
             '_honeypot' => '',
             'carta_apresentacao' => 'Tenho interesse na vaga.',
             'conflito_interesse' => 0,
-            'codigo_conduta_aceite' => 1,
+            'politica_privacidade_aceite' => 1,
         ]);
 
         $this->assertSame([], $this->comandos('delete', 'drop', 'truncate', 'alter', 'create'));
@@ -134,7 +134,7 @@ class PreservacaoDoDrhflowTest extends TestCase
         $resposta = $this->actingAs($candidato, 'candidato')->post("/candidatura/{$codigo}", [
             '_honeypot' => '',
             'conflito_interesse' => 0,
-            'codigo_conduta_aceite' => 1,
+            'politica_privacidade_aceite' => 1,
         ]);
 
         $resposta->assertSessionHasNoErrors();
@@ -164,7 +164,7 @@ class PreservacaoDoDrhflowTest extends TestCase
         $this->actingAs($candidato, 'candidato')->post("/candidatura/{$codigo}", [
             '_honeypot' => '',
             'conflito_interesse' => 0,
-            'codigo_conduta_aceite' => 1,
+            'politica_privacidade_aceite' => 1,
         ]);
 
         $depois = (array) $this->drhflow()->table('EN_VAGA_EMPREGO')->where('CD_VAGA_EMPREGO', $codigo)->first();

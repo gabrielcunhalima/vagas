@@ -17,6 +17,7 @@
             @if ($vaga->isNova())
                 <x-badges.nova />
             @endif
+            <span class="ml-auto text-xs font-medium tabular-nums text-muted-foreground">Cód. {{ $vaga->codigo }}</span>
         </div>
 
         <h2 class="mt-3 text-xl font-bold leading-tight tracking-tight">{{ $vaga->titulo }}</h2>
@@ -39,7 +40,7 @@
         <div class="grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-xl bg-muted/50 p-4">
             <div class="flex min-w-0 flex-col gap-0.5">
                 <span class="flex items-start gap-1.5 text-xs leading-tight text-muted-foreground">
-                    <svg class="mt-px size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14a2 2 0 0 1 0 4h-2v-4h2Z"/><path d="M9 10a2 2 0 0 0 0 4h6"/><circle cx="12" cy="12" r="10"/></svg>
+                    <svg class="mt-px size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                     <span class="min-w-0">Remuneração</span>
                 </span>
                 <span class="text-sm font-semibold">{{ $vaga->remuneracaoFormatada() ?? 'A combinar' }}</span>

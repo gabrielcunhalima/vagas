@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Candidato;
+use App\Support\Drhflow\CurriculoDrhflowRepository;
 use App\Support\Drhflow\DrhflowIndisponivelException;
 use App\Support\Drhflow\InscricaoDrhflowRepository;
 use App\Support\Drhflow\MapeadorInscricao;
@@ -31,6 +32,7 @@ class AnonimizacaoService
 {
     public function __construct(
         private readonly InscricaoDrhflowRepository $inscricoes = new InscricaoDrhflowRepository,
+        private readonly CurriculoDrhflowRepository $curriculos = new CurriculoDrhflowRepository,
     ) {}
 
     public function anonimizarCandidato(Candidato $candidato): void
@@ -100,7 +102,12 @@ class AnonimizacaoService
     private function anonimizarNoDrhflow(Candidato $candidato, string $marcador): void
     {
         try {
-            $linhas = $this->inscricoes->anonimizar(MapeadorInscricao::cpf($candidato), $marcador);
+            $cpf = MapeadorInscricao::cpf($candidato);
+            $linhas = $this->inscricoes->anonimizar($cpf, $marcador);
+
+            // O nome do arquivo costuma ser o nome da pessoa, e o PDF sai logo
+            // abaixo: a linha fica, o apontamento não.
+            $this->curriculos->esvaziar($cpf);
 
             Log::info('Inscrições anonimizadas no DRHFlow após exclusão de conta.', [
                 'candidato_id' => $candidato->id,

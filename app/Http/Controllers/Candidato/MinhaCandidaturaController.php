@@ -72,7 +72,6 @@ class MinhaCandidaturaController extends Controller
 
         return view('candidato.candidaturas.show', [
             'candidatura' => $this->comVaga($inscricao),
-            // Dados próprios do portal — o DRHFlow não tem campo para eles.
             'cartaApresentacao' => $complemento?->carta_apresentacao,
             'conflitoInteresse' => $complemento?->conflito_interesse,
             'conflitoInteresseDetalhe' => $complemento?->conflito_interesse_detalhe,
@@ -90,8 +89,6 @@ class MinhaCandidaturaController extends Controller
             ->where('cd_vaga_emprego', $candidatura)
             ->first();
 
-        // A versão enviada naquele momento, não a atual do perfil: é o PDF que o
-        // processo recebeu.
         $versao = $complemento?->curriculoVigente ?? $candidato->curriculoAtual;
 
         abort_unless($versao !== null, 404, 'Currículo não encontrado.');

@@ -27,8 +27,8 @@
 
                     <div class="mt-7 flex max-w-xl gap-2">
                         <div class="relative flex-1">
-                            <svg class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                            <x-ui.input type="search" name="busca" form="filtro-vagas" value="{{ $filtros['busca'] ?? '' }}" placeholder="Cargo, área ou palavra-chave" class="h-11 border-transparent bg-card pl-9 shadow-lg dark:bg-card" />
+                            <svg class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            <x-ui.input type="search" name="busca" form="filtro-vagas" value="{{ $filtros['busca'] ?? '' }}" placeholder="Cargo, área ou palavra-chave" class="h-11 border-white/25 bg-white/10 pl-9 text-white shadow-lg backdrop-blur-sm placeholder:text-white/85 focus-visible:border-white/40 focus-visible:ring-white/30" />
                         </div>
                         <x-ui.button type="submit" form="filtro-vagas" class="h-11 px-6">Buscar</x-ui.button>
                     </div>
@@ -65,6 +65,11 @@
                     </div>
 
                     <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <x-ui.label for="filtro-codigo" class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Código da vaga</x-ui.label>
+                            <x-ui.input id="filtro-codigo" name="codigo" form="filtro-vagas" inputmode="numeric" autocomplete="off" value="{{ $filtros['codigo'] ?? '' }}" placeholder="Ex.: 1234" />
+                        </div>
+
                         <div class="flex flex-col gap-1.5">
                             <x-ui.label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tipo de contratação</x-ui.label>
                             <select name="tipo" form="filtro-vagas" data-auto-apply class="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
