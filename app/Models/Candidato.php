@@ -6,11 +6,13 @@ use App\Models\Vagas\AlertaVaga;
 use App\Models\Vagas\Candidatura;
 use App\Notifications\Candidato\RedefinirSenhaCandidato;
 use App\Notifications\Candidato\VerificarEmailCandidato;
+use App\Support\Drhflow\CurriculoDrhflowRepository;
 use App\Support\Drhflow\DrhflowIndisponivelException;
 use App\Support\Drhflow\InscricaoDrhflowRepository;
 use App\Support\Drhflow\MapeadorInscricao;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -293,20 +295,22 @@ class Candidato extends Authenticatable implements MustVerifyEmail
      * poder identificar qual PDF o processo julgou. Quem as apaga é só a
      * retenção (CandidatoCurriculo::RETENCAO_MESES).
      *
-     * O nome do arquivo é um UUID, não o nome enviado: o nome original é dado do
-     * candidato (costuma conter o próprio nome) e não deve virar parte de um
-     * caminho adivinhável. Ele fica guardado em `nome_original`, que é o que o
-     * download devolve.
+     * O arquivo fica na pasta com o nome que a pessoa anexou — é por ele que o
+     * DRHFlow o localiza (`EN_UPLOAD_CURRICULO.NM_ARQUIVO`). Se a pasta já tiver
+     * um arquivo com esse nome, a versão nova recebe um sufixo em vez de
+     * sobrescrever o anterior. A pasta não é servida pela web: o download
+     * passa sempre pelo portal.
      */
     public function adicionarCurriculo(UploadedFile $arquivo): CandidatoCurriculo
     {
-        $caminho = $this->pastaCurriculos().'/'.Str::uuid().'.pdf';
+        $disco = Storage::disk(self::DISCO_CURRICULOS);
+        $nome = self::nomeLivreNaPasta($disco, $this->pastaCurriculos(), $arquivo->getClientOriginalName());
+        $caminho = $this->pastaCurriculos().'/'.$nome;
 
         // putFileAs cria a pasta do CPF quando ainda não existe. O disco tem
         // throw => true, então uma falha aqui interrompe em vez de gravar um
         // registro apontando para arquivo inexistente.
-        Storage::disk(self::DISCO_CURRICULOS)
-            ->putFileAs($this->pastaCurriculos(), $arquivo, basename($caminho));
+        $disco->putFileAs($this->pastaCurriculos(), $arquivo, $nome);
 
         $versao = $this->curriculos()->create([
             'path' => $caminho,
@@ -319,6 +323,62 @@ class Candidato extends Authenticatable implements MustVerifyEmail
         $this->setRelation('curriculoAtual', $versao);
 
         return $versao;
+    }
+
+    /**
+     * O nome enviado, reduzido ao que pode virar nome de arquivo com segurança:
+     * sem separadores de caminho nem caracteres de controle, sem acentos (a
+     * coluna do DRHFlow é varchar e o servidor de arquivos grava bytes UTF-8 —
+     * acento seria a diferença entre o nome gravado e o nome na pasta) e sempre
+     * terminando em `.pdf`. Um nome já ocupado ganha ` (2)`, ` (3)`...
+     */
+    public static function nomeLivreNaPasta(Filesystem $disco, string $pasta, string $nomeEnviado): string
+    {
+        $nome = Str::ascii(basename(str_replace('\\', '/', $nomeEnviado)));
+        $nome = trim((string) preg_replace('/[\x00-\x1F\x7F:*?"<>|]+/', '', $nome), " .\t");
+
+        $base = preg_replace('/\.pdf$/i', '', $nome);
+        $base = mb_substr(trim($base, ' .') ?: 'curriculo', 0, 200);
+
+        $candidato = $base.'.pdf';
+
+        for ($n = 2; $disco->exists($pasta.'/'.$candidato); $n++) {
+            $candidato = "{$base} ({$n}).pdf";
+        }
+
+        return $candidato;
+    }
+
+    /**
+     * Aponta `EN_UPLOAD_CURRICULO` para o currículo vigente, para o RH ver o PDF
+     * no DRHFlow.
+     *
+     * Não bloqueia quem chama: o arquivo já está no servidor e a versão
+     * registrada no portal. Se o DRHFlow estiver fora do ar, a próxima
+     * candidatura tenta de novo.
+     */
+    public function registrarCurriculoNoDrhflow(): bool
+    {
+        $versao = $this->curriculoAtual;
+
+        if ($versao === null) {
+            return false;
+        }
+
+        try {
+            app(CurriculoDrhflowRepository::class)
+                ->registrar(MapeadorInscricao::cpf($this), basename($versao->path));
+
+            return true;
+        } catch (DrhflowIndisponivelException $e) {
+            Log::error('Currículo não registrado no DRHFlow.', [
+                'candidato_id' => $this->id,
+                'curriculo_id' => $versao->id,
+                'erro' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**

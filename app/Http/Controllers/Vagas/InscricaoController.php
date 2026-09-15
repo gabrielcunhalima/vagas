@@ -124,6 +124,11 @@ class InscricaoController extends Controller
         // recomeça hoje.
         $candidato->curriculoAtual?->renovar();
 
+        // Repete o registro feito no envio do PDF: se o DRHFlow estava fora do ar
+        // naquela hora, é aqui — quando o RH vai de fato abrir o currículo — que
+        // a linha precisa estar certa.
+        $candidato->registrarCurriculoNoDrhflow();
+
         // Depois da resposta, pelo mesmo motivo da confirmação de conta: o SMTP
         // não pode segurar a tela de "candidatura enviada".
         defer(function () use ($candidato, $vagaDrhflow) {

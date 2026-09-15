@@ -36,8 +36,8 @@
         <a href="{{ $redirect ? route('candidato.registro', ['redirect' => $redirect]) : route('candidato.registro') }}" class="font-semibold text-primary hover:underline">Crie sua conta gratuita</a>
     </div>
 
-    <p class="mt-6 text-center text-xs text-muted-foreground">
+    <!-- <p class="mt-6 text-center text-xs text-muted-foreground">
         Coordenador ou gestor?
         <a href="{{ route('login') }}" class="font-medium hover:text-foreground hover:underline">Acesse o painel</a>
-    </p>
+    </p> -->
 </x-layouts.auth>

@@ -100,12 +100,6 @@ class PerfilController extends Controller
             'curriculo' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
         ]);
 
-        // Versão nova em vez de sobrescrita: a anterior precisa continuar
-        // identificável pelos eventos dos processos que a julgaram.
-        if ($request->hasFile('curriculo')) {
-            $candidato->adicionarCurriculo($request->file('curriculo'));
-        }
-
         $dados['cpf'] = preg_replace('/\D/', '', $dados['cpf']);
         $dados['pcd'] = $request->boolean('pcd');
 
@@ -134,6 +128,14 @@ class PerfilController extends Controller
                 $candidato->formacoes()->create($formacao);
             }
         });
+
+        // Depois do update: a pasta e a linha do DRHFlow são as do CPF que acabou
+        // de ser gravado. Versão nova em vez de sobrescrita — a anterior precisa
+        // continuar identificável pelos eventos dos processos que a julgaram.
+        if ($request->hasFile('curriculo')) {
+            $candidato->adicionarCurriculo($request->file('curriculo'));
+            $candidato->registrarCurriculoNoDrhflow();
+        }
 
         // Mexer no perfil é uso da conta tanto quanto entrar nela.
         $candidato->registrarAtividade();

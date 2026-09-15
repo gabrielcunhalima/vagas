@@ -31,10 +31,7 @@
             <div class="{{ $container }} flex h-16 items-center justify-between gap-4">
                 <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-3">
                     <x-logo class="h-9" />
-                    <span class="hidden items-baseline gap-1.5 sm:flex">
-                        <span class="text-sm font-medium text-muted-foreground">Portal de</span>
-                        <span class="text-lg font-bold tracking-tight text-foreground">Vagas</span>
-                    </span>
+                    <span class="hidden text-sm font-bold tracking-tight text-foreground sm:inline">Portal de Vagas</span>
                 </a>
 
                 <div class="flex items-center gap-2.5">

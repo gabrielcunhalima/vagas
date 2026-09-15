@@ -30,15 +30,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Única tabela em que o portal escreve
+    | Tabelas em que o portal escreve
     |--------------------------------------------------------------------------
     |
-    | Toda escrita do portal no DRHFlow acontece nesta tabela e apenas na linha
-    | do CPF autenticado. Ver a capacidade `vagas-drhflow`.
+    | Toda escrita do portal no DRHFlow acontece nestas duas tabelas, e apenas
+    | nas linhas do CPF autenticado: a inscrição, e o apontamento para o PDF do
+    | currículo. Ver a capacidade `vagas-drhflow`.
     |
     */
 
     'tabela_inscricao' => 'EN_CANDIDATO_VAGA_EMPREGO',
+
+    'tabela_curriculo' => 'EN_UPLOAD_CURRICULO',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pasta dos currículos, como o DRHFlow a enxerga
+    |--------------------------------------------------------------------------
+    |
+    | Prefixo gravado em EN_UPLOAD_CURRICULO.NM_ENDERECO_ARQUIVO, seguido do CPF.
+    | É o caminho no servidor de arquivos (.45), não o do disco local — por isso
+    | não é derivado de filesystems.disks.curriculos.root.
+    |
+    */
+
+    'endereco_curriculos' => env('DRHFLOW_ENDERECO_CURRICULOS', '/home/Curriculos'),
 
     /*
     |--------------------------------------------------------------------------

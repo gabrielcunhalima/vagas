@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Candidato;
 use App\Models\CandidatoCurriculo;
+use App\Support\Drhflow\CurriculoDrhflowRepository;
+use App\Support\Drhflow\DrhflowIndisponivelException;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -67,6 +69,8 @@ class RemoverCurriculosExpirados extends Command
                         continue;
                     }
 
+                    $this->esvaziarNoDrhflow($versao);
+
                     DB::transaction(function () use ($versao) {
                         // O perfil fica sem currículo e volta a pedir um novo
                         // antes da próxima candidatura.
@@ -89,5 +93,25 @@ class RemoverCurriculosExpirados extends Command
         $this->info(($simular ? '[simulação] ' : '')."{$removidos} currículo(s) removido(s), {$falhas} falha(s).");
 
         return $falhas > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * Tira de `EN_UPLOAD_CURRICULO` a referência ao PDF que acabou de sair — só
+     * se a linha ainda apontar para ele. Falha aqui não segura a retenção: o
+     * arquivo já foi removido, e uma referência órfã é menos grave que reter.
+     */
+    private function esvaziarNoDrhflow(CandidatoCurriculo $versao): void
+    {
+        if (! preg_match('#^(\d{11})/([^/]+)$#', $versao->path, $partes)) {
+            return;
+        }
+
+        try {
+            app(CurriculoDrhflowRepository::class)->esvaziar($partes[1], somenteSeFor: $partes[2]);
+        } catch (DrhflowIndisponivelException) {
+            Log::warning('Currículo expirado removido, mas a referência no DRHFlow ficou.', [
+                'curriculo_id' => $versao->id,
+            ]);
+        }
     }
 }
